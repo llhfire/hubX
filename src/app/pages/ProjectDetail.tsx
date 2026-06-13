@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import {
   Alert,
   Badge,
@@ -15,14 +15,13 @@ import {
   Message,
   Modal,
   Popconfirm,
-  Progress,
   Select,
   Space,
-  Statistic,
   Table,
   Tabs,
   Tag,
   Timeline,
+  Tooltip,
   Typography,
 } from '@arco-design/web-react';
 import { IconDelete, IconEdit, IconFile, IconLeft, IconLink, IconPlus, IconSend } from '@arco-design/web-react/icon';
@@ -42,10 +41,89 @@ import {
   projectStatuses,
   summarizeProgress,
 } from './project-management/mockData';
+import {
+  buildProjectSummaryCards,
+  type ProjectSummaryCard,
+  type SummaryRiskLevel,
+} from './projectDetailSummary';
+import { initialDeliveryPlans } from './delivery-plan/mockData';
 
 const { Title, Text } = Typography;
 const TabPane = Tabs.TabPane;
 const FormItem = Form.Item;
+
+const SUMMARY_TAG_COLOR_MAP: Record<
+  SummaryRiskLevel,
+  'green' | 'arcoblue' | 'orange' | 'red'
+> = {
+  正常: 'green',
+  注意: 'arcoblue',
+  预警: 'orange',
+  严重: 'red',
+};
+
+function getTodayString() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function SummaryHighlightCard({
+  card,
+  href,
+}: {
+  card: ProjectSummaryCard;
+  href?: string;
+}) {
+  const content = (
+    <Card bodyStyle={{ padding: 16 }} style={{ height: '100%' }}>
+      <Space direction="vertical" size={8} style={{ width: '100%' }}>
+        <div className="flex items-center justify-between gap-3">
+          <Text type="secondary">{card.title}</Text>
+          <Tag color={SUMMARY_TAG_COLOR_MAP[card.level]}>{card.level}</Tag>
+        </div>
+        <div
+          style={{
+            fontSize: 22,
+            fontWeight: 600,
+            lineHeight: '30px',
+            color: 'var(--color-text-1)',
+          }}
+        >
+          {card.value}
+        </div>
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 500,
+            lineHeight: '22px',
+            color: 'var(--color-text-1)',
+          }}
+        >
+          {card.alert}
+        </div>
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          {card.detail}
+        </Text>
+      </Space>
+    </Card>
+  );
+
+  if (!href) {
+    return content;
+  }
+
+  return (
+    <Link
+      to={href}
+      style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}
+    >
+      {content}
+    </Link>
+  );
+}
 
 function statusBadge(status: ProjectStatus) {
   const map: Record<ProjectStatus, 'default' | 'processing' | 'success' | 'warning' | 'error'> = {
@@ -75,6 +153,16 @@ export function ProjectDetail() {
   const [leadForm] = Form.useForm();
   const [followForm] = Form.useForm();
   const [documentForm] = Form.useForm();
+  const [contractModalVisible, setContractModalVisible] = useState(false);
+  const [selectedContractId, setSelectedContractId] = useState<string | undefined>(project.contractId);
+  const hasPlan = !!initialDeliveryPlans[project.id];
+
+  const contractOptions = [
+    { value: '1', label: 'CT20260320001 - 某科技公司年度框架协议' },
+    { value: '2', label: 'HT-2026-002 - B公司小程序定制开发合同' },
+    { value: '3', label: 'HT-2026-003 - 内部OA优化合同' },
+    { value: '4', label: 'HT-2026-004 - A公司CRM系统开发合同' },
+  ];
 
   const projectDailyReports = initialDailyReports.filter((report) => report.projectId === project.id);
   const memberHours = buildProjectMemberHours(project.id, initialDailyReports);
@@ -82,6 +170,20 @@ export function ProjectDetail() {
   const projectLeads = leadRelations.filter((relation) => relation.projectId === project.id);
   const projectFollowUps = followUps.filter((follow) => follow.projectId === project.id);
   const projectDocuments = documents.filter((document) => document.projectId === project.id);
+  const deliveryPlan = initialDeliveryPlans[project.id];
+  const today = getTodayString();
+  const summaryCards = useMemo(
+    () =>
+      buildProjectSummaryCards({
+        project,
+        allProjects: initialProjects,
+        deliveryPlan,
+        memberHours,
+        totalHours,
+        today,
+      }),
+    [deliveryPlan, memberHours, project, today, totalHours],
+  );
 
   const filteredAvailableLeads = useMemo(() => {
     const linkedLeadNos = new Set(projectLeads.map((lead) => lead.leadNo));
@@ -259,10 +361,18 @@ export function ProjectDetail() {
       </div>
 
       <Grid.Row gutter={16} style={{ marginBottom: 16 }}>
-        <Grid.Col span={6}><Card><Statistic title="总进度" value={project.progress} suffix="%" /><Progress percent={project.progress} size="small" /></Card></Grid.Col>
-        <Grid.Col span={6}><Card><Statistic title="负责人" value={project.owner} /></Card></Grid.Col>
-        <Grid.Col span={6}><Card><Statistic title="预计结束日期" value={project.expectedEndDate || '-'} /></Card></Grid.Col>
-        <Grid.Col span={6}><Card><Statistic title="已用总工时" value={totalHours} suffix="H" /></Card></Grid.Col>
+        {summaryCards.map((card) => (
+          <Grid.Col span={6} key={card.key}>
+            <SummaryHighlightCard
+              card={card}
+              href={
+                card.key === 'delivery'
+                  ? `/projects/${project.id}/delivery`
+                  : undefined
+              }
+            />
+          </Grid.Col>
+        ))}
       </Grid.Row>
 
       <Alert type="info" style={{ marginBottom: 16 }} content="成本核算将在后续阶段接入人工成本设置、项目报销、投放日消耗、回款和利润分析；当前阶段先沉淀项目工时入口。" />
@@ -291,11 +401,34 @@ export function ProjectDetail() {
                     { label: 'UI', value: project.uiUsers.join('、') || '-' },
                     { label: '前端', value: project.frontendUsers.join('、') || '-' },
                     { label: '后端', value: project.backendUsers.join('、') || '-' },
+                    { label: '运维', value: project.opsUsers.join('、') || '-' },
+                    { label: '测试', value: project.testUsers.join('、') || '-' },
+                    { label: '法务', value: project.legalUsers.join('、') || '-' },
                     { label: '开始日期', value: project.startDate || '-' },
                     { label: '预计结束日期', value: project.expectedEndDate || '-' },
                     { label: '备注', value: project.remark || '-' },
                   ]}
                 />
+                <Divider orientation="left">合同关联</Divider>
+                <Space>
+                  <Text type="secondary">关联合同：</Text>
+                  {project.contractId ? (
+                    <>
+                      <Tag color="blue">{project.contractId}</Tag>
+                      <Tooltip content={hasPlan ? '请先删除交付计划' : ''}>
+                        <Button type="text" size="small" disabled={hasPlan} onClick={() => { setSelectedContractId(project.contractId); setContractModalVisible(true); }}>更换</Button>
+                      </Tooltip>
+                      <Popconfirm title="确认解除合同关联吗？" onOk={() => setProject({...project, contractId: undefined})}>
+                        <Button type="text" size="small" status="danger" disabled={hasPlan}>解除</Button>
+                      </Popconfirm>
+                    </>
+                  ) : (
+                    <>
+                      <Text type="secondary">未关联</Text>
+                      <Button type="text" size="small" onClick={() => { setSelectedContractId(undefined); setContractModalVisible(true); }}>选择合同</Button>
+                    </>
+                  )}
+                </Space>
                 <Divider orientation="left">附件列表</Divider>
                 {project.attachments.length ? (
                   <Space direction="vertical" style={{ width: '100%' }}>
@@ -388,6 +521,14 @@ export function ProjectDetail() {
           <FormItem label="负责人" field="owner" rules={[{ required: true, message: '请选择负责人' }]}><Select>{[project.owner, ...project.assistants, ...project.productUsers, ...project.uiUsers, ...project.frontendUsers, ...project.backendUsers].filter(Boolean).map((user) => <Select.Option key={user} value={user}>{user}</Select.Option>)}</Select></FormItem>
           <FormItem label="上传文档" field="uploadedFileName"><Input placeholder="第一版模拟上传，填写文件名" /></FormItem>
           <FormItem label="文档说明" field="description"><Input.TextArea rows={3} /></FormItem>
+        </Form>
+      </Modal>
+
+      <Modal title="关联合同" visible={contractModalVisible} onOk={() => { if (selectedContractId) { setProject({...project, contractId: selectedContractId}); } setContractModalVisible(false); }} onCancel={() => setContractModalVisible(false)} style={{ width: 480 }}>
+        <Form layout="vertical">
+          <FormItem label="选择合同">
+            <Select placeholder="请选择合同" options={contractOptions} value={selectedContractId} onChange={setSelectedContractId} />
+          </FormItem>
         </Form>
       </Modal>
     </div>
