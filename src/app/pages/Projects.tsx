@@ -54,6 +54,9 @@ type ProjectFormValues = {
   uiUsers?: string[];
   frontendUsers?: string[];
   backendUsers?: string[];
+  opsUsers?: string[];
+  testUsers?: string[];
+  legalUsers?: string[];
   progress?: number;
   startDate?: any;
   expectedEndDate?: any;
@@ -138,6 +141,9 @@ export function Projects() {
         uiUsers: values.uiUsers || [],
         frontendUsers: values.frontendUsers || [],
         backendUsers: values.backendUsers || [],
+        opsUsers: values.opsUsers || [],
+        testUsers: values.testUsers || [],
+        legalUsers: values.legalUsers || [],
         progress: values.progress ?? 0,
         startDate: toDateString(values.startDate),
         expectedEndDate: toDateString(values.expectedEndDate),
@@ -286,6 +292,11 @@ export function Projects() {
             <Grid.Col span={6}><FormItem label="UI" field="uiUsers"><Select mode="multiple" allowClear>{roleEmployees.ui.map((item) => <Select.Option key={item} value={item}>{item}</Select.Option>)}</Select></FormItem></Grid.Col>
             <Grid.Col span={6}><FormItem label="前端" field="frontendUsers"><Select mode="multiple" allowClear>{roleEmployees.frontend.map((item) => <Select.Option key={item} value={item}>{item}</Select.Option>)}</Select></FormItem></Grid.Col>
             <Grid.Col span={6}><FormItem label="后端" field="backendUsers"><Select mode="multiple" allowClear>{roleEmployees.backend.map((item) => <Select.Option key={item} value={item}>{item}</Select.Option>)}</Select></FormItem></Grid.Col>
+          </Grid.Row>
+          <Grid.Row gutter={16}>
+            <Grid.Col span={8}><FormItem label="运维" field="opsUsers"><Select mode="multiple" allowClear>{roleEmployees.ops.map((item) => <Select.Option key={item} value={item}>{item}</Select.Option>)}</Select></FormItem></Grid.Col>
+            <Grid.Col span={8}><FormItem label="测试" field="testUsers"><Select mode="multiple" allowClear>{roleEmployees.test.map((item) => <Select.Option key={item} value={item}>{item}</Select.Option>)}</Select></FormItem></Grid.Col>
+            <Grid.Col span={8}><FormItem label="法务" field="legalUsers"><Select mode="multiple" allowClear>{roleEmployees.legal.map((item) => <Select.Option key={item} value={item}>{item}</Select.Option>)}</Select></FormItem></Grid.Col>
           </Grid.Row>
           <Grid.Row gutter={16}>
             <Grid.Col span={12}><FormItem label="开始日期" field="startDate"><DatePicker style={{ width: '100%' }} /></FormItem></Grid.Col>

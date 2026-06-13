@@ -17,6 +17,7 @@ import {
   Upload,
 } from '@arco-design/web-react';
 import { IconSearch, IconPlus, IconEye, IconDownload } from '@arco-design/web-react/icon';
+import { DELIVERY_TYPES } from './delivery-plan/types';
 
 const Title = Typography.Title;
 
@@ -40,6 +41,7 @@ export function Contracts() {
       received: 80,
       receivable: 40,
       progress: 75,
+      deliveryType: '全平台',
     },
     {
       key: '2',
@@ -55,6 +57,7 @@ export function Contracts() {
       received: 100,
       receivable: 100,
       progress: 45,
+      deliveryType: '小程序',
     },
     {
       key: '3',
@@ -70,6 +73,7 @@ export function Contracts() {
       received: 40,
       receivable: 45,
       progress: 30,
+      deliveryType: '网站',
     },
     {
       key: '4',
@@ -318,6 +322,12 @@ export function Contracts() {
               tip="支持PDF、Word、图片格式，单个文件不超过10MB"
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
             />
+          </Form.Item>
+
+          <Form.Item label="交付类型" field="deliveryType" rules={[{ required: true, message: '请选择交付类型' }]}>
+            <Select placeholder="请选择交付类型">
+              {DELIVERY_TYPES.map((t) => <Select.Option key={t} value={t}>{t}</Select.Option>)}
+            </Select>
           </Form.Item>
 
           <Form.Item label="备注" field="remark">

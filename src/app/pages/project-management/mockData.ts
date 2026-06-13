@@ -24,6 +24,9 @@ export interface Project {
   uiUsers: string[];
   frontendUsers: string[];
   backendUsers: string[];
+  opsUsers: string[];
+  testUsers: string[];
+  legalUsers: string[];
   progress: number;
   startDate: string;
   expectedEndDate: string;
@@ -101,6 +104,9 @@ export const roleEmployees = {
   ui: ['孙七', '周八'],
   frontend: ['王五', '钱九'],
   backend: ['赵六', '周八'],
+  ops: ['周八', '王五'],
+  test: ['钱九', '赵六'],
+  legal: ['张三'],
 };
 
 export const initialProjects: Project[] = [
@@ -120,6 +126,9 @@ export const initialProjects: Project[] = [
     uiUsers: ['孙七'],
     frontendUsers: ['王五'],
     backendUsers: ['赵六'],
+    opsUsers: ['周八'],
+    testUsers: ['钱九'],
+    legalUsers: ['张三'],
     progress: 65,
     startDate: '2026-05-01',
     expectedEndDate: '2026-06-30',
@@ -144,6 +153,9 @@ export const initialProjects: Project[] = [
     uiUsers: ['周八'],
     frontendUsers: ['王五'],
     backendUsers: ['赵六'],
+    opsUsers: ['王五'],
+    testUsers: ['钱九'],
+    legalUsers: [],
     progress: 90,
     startDate: '2026-04-10',
     expectedEndDate: '2026-05-20',
@@ -168,6 +180,9 @@ export const initialProjects: Project[] = [
     uiUsers: [],
     frontendUsers: ['钱九'],
     backendUsers: ['周八'],
+    opsUsers: [],
+    testUsers: [],
+    legalUsers: [],
     progress: 0,
     startDate: '2026-06-01',
     expectedEndDate: '2026-07-15',

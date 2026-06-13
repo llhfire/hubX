@@ -36,6 +36,7 @@ import { LeadCostRecharge } from "./pages/lead-cost/LeadCostRecharge";
 import { LeadCostAnalysis } from "./pages/lead-cost/LeadCostAnalysis";
 import { SalaryPage } from "./pages/contract-cost/SalaryPage";
 import { ContractCostDetail } from "./pages/contract-cost/ContractCostDetail";
+import DeliveryPlanPage from "./pages/delivery-plan/DeliveryPlanPage";
 
 export const router = createBrowserRouter([
   {
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
       { path: "contracts/:id", Component: ContractDetail },
       { path: "projects", Component: Projects },
       { path: "projects/:id", Component: ProjectDetail },
+      { path: "projects/:id/delivery", Component: DeliveryPlanPage },
       { path: "dailyreport/list", Component: DailyReportList },
       { path: "dailyreport/view", Component: DailyReportView },
       { path: "dailyreport/projectlog", Component: ProjectLogView },
