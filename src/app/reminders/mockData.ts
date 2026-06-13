@@ -20,7 +20,11 @@ export interface Contract {
   amount: number
   signingDate: string
   expireDate: string
-  status: 'draft' | 'active' | 'expired'
+  status: 'draft' | 'active' | 'expired' | 'pending_return'
+  // pending_return 状态下用于判断"客户回寄超期"
+  mailedAt?: string
+  // draft 状态下用于判断"草稿停留过久"
+  createdAt?: string
 }
 
 export interface Lead {

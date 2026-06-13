@@ -195,4 +195,118 @@ describe('buildReminders', () => {
 
     expect(commentReminderIds).not.toContain('comment-other-report')
   })
+
+  test('triggers contract_mail_overdue when mailedAt is at least 7 days before now', () => {
+    const now = new Date('2026-06-13T18:30:00')
+    const data: ReminderData = {
+      ...mockReminderData,
+      contracts: [
+        {
+          id: 'contract-mail-overdue',
+          name: 'H公司技术服务合同',
+          customerName: 'H公司',
+          amount: 480000,
+          signingDate: '2026-06-01',
+          expireDate: '2027-06-04',
+          status: 'pending_return',
+          mailedAt: '2026-06-04T10:00:00.000Z', // 9 天前
+        },
+      ],
+    }
+
+    const items = buildReminders(data, now).filter(
+      (item) => item.type === 'contract_mail_overdue',
+    )
+    expect(items).toHaveLength(1)
+    expect(items[0].id).toBe('contract-mail-overdue-mail-overdue')
+    expect(items[0].priority).toBe('high')
+    expect(items[0].actionTarget).toEqual({
+      kind: 'route',
+      path: '/contracts/contract-mail-overdue',
+    })
+  })
+
+  test('does not trigger contract_mail_overdue when mailedAt is within 7 days', () => {
+    const now = new Date('2026-06-13T18:30:00')
+    const data: ReminderData = {
+      ...mockReminderData,
+      contracts: [
+        {
+          id: 'contract-still-fresh',
+          name: '刚寄出合同',
+          customerName: 'I公司',
+          amount: 100000,
+          signingDate: '2026-06-01',
+          expireDate: '2027-06-01',
+          status: 'pending_return',
+          mailedAt: '2026-06-10T10:00:00.000Z', // 3 天前
+        },
+      ],
+    }
+
+    const items = buildReminders(data, now).filter(
+      (item) => item.type === 'contract_mail_overdue',
+    )
+    expect(items).toHaveLength(0)
+  })
+
+  test('triggers contract_draft_stale when draft was created 7+ days ago', () => {
+    const now = new Date('2026-06-13T18:30:00')
+    const data: ReminderData = {
+      ...mockReminderData,
+      contracts: [
+        {
+          id: 'contract-draft-stale',
+          name: '陈年草稿',
+          customerName: 'J公司',
+          amount: 200000,
+          signingDate: '2026-06-01',
+          expireDate: '2027-06-01',
+          status: 'draft',
+          createdAt: '2026-06-03T09:00:00.000Z', // 10 天前
+        },
+      ],
+    }
+
+    const items = buildReminders(data, now).filter(
+      (item) => item.type === 'contract_draft_stale',
+    )
+    expect(items).toHaveLength(1)
+    expect(items[0].id).toBe('contract-draft-stale-draft-stale')
+    expect(items[0].priority).toBe('medium')
+  })
+
+  test('does not trigger contract_draft_stale on fresh drafts or non-draft status', () => {
+    const now = new Date('2026-06-13T18:30:00')
+    const data: ReminderData = {
+      ...mockReminderData,
+      contracts: [
+        {
+          id: 'fresh-draft',
+          name: '新草稿',
+          customerName: 'K公司',
+          amount: 100000,
+          signingDate: '2026-06-01',
+          expireDate: '2027-06-01',
+          status: 'draft',
+          createdAt: '2026-06-12T09:00:00.000Z', // 1 天前
+        },
+        {
+          id: 'old-but-active',
+          name: '已生效合同',
+          customerName: 'L公司',
+          amount: 100000,
+          signingDate: '2026-01-01',
+          expireDate: '2027-01-01',
+          status: 'active',
+          createdAt: '2026-01-01T09:00:00.000Z', // 早于 7 天，但不是 draft
+        },
+      ],
+    }
+
+    const items = buildReminders(data, now).filter(
+      (item) => item.type === 'contract_draft_stale',
+    )
+    expect(items).toHaveLength(0)
+  })
 })

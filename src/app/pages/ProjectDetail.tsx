@@ -24,7 +24,7 @@ import {
   Tooltip,
   Typography,
 } from '@arco-design/web-react';
-import { IconDelete, IconEdit, IconFile, IconLeft, IconLink, IconPlus, IconSend } from '@arco-design/web-react/icon';
+import { IconDelete, IconEdit, IconFile, IconLeft, IconLink, IconPlus } from '@arco-design/web-react/icon';
 import {
   ProjectDocument,
   ProjectFollowUp,
@@ -357,7 +357,6 @@ export function ProjectDetail() {
           <Title heading={4} style={{ margin: 0 }}>{project.name}</Title>
           {statusBadge(project.status)}
         </Space>
-        <Button type="primary" icon={<IconSend />} onClick={openFollowModal}>新增跟进</Button>
       </div>
 
       <Grid.Row gutter={16} style={{ marginBottom: 16 }}>

@@ -5,6 +5,8 @@ export type ReminderType =
   | 'approval_pending'
   | 'approval_result'
   | 'contract_expiring'
+  | 'contract_mail_overdue'
+  | 'contract_draft_stale'
   | 'lead_followup_overdue'
 
 export type ReminderPriority = 'high' | 'medium' | 'low'

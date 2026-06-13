@@ -9,6 +9,8 @@ import { Customers } from "./pages/Customers";
 import { CustomerDetail } from "./pages/CustomerDetail";
 import { Contracts } from "./pages/Contracts";
 import { ContractDetail } from "./pages/ContractDetail";
+import { ContractWizard } from "./pages/contracts/ContractWizard";
+import { ContractEditor } from "./pages/contracts/ContractEditor";
 import { Projects } from "./pages/Projects";
 import { ProjectDetail } from "./pages/ProjectDetail";
 import { Reports } from "./pages/Reports";
@@ -55,6 +57,8 @@ export const router = createBrowserRouter([
       { path: "customers", Component: Customers },
       { path: "customers/:id", Component: CustomerDetail },
       { path: "contracts", Component: Contracts },
+      { path: "contracts/new", Component: ContractWizard },
+      { path: "contracts/:id/edit", Component: ContractEditor },
       { path: "contracts/:id", Component: ContractDetail },
       { path: "projects", Component: Projects },
       { path: "projects/:id", Component: ProjectDetail },

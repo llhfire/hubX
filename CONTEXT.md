@@ -98,3 +98,88 @@ SOP 步骤执行人从角色到项目成员的自动映射规则：
 ### 逾期步骤
 
 截止日期 < 今天且状态为 pending 或 in_progress 的步骤。甘特图上横条变红 + 右端警告图标标识。底部汇总条中逾期数标红。
+
+## 合同模块
+
+合同从线索建立、内部审批、打印盖章寄出、客户回寄、扫描归档的完整生命周期。代码在 `src/app/pages/contracts/`，状态由 `ContractsContext` 全局提供。
+
+### 合同（Contract）
+
+**主体对象**。一份合同有唯一编号 `CT{YYYYMMDD}{seq}`、当前内容（`current` 字段，即编辑页直接读写的合同字段）、版本快照历史、审批流程、扫描件归档列表。审批和"已审批"标记贴在合同对象上（`approvalFlow / approvedVersionNo`），不绑定在某个版本上。
+
+合同与线索/报价单关系：`leadId / quoteId` 是身份字段，**创建后不可修改**。
+
+### 合同状态机
+
+合同状态共 6 个：
+
+- **草稿（draft）**：销售拟稿中，可反复修改
+- **审批中（approving）**：已提交审批，等审批节点处理
+- **待寄出（pending_mail）**：审批通过，等行政打印盖章寄出
+- **待回寄（pending_return）**：已寄出客户，等签字盖章后回寄
+- **已归档（archived）**：客户回寄件已扫描入库
+- **已作废（voided）**：终态，不可恢复
+
+合法转换：
+```
+draft → approving | voided
+approving → draft (驳回) | pending_mail (通过) | voided
+pending_mail → pending_return | draft (撤回) | voided
+pending_return → archived (上传扫描件触发) | pending_mail (寄丢重做) | voided
+archived → archived (补充扫描件) | voided
+voided → ∅
+```
+
+合法性校验函数：`contracts/utils.ts canTransitionTo(from, to)`。
+
+### 版本（ContractVersion）
+
+合同 `current` 在关键节点的**完整快照**，包含 `formData` + `templateId` + `renderedHtml`。**不是独立可审批对象**，不能"V2 已审批 + V3 待审批"并存。审批通过后，`approvedVersionNo` 指向当时被审批所基于的快照。
+
+版本生成时机（在 `ContractsContext` 内部）：
+- `createFromWizard` 落 V1，label = "首次保存草稿"
+- 编辑页"保存为新版本"由用户填 label
+- "提交审批" 自动落版本，label = "提交审批前自动保存"（驳回再提交时为"驳回后再次提交"）
+
+### 审批流程
+
+4 节点串行写死：发起申请 → 商务审核 → 财务审核 → 法务审核。审批人按角色固定（"王经理 - 商务主管"、"陈财务 - 财务总监"、"赵律师 - 法务部"）。**当前没有审批流配置页**，超出原型范畴。
+
+### 合同模板
+
+3 份内置 HTML 模板（`templates/softwareSales.ts` / `serviceContract.ts` / `cloudService.ts`），带占位符；每份模板暴露 `render(formData)` 返回完整正文 HTML。用 `getTemplatesByCategory(productCategory)` 按产品类别过滤。
+
+模板正文样式（A4 纸 + 草案水印 + 签章占位）由 `templates/shared.ts wrapDocument` 统一包装。**不生成 PDF**：编辑页和详情页都用 `dangerouslySetInnerHTML` 直接渲染 HTML；将来要打印用浏览器原生 `window.print()`。
+
+### 扫描件归档（ScanArchiveEntry）
+
+挂在合同上（`archivedScans[]`），每条记录是**一组文件**（合同正文 + 客户盖章页 + 附件可一次上传组合成一条），数组里同时只有一条 `isPrimary === true`。**上传扫描件即归档**：状态从 `pending_return` → `archived` 由 `uploadScan()` 自动触发；状态已是 `archived` 时上传是"补充扫描件"，状态不变。
+
+文件存储用 `URL.createObjectURL` 内存态；只支持 PDF 和图片，单文件 ≤ 20MB。**刷新页面丢数据**，与项目其他 mock 内存态约定一致。
+
+### 合同与报价单/线索的字段映射
+
+从线索建合同（Wizard）时的带入规则：
+- 客户公司全称 / 税号 / 银行 / 地址：来自客户主体（`findCompanyEntityByName`）
+- 客户联系人 / 电话 / 邮箱：来自线索本身
+- 合同总额 / 报价主体 / 工期：来自最近一份"已审批通过"的报价单（`findLatestApprovedQuote`）
+- 没有"已审批通过"报价单时弹软提醒，但允许继续
+
+身份字段（合同编号 / 关联线索 / 关联报价单）创建后**不可改**；金额可改但若与报价单不一致会显示 `QuoteMismatchAlert` 提醒。
+
+### 提醒系统对合同的扩展
+
+`getContractReminders` adapter 覆盖 3 类合同提醒（阈值都是 7 天）：
+- `contract_expiring`：履约中合同 7 天内到期
+- `contract_mail_overdue`：`pending_return` 状态 + `mailedAt` 早于 7 天（客户回寄超期）
+- `contract_draft_stale`：`draft` 状态 + `createdAt` 早于 7 天（草稿停留过久）
+
+提醒触发的 mock 数据见 `reminders/mockData.ts`，类型定义见 `reminders/types.ts`。
+
+### 与其他模块的衔接
+
+- **从线索进入**：`LeadDetail.tsx` 的「合同记录」Tab 卡片右上角「新建合同」按钮跳 `/contracts/new?leadId=...&quoteId=...`
+- **路由**：`/contracts`（列表）/ `/contracts/new`（Wizard）/ `/contracts/:id`（详情）/ `/contracts/:id/edit`（编辑）
+- **合同→项目**：合同 `archived` 之后由项目模块（`pages/project-management/`）接管"项目里程碑"展示
+- **合同→财务**：履行期合同的回款、成本由 `pages/contract-cost/` 模块负责
+

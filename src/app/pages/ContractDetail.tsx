@@ -1,31 +1,33 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router';
 import {
   Card,
-  Button,
   Descriptions,
-  Tag,
+  Tabs,
   Timeline,
   Table,
   Progress,
   Space,
-  Tabs,
-  Avatar,
   Divider,
   Grid,
-  Message,
+  Result,
+  Button,
+  Select,
+  Tag,
 } from '@arco-design/web-react';
 import {
   IconLeft,
-  IconEdit,
-  IconDownload,
-  IconUpload,
-  IconLink,
-  IconFile,
   IconCheckCircleFill,
   IconCloseCircleFill,
   IconClockCircle,
 } from '@arco-design/web-react/icon';
+import { useContracts } from './contracts/ContractsContext';
+import { ContractStatusBadge } from './contracts/components/ContractStatusBadge';
+import { ContractActionBar } from './contracts/components/ContractActionBar';
+import { VersionTimeline } from './contracts/components/VersionTimeline';
+import { ScanFileList } from './contracts/components/ScanFileList';
+import { ContractFlowProgress } from './contracts/components/ContractFlowProgress';
+import { CONTRACT_STATUS_LABEL } from './contracts/utils';
 
 const { Row, Col } = Grid;
 const TabPane = Tabs.TabPane;
@@ -33,200 +35,83 @@ const TabPane = Tabs.TabPane;
 export function ContractDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('electronic');
+  const { getById, uploadScan, setPrimaryScan } = useContracts();
 
-  // 模拟合同数据
-  const contractData = {
-    id: '1',
-    contractNo: 'CT20260320001',
-    contractName: '某科技公司年度框架协议',
-    status: '履行中',
-    signingEntity: '北京科技有限公司',
-    salesPerson: '张三',
-    department: '销售部',
-    productCategory: '软件开发',
-    deliveryType: '全平台',
-    signDate: '2026-03-20',
-    effectiveDate: '2026-04-01',
-    endDate: '2026-09-30',
-    customerName: '某科技有限公司',
-    customerContact: '李经理',
-    customerPhone: '13800138000',
-    customerTaxNo: '91110000MA01ABCD1E',
-    totalAmount: 500000,
-    receivedAmount: 300000,
-    receivableAmount: 200000,
-    receivedRate: 60,
-    approvalFlow: [
-      {
-        step: '发起申请',
-        approver: '张三 - 销售',
-        status: 'approved',
-        time: '2026-03-18 14:30',
-        comment: '提交合同审批',
-        duration: '0小时',
-      },
-      {
-        step: '商务审核',
-        approver: '王经理 - 商务主管',
-        status: 'approved',
-        time: '2026-03-18 16:20',
-        comment: '合同条款符合规范，同意',
-        duration: '1.8小时',
-      },
-      {
-        step: '财务审核',
-        approver: '陈财务 - 财务总监',
-        status: 'approved',
-        time: '2026-03-19 09:15',
-        comment: '款项计划合理，批准',
-        duration: '16.9小时',
-      },
-      {
-        step: '法务审核',
-        approver: '赵律师 - 法务部',
-        status: 'approved',
-        time: '2026-03-19 14:30',
-        comment: '法律风险可控，通过',
-        duration: '5.3小时',
-      },
-    ],
-    paymentPlan: [
-      {
-        period: '第1期',
-        expectedDate: '2026-04-15',
-        percentage: 40,
-        expectedAmount: 200000,
-        actualDate: '2026-04-14',
-        actualAmount: 200000,
-        status: '已到账',
-        overdue: false,
-      },
-      {
-        period: '第2期',
-        expectedDate: '2026-06-15',
-        percentage: 30,
-        expectedAmount: 150000,
-        actualDate: '2026-06-16',
-        actualAmount: 100000,
-        status: '部分到账',
-        overdue: true,
-      },
-      {
-        period: '第3期',
-        expectedDate: '2026-09-30',
-        percentage: 30,
-        expectedAmount: 150000,
-        actualDate: '',
-        actualAmount: 0,
-        status: '未到账',
-        overdue: false,
-      },
-    ],
-    projectMilestones: [
-      { name: '项目立项', completed: true, date: '2026-04-01' },
-      { name: '需求调研', completed: true, date: '2026-04-15' },
-      { name: '设计开发', completed: true, date: '2026-06-20' },
-      { name: '测试验收', completed: false, date: '' },
-      { name: '项目交付', completed: false, date: '' },
-    ],
-    recentLogs: [
-      {
-        id: '1',
-        time: '2026-05-12 15:30',
-        user: '财务部-王会计',
-        action: '确认第二期回款到账',
-        type: 'finance',
-      },
-      {
-        id: '2',
-        time: '2026-05-10 10:20',
-        user: '项目经理-李工',
-        action: '项目通过初验',
-        type: 'project',
-      },
-      {
-        id: '3',
-        time: '2026-05-08 14:00',
-        user: '张三',
-        action: '上传了验收报告',
-        type: 'document',
-      },
-      {
-        id: '4',
-        time: '2026-04-25 16:45',
-        user: '张三',
-        action: '修改了合同关联的报价明细',
-        type: 'edit',
-      },
-    ],
-    relatedDocs: [
-      { id: '1', name: '报价单-QT20260315001.pdf', size: '1.2MB', type: 'quotation' },
-      { id: '2', name: '验收报告.docx', size: '856KB', type: 'acceptance' },
-      { id: '3', name: '发票存根-001.jpg', size: '2.1MB', type: 'invoice' },
-    ],
-  };
+  const contract = getById(id);
+
+  // 版本切换：默认显示审批通过的版本，没有就显示最新一个版本
+  const defaultVersionNo = useMemo(() => {
+    if (!contract) return null;
+    return (
+      contract.approvedVersionNo ??
+      contract.versionHistory[contract.versionHistory.length - 1]?.versionNo ??
+      null
+    );
+  }, [contract]);
+
+  const [selectedVersionNo, setSelectedVersionNo] = useState<string | null>(defaultVersionNo);
+  // 当 contract 变化（创建新版本等）时，自动跟到 default
+  if (contract && selectedVersionNo === null && defaultVersionNo) {
+    setSelectedVersionNo(defaultVersionNo);
+  }
+
+  const [activeTab, setActiveTab] = useState('document');
+
+  if (!contract) {
+    return (
+      <Result
+        status="404"
+        title="合同不存在"
+        subTitle="该合同可能已被删除，或链接有误。"
+        extra={
+          <Button type="primary" onClick={() => navigate('/contracts')}>
+            返回合同列表
+          </Button>
+        }
+      />
+    );
+  }
+
+  const selectedVersion =
+    contract.versionHistory.find((v) => v.versionNo === selectedVersionNo) ??
+    contract.versionHistory[contract.versionHistory.length - 1];
+
+  // 是否展示审批 Timeline：仅当所选版本是审批所基于的版本时
+  const showApprovalForSelected = selectedVersionNo === contract.approvedVersionNo
+    || (contract.status === 'approving' &&
+      selectedVersionNo === contract.versionHistory[contract.versionHistory.length - 1]?.versionNo);
+
+  const cd = contract.current;
 
   const paymentColumns = [
-    {
-      title: '期数',
-      dataIndex: 'period',
-      width: 100,
-    },
-    {
-      title: '预计回款日期',
-      dataIndex: 'expectedDate',
-      width: 130,
-    },
+    { title: '期数', dataIndex: 'period', width: 80, render: (n: number) => `第 ${n} 期` },
+    { title: '预计回款日期', dataIndex: 'expectedDate', width: 130 },
     {
       title: '比例',
       dataIndex: 'percentage',
       width: 80,
-      render: (val: number) => `${val}%`,
+      render: (val: number) => `${val.toFixed(2)}%`,
     },
     {
-      title: '预计金额',
-      dataIndex: 'expectedAmount',
+      title: '金额',
+      dataIndex: 'amount',
       width: 120,
       render: (val: number) => `¥${val.toLocaleString()}`,
     },
-    {
-      title: '实际回款日期',
-      dataIndex: 'actualDate',
-      width: 130,
-      render: (val: string) => val || '-',
-    },
-    {
-      title: '实际金额',
-      dataIndex: 'actualAmount',
-      width: 120,
-      render: (val: number) => (val > 0 ? `¥${val.toLocaleString()}` : '-'),
-    },
-    {
-      title: '核销状态',
-      dataIndex: 'status',
-      width: 120,
-      render: (status: string, record: any) => {
-        const colorMap: Record<string, string> = {
-          已到账: 'green',
-          部分到账: 'orange',
-          未到账: 'gray',
-        };
-        return (
-          <Space>
-            <Tag color={colorMap[status]}>{status}</Tag>
-            {record.overdue && <Tag color="red">超期</Tag>}
-          </Space>
-        );
-      },
-    },
   ];
 
-  const getAvatarColor = (name: string) => {
-    const colors = ['#165DFF', '#14C9C9', '#F7BA1E', '#F53F3F', '#722ED1'];
-    const index = name.charCodeAt(0) % colors.length;
-    return colors[index];
-  };
+  const totalAmount = cd.totalAmount;
+  const receivedAmount = contract.receivedAmount ?? 0;
+  const receivableAmount = (contract.receivableAmount ?? totalAmount - receivedAmount);
+  const receivedRate = totalAmount > 0 ? Math.round((receivedAmount / totalAmount) * 100) : 0;
+
+  // 上传扫描件回调
+  const uploadEnabled = contract.status === 'pending_return' || contract.status === 'archived';
+  const uploadIntent: 'first' | 'supplemental' | null = contract.status === 'pending_return'
+    ? 'first'
+    : contract.status === 'archived'
+      ? 'supplemental'
+      : null;
 
   return (
     <div>
@@ -238,34 +123,35 @@ export function ContractDetail() {
               返回
             </Button>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 20, fontWeight: 600 }}>{contractData.contractName}</span>
-                <Tag
-                  color={
-                    contractData.status === '履行中'
-                      ? 'arcoblue'
-                      : contractData.status === '已结案'
-                      ? 'green'
-                      : 'red'
-                  }
-                  size="large"
-                >
-                  {contractData.status}
-                </Tag>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 20, fontWeight: 600 }}>{cd.contractName}</span>
+                <ContractStatusBadge status={contract.status} />
+                {contract.executionStatus && (
+                  <Tag color="purple">履行：{contract.executionStatus}</Tag>
+                )}
               </div>
               <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginTop: 4 }}>
-                合同编号：{contractData.contractNo}
+                合同编号：{contract.contractNo}
+                <span style={{ marginLeft: 16 }}>
+                  当前查看版本：
+                  <Select
+                    size="mini"
+                    value={selectedVersionNo ?? undefined}
+                    onChange={setSelectedVersionNo}
+                    style={{ width: 200, marginLeft: 4 }}
+                  >
+                    {contract.versionHistory.map((v) => (
+                      <Select.Option key={v.versionNo} value={v.versionNo}>
+                        {v.versionNo} · {v.label}
+                        {v.versionNo === contract.approvedVersionNo ? ' ✅' : ''}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </span>
               </div>
             </div>
           </div>
-          <Space>
-            <Button icon={<IconEdit />}>编辑</Button>
-            <Button icon={<IconDownload />}>下载电子版</Button>
-            <Button icon={<IconUpload />}>上传扫描件</Button>
-            <Button type="primary" icon={<IconLink />}>
-              关联项目
-            </Button>
-          </Space>
+          <ContractActionBar contract={contract} />
         </div>
       </Card>
 
@@ -277,15 +163,14 @@ export function ContractDetail() {
             <Descriptions
               column={4}
               data={[
-                { label: '签约主体', value: contractData.signingEntity },
-                { label: '业务员', value: contractData.salesPerson },
-                { label: '所属部门', value: contractData.department },
-                { label: '产品类别', value: contractData.productCategory },
-                { label: '交付类型', value: contractData.deliveryType },
-                { label: '签约日期', value: contractData.signDate },
-                { label: '生效日期', value: contractData.effectiveDate },
-                { label: '终止日期', value: contractData.endDate },
-                { label: '', value: '' },
+                { label: '签约主体', value: cd.signingEntity },
+                { label: '产品类别', value: cd.productCategory },
+                { label: '合同总额', value: `¥${cd.totalAmount.toLocaleString()}` },
+                { label: '付款方式', value: cd.paymentMethod },
+                { label: '签约日期', value: cd.signDate },
+                { label: '生效日期', value: cd.effectiveDate },
+                { label: '终止日期', value: cd.endDate },
+                { label: '创建人', value: contract.createdBy },
               ]}
             />
 
@@ -295,116 +180,110 @@ export function ContractDetail() {
             <Descriptions
               column={4}
               data={[
-                { label: '公司名称', value: contractData.customerName },
-                { label: '联系人', value: contractData.customerContact },
-                { label: '联系电话', value: contractData.customerPhone },
-                { label: '税务登记号', value: contractData.customerTaxNo },
+                { label: '公司名称', value: cd.customerName },
+                { label: '联系人', value: cd.customerContact },
+                { label: '联系电话', value: cd.customerPhone },
+                { label: '税务登记号', value: cd.customerTaxNo || '—' },
               ]}
             />
           </Card>
 
-          {/* 合同文本查看器 */}
-          <Card title="合同文本" style={{ marginBottom: 16 }}>
+          {/* 合同正文 / 扫描件归档 */}
+          <Card title="合同文件" style={{ marginBottom: 16 }}>
             <Tabs activeTab={activeTab} onChange={setActiveTab}>
-              <TabPane key="electronic" title="电子版合同">
-                <div
-                  style={{
-                    background: '#f7f8fa',
-                    padding: 40,
-                    minHeight: 400,
-                    borderRadius: 6,
-                    textAlign: 'center',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'column',
-                  }}
-                >
-                  <IconFile style={{ fontSize: 64, color: 'var(--color-text-3)' }} />
-                  <div style={{ marginTop: 16, fontSize: 14, color: 'var(--color-text-2)' }}>
-                    PDF 预览区域
-                  </div>
-                  <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-text-3)' }}>
-                    嵌入式 PDF 预览器，展示系统生成的带水印/签章版本
-                  </div>
-                </div>
+              <TabPane key="document" title="合同正文">
+                {selectedVersion ? (
+                  <div
+                    style={{
+                      background: '#f7f8fa',
+                      padding: 16,
+                      borderRadius: 6,
+                      maxHeight: 600,
+                      overflow: 'auto',
+                    }}
+                    dangerouslySetInnerHTML={{ __html: selectedVersion.renderedHtml }}
+                  />
+                ) : (
+                  <Result status="info" title="该版本无可用预览" />
+                )}
               </TabPane>
-              <TabPane key="scan" title="纸质扫描件">
-                <div
-                  style={{
-                    background: '#f7f8fa',
-                    padding: 40,
-                    minHeight: 400,
-                    borderRadius: 6,
-                    textAlign: 'center',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'column',
-                  }}
-                >
-                  <IconUpload style={{ fontSize: 64, color: 'var(--color-text-3)' }} />
-                  <div style={{ marginTop: 16, fontSize: 14, color: 'var(--color-text-2)' }}>
-                    暂无扫描件
-                  </div>
-                  <Button type="primary" style={{ marginTop: 16 }} icon={<IconUpload />}>
-                    上传盖章回传件
-                  </Button>
-                </div>
+              <TabPane
+                key="scan"
+                title={`扫描件归档${contract.archivedScans.length > 0 ? ` (${contract.archivedScans.length})` : ''}`}
+              >
+                <ScanFileList
+                  entries={contract.archivedScans}
+                  uploadEnabled={uploadEnabled}
+                  uploadIntent={uploadIntent}
+                  onUpload={(files) => uploadScan(contract.id, files)}
+                  onSetPrimary={(entryId) => setPrimaryScan(contract.id, entryId)}
+                />
+                {!uploadEnabled && contract.archivedScans.length === 0 && (
+                  <Result
+                    status="info"
+                    title="尚未到归档阶段"
+                    subTitle={`合同需进入「待回寄」状态后方可上传扫描件。当前状态：${CONTRACT_STATUS_LABEL[contract.status]}`}
+                  />
+                )}
               </TabPane>
             </Tabs>
           </Card>
 
           {/* 审批记录 */}
           <Card title="审批记录" style={{ marginBottom: 16 }}>
-            <Timeline>
-              {contractData.approvalFlow.map((node, index) => (
-                <Timeline.Item
-                  key={index}
-                  dot={
-                    node.status === 'approved' ? (
-                      <IconCheckCircleFill style={{ fontSize: 16, color: 'rgb(var(--green-6))' }} />
-                    ) : node.status === 'rejected' ? (
-                      <IconCloseCircleFill style={{ fontSize: 16, color: 'rgb(var(--red-6))' }} />
-                    ) : (
-                      <IconClockCircle style={{ fontSize: 16, color: 'rgb(var(--orange-6))' }} />
-                    )
-                  }
-                >
-                  <div style={{ marginBottom: 8 }}>
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{node.step}</span>
-                    <span style={{ marginLeft: 12, fontSize: 12, color: 'var(--color-text-3)' }}>
-                      {node.time}
-                    </span>
-                    <span style={{ marginLeft: 12, fontSize: 12, color: 'var(--color-text-3)' }}>
-                      耗时: {node.duration}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 13, color: 'var(--color-text-2)', marginBottom: 4 }}>
-                    审批人：{node.approver}
-                  </div>
-                  {node.comment && (
-                    <div
-                      style={{
-                        fontSize: 13,
-                        color: 'var(--color-text-2)',
-                        padding: '6px 10px',
-                        background: 'var(--color-fill-2)',
-                        borderRadius: 4,
-                        marginTop: 4,
-                      }}
-                    >
-                      {node.comment}
+            {showApprovalForSelected ? (
+              <Timeline>
+                {contract.approvalFlow.map((node, index) => (
+                  <Timeline.Item
+                    key={index}
+                    dot={
+                      node.status === 'approved' ? (
+                        <IconCheckCircleFill style={{ fontSize: 16, color: 'rgb(var(--green-6))' }} />
+                      ) : node.status === 'rejected' ? (
+                        <IconCloseCircleFill style={{ fontSize: 16, color: 'rgb(var(--red-6))' }} />
+                      ) : (
+                        <IconClockCircle style={{ fontSize: 16, color: 'rgb(var(--orange-6))' }} />
+                      )
+                    }
+                  >
+                    <div style={{ marginBottom: 4 }}>
+                      <span style={{ fontWeight: 600, fontSize: 14 }}>{node.step}</span>
+                      {node.time && (
+                        <span style={{ marginLeft: 12, fontSize: 12, color: 'var(--color-text-3)' }}>
+                          {node.time}
+                        </span>
+                      )}
                     </div>
-                  )}
-                </Timeline.Item>
-              ))}
-            </Timeline>
+                    <div style={{ fontSize: 13, color: 'var(--color-text-2)', marginBottom: 4 }}>
+                      审批人：{node.approver}
+                    </div>
+                    {node.comment && (
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: 'var(--color-text-2)',
+                          padding: '6px 10px',
+                          background: 'var(--color-fill-2)',
+                          borderRadius: 4,
+                        }}
+                      >
+                        {node.comment}
+                      </div>
+                    )}
+                  </Timeline.Item>
+                ))}
+              </Timeline>
+            ) : (
+              <Result
+                status="info"
+                title="该版本未提交审批"
+                subTitle="切换到 ✅ 标记的版本可查看审批记录。"
+              />
+            )}
           </Card>
 
-          {/* 合同款项与回款计划 */}
+          {/* 款项与回款计划 */}
           <Card title="款项与回款计划" style={{ marginBottom: 16 }}>
-            {/* 数据汇总 */}
             <div
               style={{
                 background: 'var(--color-fill-2)',
@@ -415,46 +294,37 @@ export function ContractDetail() {
             >
               <Row gutter={16}>
                 <Col span={6}>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    合同总额
-                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>合同总额</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: 'rgb(var(--primary-6))' }}>
-                    ¥{contractData.totalAmount.toLocaleString()}
+                    ¥{totalAmount.toLocaleString()}
                   </div>
                 </Col>
                 <Col span={6}>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    已回款金额
-                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>已回款</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: 'rgb(var(--success-6))' }}>
-                    ¥{contractData.receivedAmount.toLocaleString()}
+                    ¥{receivedAmount.toLocaleString()}
                   </div>
                 </Col>
                 <Col span={6}>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    待回款金额
-                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>待回款</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: 'rgb(var(--orange-6))' }}>
-                    ¥{contractData.receivableAmount.toLocaleString()}
+                    ¥{receivableAmount.toLocaleString()}
                   </div>
                 </Col>
                 <Col span={6}>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                    到账率
-                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>到账率</div>
                   <Progress
-                    percent={contractData.receivedRate}
-                    color={contractData.receivedRate >= 80 ? '#00b42a' : '#f77234'}
+                    percent={receivedRate}
+                    color={receivedRate >= 80 ? '#00b42a' : '#f77234'}
                     style={{ marginTop: 8 }}
                   />
                 </Col>
               </Row>
             </div>
 
-            {/* 明细表格 */}
             <Table
               columns={paymentColumns}
-              data={contractData.paymentPlan}
+              data={cd.paymentPlans}
               pagination={false}
               rowKey="period"
             />
@@ -463,153 +333,30 @@ export function ContractDetail() {
 
         {/* 右侧动态侧边栏 30% */}
         <Col span={7}>
-          {/* 项目关键里程碑 */}
-          <Card title="项目里程碑" style={{ marginBottom: 16 }}>
-            <div style={{ marginBottom: 16 }}>
-              {contractData.projectMilestones.map((milestone, index) => (
-                <div
-                  key={index}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    marginBottom: 12,
-                    paddingBottom: 12,
-                    borderBottom:
-                      index < contractData.projectMilestones.length - 1
-                        ? '1px solid var(--color-border-2)'
-                        : 'none',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      background: milestone.completed
-                        ? 'rgb(var(--green-6))'
-                        : 'var(--color-border-3)',
-                      marginRight: 12,
-                    }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 500,
-                        color: milestone.completed
-                          ? 'var(--color-text-1)'
-                          : 'var(--color-text-3)',
-                      }}
-                    >
-                      {milestone.name}
-                    </div>
-                    {milestone.date && (
-                      <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginTop: 2 }}>
-                        {milestone.date}
-                      </div>
-                    )}
-                  </div>
-                  {milestone.completed && (
-                    <IconCheckCircleFill
-                      style={{ fontSize: 16, color: 'rgb(var(--green-6))' }}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
+          {/* 流转进度（形成期）/ 项目里程碑（履行期，本次只占位） */}
+          {contract.status !== 'archived' && (
+            <ContractFlowProgress status={contract.status} />
+          )}
+          {contract.status === 'archived' && (
+            <Card title="项目里程碑" style={{ marginBottom: 16 }}>
+              <div style={{ color: 'var(--color-text-3)', padding: 8 }}>
+                合同已归档，项目里程碑由项目模块接管展示。
+                <Space style={{ marginTop: 12 }}>
+                  <Button type="text" size="small" onClick={() => navigate('/projects')}>
+                    去项目管理
+                  </Button>
+                </Space>
+              </div>
+            </Card>
+          )}
 
-            <div
-              style={{
-                background: '#e6f7ff',
-                border: '1px solid #91d5ff',
-                borderRadius: 6,
-                padding: '8px 12px',
-                fontSize: 13,
-                color: '#003a8c',
-              }}
-            >
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>最近动态</div>
-              <div>• 2026-05-10 项目通过初验</div>
-              <div>• 2026-05-12 上传了《验收报告》</div>
-            </div>
-          </Card>
-
-          {/* 重点日志 */}
-          <Card title="重点日志" style={{ marginBottom: 16 }}>
-            <div>
-              {contractData.recentLogs.map((log) => (
-                <div
-                  key={log.id}
-                  style={{
-                    marginBottom: 12,
-                    paddingBottom: 12,
-                    borderBottom: '1px solid var(--color-border-2)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-                    <Avatar
-                      size={24}
-                      style={{
-                        background: getAvatarColor(log.user),
-                        fontSize: 12,
-                        marginRight: 8,
-                      }}
-                    >
-                      {log.user.slice(0, 1)}
-                    </Avatar>
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>{log.user}</span>
-                  </div>
-                  <div style={{ fontSize: 13, color: 'var(--color-text-2)', marginLeft: 32 }}>
-                    {log.action}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: 'var(--color-text-3)',
-                      marginTop: 2,
-                      marginLeft: 32,
-                    }}
-                  >
-                    {log.time}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* 关联文档 */}
-          <Card title="关联文档">
-            <div>
-              {contractData.relatedDocs.map((doc) => (
-                <div
-                  key={doc.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 12px',
-                    background: 'var(--color-fill-2)',
-                    borderRadius: 4,
-                    marginBottom: 8,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                    <IconFile style={{ fontSize: 16, color: 'rgb(var(--primary-6))', marginRight: 8 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: 'var(--color-text-1)' }}>{doc.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--color-text-3)' }}>{doc.size}</div>
-                    </div>
-                  </div>
-                  <Button
-                    type="text"
-                    size="mini"
-                    icon={<IconDownload />}
-                    onClick={() => Message.info(`下载：${doc.name}`)}
-                  />
-                </div>
-              ))}
-            </div>
-          </Card>
+          <div style={{ marginTop: 16 }}>
+            <VersionTimeline
+              contract={contract}
+              selectedVersionNo={selectedVersionNo}
+              onSelectVersion={setSelectedVersionNo}
+            />
+          </div>
         </Col>
       </Row>
     </div>
