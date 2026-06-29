@@ -5,7 +5,6 @@ import {
   IconArrowFall,
   IconCustomerService,
   IconUser,
-  IconFile,
   IconApps,
 } from '@arco-design/web-react/icon';
 import { DailyReportModal } from './daily-report/DailyReportModal';
@@ -15,44 +14,45 @@ import { useReminders } from '../reminders/ReminderContext';
 
 const Row = Grid.Row;
 const Col = Grid.Col;
-const Title = Typography.Title;
 
 export function Dashboard() {
   const [dailyReportVisible, setDailyReportVisible] = useState(false);
   const { submitDailyReport } = useReminders();
   const currentUserId = 'user-sales-zhangsan';
+
+  // --- Statistics — use semantic brand colors instead of hardcoded hex ---
   const statistics = [
     {
       title: '本月新增线索',
       value: 156,
       comparison: '+12.5%',
-      trend: 'up',
-      icon: <IconCustomerService style={{ fontSize: 32 }} />,
-      color: '#165dff',
+      trend: 'up' as const,
+      icon: <IconCustomerService style={{ fontSize: 24 }} />,
+      color: 'hsl(221, 83%, 53%)',       // brand blue
     },
     {
       title: '待跟进线索',
       value: 42,
       comparison: '-8.3%',
-      trend: 'down',
-      icon: <IconCustomerService style={{ fontSize: 32 }} />,
-      color: '#00b42a',
+      trend: 'down' as const,
+      icon: <IconCustomerService style={{ fontSize: 24 }} />,
+      color: 'hsl(142, 76%, 36%)',        // success green
     },
     {
       title: '本月签约客户',
       value: 28,
       comparison: '+18.2%',
-      trend: 'up',
-      icon: <IconUser style={{ fontSize: 32 }} />,
-      color: '#ff7d00',
+      trend: 'up' as const,
+      icon: <IconUser style={{ fontSize: 24 }} />,
+      color: 'hsl(30, 90%, 44%)',         // warning amber
     },
     {
       title: '进行中项目',
       value: 35,
       comparison: '+5.7%',
-      trend: 'up',
-      icon: <IconApps style={{ fontSize: 32 }} />,
-      color: '#f53f3f',
+      trend: 'up' as const,
+      icon: <IconApps style={{ fontSize: 24 }} />,
+      color: 'hsl(0, 78%, 50%)',          // destructive red
     },
   ];
 
@@ -102,9 +102,23 @@ export function Dashboard() {
     { key: '4', name: 'D公司数据中台', customer: 'D数据公司', progress: 90, status: '正常', deadline: '2026-04-25' },
   ];
 
+  // --- Table columns with deliberate hierarchy ---
+  // Primary columns (name): bolder, darker. Secondary columns (time): lighter.
   const leadColumns = [
-    { title: '线索名称', dataIndex: 'name' },
-    { title: '客户', dataIndex: 'customer' },
+    {
+      title: '线索名称',
+      dataIndex: 'name',
+      render: (text: string) => (
+        <span style={{ fontWeight: 500, color: 'hsl(220 20% 10%)' }}>{text}</span>
+      ),
+    },
+    {
+      title: '客户',
+      dataIndex: 'customer',
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 10% 35%)' }}>{text}</span>
+      ),
+    },
     {
       title: '状态',
       dataIndex: 'status',
@@ -120,20 +134,57 @@ export function Dashboard() {
         />
       ),
     },
-    { title: '最后跟进', dataIndex: 'followTime' },
-    { title: '负责人', dataIndex: 'owner' },
+    {
+      title: '最后跟进',
+      dataIndex: 'followTime',
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 8% 55%)', fontSize: 13 }}>{text}</span>
+      ),
+    },
+    {
+      title: '负责人',
+      dataIndex: 'owner',
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 10% 35%)' }}>{text}</span>
+      ),
+    },
   ];
 
   const projectColumns = [
-    { title: '项目名称', dataIndex: 'name' },
-    { title: '客户', dataIndex: 'customer' },
+    {
+      title: '项目名称',
+      dataIndex: 'name',
+      render: (text: string) => (
+        <span style={{ fontWeight: 500, color: 'hsl(220 20% 10%)' }}>{text}</span>
+      ),
+    },
+    {
+      title: '客户',
+      dataIndex: 'customer',
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 10% 35%)' }}>{text}</span>
+      ),
+    },
     {
       title: '进度',
       dataIndex: 'progress',
       render: (progress: number) => (
         <div className="flex items-center gap-2">
-          <Progress percent={progress} size="small" style={{ width: 100 }} />
-          <span>{progress}%</span>
+          <Progress
+            percent={progress}
+            size="small"
+            style={{ width: 100 }}
+            color={
+              progress >= 70
+                ? 'hsl(142 76% 36%)'
+                : progress >= 40
+                  ? 'hsl(221 83% 53%)'
+                  : 'hsl(30 90% 44%)'
+            }
+          />
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'hsl(220 15% 25%)' }}>
+            {progress}%
+          </span>
         </div>
       ),
     },
@@ -147,55 +198,76 @@ export function Dashboard() {
         />
       ),
     },
-    { title: '截止日期', dataIndex: 'deadline' },
+    {
+      title: '截止日期',
+      dataIndex: 'deadline',
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 8% 55%)', fontSize: 13 }}>{text}</span>
+      ),
+    },
   ];
 
   return (
     <div>
-      <Title heading={4} style={{ marginBottom: 24 }}>
+      {/* Page label — subtle, not a giant heading.
+          Per Refactoring UI: section titles are labels for the content below. */}
+      <div style={{ fontSize: 13, fontWeight: 500, color: 'hsl(220 8% 55%)', marginBottom: 20, letterSpacing: '0.025em', textTransform: 'uppercase' }}>
         工作台
-      </Title>
+      </div>
 
-      <Row gutter={16} style={{ marginBottom: 24 }}>
+      {/* Stat Cards */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {statistics.map((stat, index) => (
           <Col span={6} key={index}>
-            <Card>
+            <Card
+              style={{
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: 'var(--shadow-xs)',
+                border: '1px solid hsl(220 12% 88%)',
+              }}
+              bodyStyle={{ padding: 20 }}
+            >
               <div className="flex items-start justify-between">
-                <div>
-                  <div style={{ color: 'var(--color-text-2)', marginBottom: 8 }}>
+                <div style={{ flex: 1 }}>
+                  {/* Label: de-emphasized */}
+                  <div style={{ fontSize: 13, color: 'hsl(220 8% 55%)', marginBottom: 8 }}>
                     {stat.title}
                   </div>
-                  <Statistic
-                    value={stat.value}
-                    precision={0}
-                    style={{ marginBottom: 8 }}
-                  />
+                  {/* Value: prominent, the star */}
+                  <div style={{ fontSize: 28, fontWeight: 700, color: 'hsl(220 20% 10%)', marginBottom: 8, lineHeight: 1.2 }}>
+                    {stat.value.toLocaleString()}
+                  </div>
+                  {/* Trend: secondary indicator */}
                   <div className="flex items-center gap-1">
                     {stat.trend === 'up' ? (
-                      <IconArrowRise style={{ color: '#00b42a' }} />
+                      <IconArrowRise style={{ fontSize: 14, color: 'hsl(142 76% 36%)' }} />
                     ) : (
-                      <IconArrowFall style={{ color: '#f53f3f' }} />
+                      <IconArrowFall style={{ fontSize: 14, color: 'hsl(0 78% 50%)' }} />
                     )}
                     <span
                       style={{
-                        color: stat.trend === 'up' ? '#00b42a' : '#f53f3f',
-                        fontSize: 14,
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: stat.trend === 'up' ? 'hsl(142 76% 36%)' : 'hsl(0 78% 50%)',
                       }}
                     >
                       {stat.comparison}
                     </span>
+                    <span style={{ fontSize: 12, color: 'hsl(220 8% 55%)', marginLeft: 2 }}>环比</span>
                   </div>
                 </div>
+                {/* Icon container — soft background with matching tint */}
                 <div
                   style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 8,
-                    background: `${stat.color}15`,
+                    width: 44,
+                    height: 44,
+                    borderRadius: 'var(--radius-md)',
+                    background: `${stat.color}14`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: stat.color,
+                    flexShrink: 0,
                   }}
                 >
                   {stat.icon}
@@ -206,38 +278,60 @@ export function Dashboard() {
         ))}
       </Row>
 
+      {/* Reminder Todo Panel */}
       <ReminderTodoPanel onOpenDailyReport={() => setDailyReportVisible(true)} />
 
-      <Row gutter={16}>
-        <Col span={24}>
-          <Card
-            title="待跟进线索"
-            extra={
-              <a href="/leads/my" style={{ color: 'rgb(var(--primary-6))' }}>
-                查看全部
-              </a>
-            }
-            style={{ marginBottom: 16 }}
+      {/* Leads Table */}
+      <Card
+        title={
+          <span style={{ fontSize: 14, fontWeight: 500, color: 'hsl(220 15% 25%)' }}>
+            待跟进线索
+          </span>
+        }
+        extra={
+          <a
+            href="/leads/my"
+            style={{ fontSize: 13, color: 'hsl(220 8% 55%)', textDecoration: 'none' }}
           >
-            <Table columns={leadColumns} data={recentLeads} pagination={false} />
-          </Card>
-        </Col>
-      </Row>
+            查看全部 →
+          </a>
+        }
+        style={{
+          marginBottom: 16,
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-xs)',
+          border: '1px solid hsl(220 12% 88%)',
+        }}
+        bodyStyle={{ padding: '0 20px 20px' }}
+      >
+        <Table columns={leadColumns} data={recentLeads} pagination={false} />
+      </Card>
 
-      <Row gutter={16}>
-        <Col span={24}>
-          <Card
-            title="项目进度"
-            extra={
-              <a href="/projects" style={{ color: 'rgb(var(--primary-6))' }}>
-                查看全部
-              </a>
-            }
+      {/* Project Progress Table */}
+      <Card
+        title={
+          <span style={{ fontSize: 14, fontWeight: 500, color: 'hsl(220 15% 25%)' }}>
+            项目进度
+          </span>
+        }
+        extra={
+          <a
+            href="/projects"
+            style={{ fontSize: 13, color: 'hsl(220 8% 55%)', textDecoration: 'none' }}
           >
-            <Table columns={projectColumns} data={projectProgress} pagination={false} />
-          </Card>
-        </Col>
-      </Row>
+            查看全部 →
+          </a>
+        }
+        style={{
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-xs)',
+          border: '1px solid hsl(220 12% 88%)',
+        }}
+        bodyStyle={{ padding: '0 20px 20px' }}
+      >
+        <Table columns={projectColumns} data={projectProgress} pagination={false} />
+      </Card>
+
       <DailyReportModal
         visible={dailyReportVisible}
         onCancel={() => setDailyReportVisible(false)}

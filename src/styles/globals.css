@@ -8,3 +8,13 @@
     box-shadow: 0 0 0 4px rgba(var(--orange-6), 0);
   }
 }
+
+/* 修复 Arco Design 表单必填星号与字段名分离换行的问题
+ * 根因：Tailwind v4 preflight 设置了 svg { display: block }，
+ * 导致 Arco 星号内的 SVG 图标变成块级元素，挤占整行宽度，把字段名推到下一行。
+ * 修复：将表单标签内的 SVG 恢复为 inline，并保持 vertical-align 对齐。 */
+.arco-form-label-item .arco-form-item-symbol svg {
+  display: inline;
+  vertical-align: baseline;
+}
+

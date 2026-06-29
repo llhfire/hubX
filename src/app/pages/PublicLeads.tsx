@@ -155,8 +155,16 @@ export function PublicLeads() {
     setCompanyModalVisible(true);
   };
 
+  // --- Column definitions with visual hierarchy ---
   const columns = [
-    { title: '线索ID', dataIndex: 'id', width: 100 },
+    {
+      title: '线索ID',
+      dataIndex: 'id',
+      width: 100,
+      render: (text: string) => (
+        <span style={{ fontSize: 12, color: 'hsl(220 8% 55%)', fontFamily: 'monospace' }}>{text}</span>
+      ),
+    },
     {
       title: '对接主体',
       dataIndex: 'entity',
@@ -167,16 +175,44 @@ export function PublicLeads() {
         </Button>
       ),
     },
-    { title: '线索名称', dataIndex: 'name', width: 200 },
+    {
+      title: '线索名称',
+      dataIndex: 'name',
+      width: 200,
+      render: (text: string) => (
+        <span style={{ fontWeight: 500, color: 'hsl(220 20% 10%)' }}>{text}</span>
+      ),
+    },
     {
       title: '来源',
       dataIndex: 'source',
       width: 120,
       render: (source: string) => <Badge status="default" text={source} />,
     },
-    { title: '推广关键词', dataIndex: 'keyword', width: 120 },
-    { title: '联系人', dataIndex: 'contact', width: 100 },
-    { title: '手机号', dataIndex: 'phone', width: 120 },
+    {
+      title: '推广关键词',
+      dataIndex: 'keyword',
+      width: 120,
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 10% 45%)' }}>{text}</span>
+      ),
+    },
+    {
+      title: '联系人',
+      dataIndex: 'contact',
+      width: 100,
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 10% 35%)' }}>{text}</span>
+      ),
+    },
+    {
+      title: '手机号',
+      dataIndex: 'phone',
+      width: 120,
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 8% 55%)', fontSize: 13 }}>{text}</span>
+      ),
+    },
     {
       title: '意向等级',
       dataIndex: 'level',
@@ -195,9 +231,9 @@ export function PublicLeads() {
       dataIndex: 'tags',
       width: 150,
       render: (tags: string[]) => (
-        <Space>
+        <Space size={4}>
           {tags.map((tag, index) => (
-            <Tag key={index} color="arcoblue">
+            <Tag key={index} color="arcoblue" style={{ fontSize: 12 }}>
               {tag}
             </Tag>
           ))}
@@ -222,13 +258,20 @@ export function PublicLeads() {
         return <Tag color={colorMap[status] || 'default'}>{status}</Tag>;
       },
     },
-    { title: '创建时间', dataIndex: 'createTime', width: 160 },
+    {
+      title: '创建时间',
+      dataIndex: 'createTime',
+      width: 160,
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 8% 55%)', fontSize: 13 }}>{text}</span>
+      ),
+    },
     {
       title: '操作',
       width: 180,
       fixed: 'right' as const,
       render: (_, record: any) => (
-        <Space>
+        <Space size={0}>
           <Tooltip key={`tooltip-view-${record.key}`} content="查看详情">
             <Button
               type="text"
@@ -252,7 +295,7 @@ export function PublicLeads() {
               type="text"
               icon={<IconDelete />}
               size="small"
-              status="danger"
+              style={{ color: 'hsl(0 60% 55%)' }}
               onClick={() => setTrashVisible(true)}
             />
           </Tooltip>
@@ -314,15 +357,25 @@ export function PublicLeads() {
 
   return (
     <div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-        <Title heading={4}>公海线索池</Title>
+      {/* Page label — subtle, not giant heading */}
+      <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'hsl(220 8% 55%)', letterSpacing: '0.025em', textTransform: 'uppercase' }}>
+          公海线索池
+        </div>
         <Button type="primary" icon={<IconPlus />} onClick={() => setVisible(true)}>
           新建线索
         </Button>
       </div>
 
-      <Card>
-        <div className="flex gap-4" style={{ marginBottom: 16 }}>
+      <Card
+        style={{
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-xs)',
+          border: '1px solid hsl(220 12% 88%)',
+        }}
+      >
+        {/* Search & Filter Bar */}
+        <div className="flex gap-3" style={{ marginBottom: 16 }}>
           <Input
             style={{ width: 240 }}
             placeholder="搜索线索名称、联系人"
@@ -355,6 +408,7 @@ export function PublicLeads() {
         />
       </Card>
 
+      {/* ---- Create Lead Modal ---- */}
       <Modal
         title="新建线索"
         visible={visible}
@@ -526,6 +580,7 @@ export function PublicLeads() {
         </Form>
       </Modal>
 
+      {/* ---- Trash Lead Modal ---- */}
       <Modal
         title="丢弃垃圾线索"
         visible={trashVisible}
@@ -550,6 +605,7 @@ export function PublicLeads() {
         </Form>
       </Modal>
 
+      {/* ---- Custom Tag Modal ---- */}
       <Modal
         title="新增标签"
         visible={customTagVisible}
@@ -570,6 +626,7 @@ export function PublicLeads() {
           </FormItem>
         </Form>
       </Modal>
+
       <CompanyEntityInfoModal
         visible={companyModalVisible}
         mode="view"

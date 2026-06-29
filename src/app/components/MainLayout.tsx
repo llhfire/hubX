@@ -195,6 +195,7 @@ export function MainLayout() {
 
   return (
     <Layout className="h-screen">
+      {/* ---- Light Sidebar ---- */}
       <Sider
         collapsed={collapsed}
         onCollapse={setCollapsed}
@@ -206,28 +207,50 @@ export function MainLayout() {
           left: 0,
           top: 0,
           bottom: 0,
+          zIndex: 100,
+          background: '#ffffff',
+          borderRight: '1px solid hsl(220 12% 88%)',
         }}
       >
+        {/* Branding */}
         <div
-          className="flex items-center justify-center px-4"
-          style={{ height: 64, borderBottom: '1px solid var(--color-border-2)' }}
+          className="flex items-center gap-3 overflow-hidden"
+          style={{
+            height: 56,
+            paddingLeft: collapsed ? 16 : 20,
+            paddingRight: collapsed ? 16 : 20,
+          }}
         >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 'var(--radius-md)',
+              background: 'linear-gradient(135deg, hsl(221 83% 53%), hsl(226 72% 44%))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: 16,
+            }}
+          >
+            H
+          </div>
           {!collapsed && (
-            <span style={{ fontSize: 18, fontWeight: 600, color: 'rgb(var(--primary-6))' }}>
-              HubX
-            </span>
-          )}
-          {collapsed && (
-            <span style={{ fontSize: 18, fontWeight: 600, color: 'rgb(var(--primary-6))' }}>
-              CRM
+            <span style={{ fontSize: 16, fontWeight: 600, color: 'hsl(221 83% 53%)', whiteSpace: 'nowrap' }}>
+              HubX Ops
             </span>
           )}
         </div>
+
+        {/* Navigation Menu */}
         <Menu
           selectedKeys={getSelectedKeys()}
           defaultOpenKeys={getOpenKeys()}
           onClickMenuItem={handleMenuClick}
-          style={{ marginTop: 16 }}
+          style={{ marginTop: 8 }}
         >
           {menuItems.map((item) =>
             item.children ? (
@@ -253,48 +276,63 @@ export function MainLayout() {
           )}
         </Menu>
       </Sider>
+
+      {/* ---- Main Area ---- */}
       <Layout style={{ marginLeft: collapsed ? 48 : 200, transition: 'margin 0.2s' }}>
+        {/* Header — clean, light */}
         <Header
           style={{
-            height: 64,
-            background: 'var(--color-bg-2)',
-            borderBottom: '1px solid var(--color-border-2)',
+            height: 56,
+            background: '#ffffff',
+            borderBottom: '1px solid hsl(220 12% 88%)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',
             padding: '0 24px',
+            position: 'sticky',
+            top: 0,
+            zIndex: 50,
           }}
         >
-          <div></div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Daily Report */}
             <Badge
               count={
                 showUnsubmittedBadge ? (
-                  <IconQuestionCircle style={{ color: 'red', fontSize: 16 }} />
+                  <IconQuestionCircle style={{ color: 'hsl(0 78% 50%)', fontSize: 14 }} />
                 ) : (
                   0
                 )
               }
               style={{ display: showUnsubmittedBadge ? 'flex' : 'none' }}
             >
-              <IconCalendar style={{ fontSize: 20, cursor: 'pointer' }} onClick={handleDailyReportOpen} />
+              <IconCalendar
+                style={{ fontSize: 18, cursor: 'pointer', color: 'hsl(220 10% 45%)' }}
+                onClick={handleDailyReportOpen}
+              />
             </Badge>
+
+            {/* Reminder Bell */}
             <ReminderBell onOpenDailyReport={handleDailyReportOpen} />
+
+            {/* User Dropdown */}
             <Dropdown droplist={dropList} position="br">
               <div className="flex items-center gap-2 cursor-pointer">
-                <Avatar size={32} style={{ backgroundColor: 'rgb(var(--primary-6))' }}>
+                <Avatar size={28} style={{ backgroundColor: 'hsl(221 83% 53%)' }}>
                   张
                 </Avatar>
-                <span>张三</span>
+                <span style={{ fontSize: 13, color: 'hsl(220 15% 25%)' }}>张三</span>
               </div>
             </Dropdown>
           </div>
         </Header>
+
+        {/* Content */}
         <Content
           style={{
-            height: 'calc(100vh - 64px)',
+            height: 'calc(100vh - 56px)',
             overflow: 'auto',
-            background: 'var(--color-fill-1)',
+            background: 'var(--background)',
           }}
         >
           <div style={{ padding: 24 }}>

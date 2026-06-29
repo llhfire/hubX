@@ -116,6 +116,7 @@ export function Customers() {
     已流失: 'default',
   };
 
+  // --- Columns with deliberate hierarchy ---
   const columns = [
     {
       title: '客户名称',
@@ -124,7 +125,7 @@ export function Customers() {
       render: (name: string, record: any) => (
         <a
           onClick={() => navigate(`/customers/${record.key}`)}
-          style={{ color: 'rgb(var(--primary-6))' }}
+          style={{ fontWeight: 500, color: 'hsl(221 83% 53%)', cursor: 'pointer' }}
         >
           {name}
         </a>
@@ -136,10 +137,38 @@ export function Customers() {
       width: 100,
       render: (type: string) => <Badge status="default" text={type} />,
     },
-    { title: '所属行业', dataIndex: 'industry', width: 120 },
-    { title: '企业规模', dataIndex: 'scale', width: 120 },
-    { title: '主要联系人', dataIndex: 'contact', width: 120 },
-    { title: '联系电话', dataIndex: 'phone', width: 120 },
+    {
+      title: '所属行业',
+      dataIndex: 'industry',
+      width: 120,
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 10% 45%)' }}>{text}</span>
+      ),
+    },
+    {
+      title: '企业规模',
+      dataIndex: 'scale',
+      width: 120,
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 10% 45%)' }}>{text}</span>
+      ),
+    },
+    {
+      title: '主要联系人',
+      dataIndex: 'contact',
+      width: 120,
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 10% 35%)' }}>{text}</span>
+      ),
+    },
+    {
+      title: '联系电话',
+      dataIndex: 'phone',
+      width: 120,
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 8% 55%)', fontSize: 13 }}>{text}</span>
+      ),
+    },
     {
       title: '客户等级',
       dataIndex: 'level',
@@ -156,16 +185,44 @@ export function Customers() {
         <Badge status={statusMap[status as keyof typeof statusMap]} text={status} />
       ),
     },
-    { title: '合同数', dataIndex: 'contractCount', width: 100 },
-    { title: '合同金额', dataIndex: 'contractAmount', width: 120 },
-    { title: '待收款', dataIndex: 'receivable', width: 100 },
-    { title: '创建时间', dataIndex: 'createTime', width: 120 },
+    {
+      title: '合同数',
+      dataIndex: 'contractCount',
+      width: 100,
+      render: (value: number) => (
+        <span style={{ fontWeight: 500, color: 'hsl(220 15% 25%)' }}>{value}</span>
+      ),
+    },
+    {
+      title: '合同金额',
+      dataIndex: 'contractAmount',
+      width: 120,
+      render: (text: string) => (
+        <span style={{ fontWeight: 500, color: 'hsl(220 15% 25%)' }}>{text}</span>
+      ),
+    },
+    {
+      title: '待收款',
+      dataIndex: 'receivable',
+      width: 100,
+      render: (text: string) => (
+        <span style={{ color: 'hsl(30 90% 44%)', fontWeight: 500 }}>{text}</span>
+      ),
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createTime',
+      width: 120,
+      render: (text: string) => (
+        <span style={{ color: 'hsl(220 8% 55%)', fontSize: 13 }}>{text}</span>
+      ),
+    },
     {
       title: '操作',
       width: 150,
       fixed: 'right' as const,
       render: (_, record: any) => (
-        <Space>
+        <Space size={0}>
           <Button
             key={`view-${record.key}`}
             type="text"
@@ -190,15 +247,25 @@ export function Customers() {
 
   return (
     <div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-        <Title heading={4}>客户管理</Title>
+      {/* Page label — subtle */}
+      <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'hsl(220 8% 55%)', letterSpacing: '0.025em', textTransform: 'uppercase' }}>
+          客户管理
+        </div>
         <Button type="primary" icon={<IconPlus />} onClick={() => setVisible(true)}>
           新建客户
         </Button>
       </div>
 
-      <Card>
-        <div className="flex gap-4" style={{ marginBottom: 16 }}>
+      <Card
+        style={{
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-xs)',
+          border: '1px solid hsl(220 12% 88%)',
+        }}
+      >
+        {/* Search & Filter Bar */}
+        <div className="flex gap-3" style={{ marginBottom: 16 }}>
           <Input
             style={{ width: 240 }}
             placeholder="搜索客户名称、联系人"
@@ -236,6 +303,7 @@ export function Customers() {
         />
       </Card>
 
+      {/* ---- New Customer Modal ---- */}
       <Modal
         title="新建客户"
         visible={visible}
