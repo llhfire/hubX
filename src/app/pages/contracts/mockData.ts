@@ -7,10 +7,12 @@
 
 import type {
   ApprovalNode,
+  BlockerType,
   Contract,
   ContractFormData,
   ContractVersion,
   PaymentPlanItem,
+  PaymentStatus,
   ScanArchiveEntry,
 } from './types';
 import { renderTemplate } from './templates';
@@ -150,6 +152,56 @@ export function buildInitialContracts(): Contract[] {
     receivedAmount: 800_000,
     receivableAmount: 400_000,
     executionStatus: '履行中',
+    collectionRecords: [
+      {
+        id: 'col-1-1',
+        contractId: 'contract-1',
+        amount: 320000,
+        date: '2026-04-14',
+        method: '银行汇款',
+        note: '一期付款到账',
+      },
+      {
+        id: 'col-1-2',
+        contractId: 'contract-1',
+        amount: 160000,
+        date: '2026-06-10',
+        method: '银行汇款',
+        note: '二期部分付款',
+      },
+    ],
+    paymentBlockers: [
+      {
+        id: 'blocker-1-1',
+        contractId: 'contract-1',
+        type: 'customer_delay' as BlockerType,
+        title: '客户二期尾款迟迟不付',
+        description: '已催款3次，客户财务说在走流程但一直没有实质进展',
+        amountBlocked: 80000,
+        createdAt: '2026-06-20 10:00',
+      },
+    ],
+    dunningRecords: [
+      {
+        id: 'dun-1-1',
+        contractId: 'contract-1',
+        date: '2026-06-20',
+        method: '电话',
+        contactPerson: '王经理',
+        result: '对方说在走财务流程',
+        nextPlan: '下周再跟进',
+      },
+      {
+        id: 'dun-1-2',
+        contractId: 'contract-1',
+        date: '2026-06-28',
+        method: '微信',
+        contactPerson: '王经理',
+        result: '未回复',
+        nextPlan: '7月5日电话催款',
+      },
+    ],
+    paymentStatus: 'blocked' as PaymentStatus,
   };
 
   // 合同 2: B公司电商平台合同 - 履行中
@@ -187,6 +239,19 @@ export function buildInitialContracts(): Contract[] {
     receivedAmount: 1_000_000,
     receivableAmount: 1_000_000,
     executionStatus: '履行中',
+    collectionRecords: [
+      {
+        id: 'col-2-1',
+        contractId: 'contract-2',
+        amount: 500000,
+        date: '2026-05-10',
+        method: '银行汇款',
+        note: '全款到账',
+      },
+    ],
+    paymentBlockers: [],
+    dunningRecords: [],
+    paymentStatus: 'settled' as PaymentStatus,
   };
 
   // 合同 3: C公司移动应用开发合同 - 履行中
