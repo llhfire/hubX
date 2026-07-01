@@ -13,6 +13,7 @@ import {
   IconCalendar,
   IconQuestionCircle,
   IconExperiment,
+  IconUserGroup,
 } from '@arco-design/web-react/icon';
 import { DailyReportModal } from '../pages/daily-report/DailyReportModal';
 import { RoleSelectModal } from '../pages/daily-report/RoleSelectModal';
@@ -98,6 +99,17 @@ export function MainLayout() {
     },
     { key: '/reports', icon: <IconDashboard />, label: '数据报表' },
     {
+      key: 'employees',
+      icon: <IconUserGroup />,
+      label: '员工管理',
+      children: [
+        { key: '/employees', label: '员工列表' },
+        { key: '/employees/attendance', label: '考勤管理' },
+        { key: '/employees/performance', label: '绩效考核' },
+        { key: '/employees/level-rates', label: '职级时薪设置' },
+      ],
+    },
+    {
       key: 'finance',
       icon: <IconFile />,
       label: '财务管理',
@@ -155,11 +167,20 @@ export function MainLayout() {
     if (path.startsWith('/projects/')) {
       return ['/projects'];
     }
+    if (path.startsWith('/employees/')) {
+      if (path === '/employees/attendance' || path === '/employees/performance' || path === '/employees/level-rates') {
+        return [path];
+      }
+      return ['/employees'];
+    }
     return [path];
   };
 
   const getOpenKeys = () => {
     const path = location.pathname;
+    if (path.startsWith('/employees/')) {
+      return ['employees'];
+    }
     if (path.startsWith('/contracts/')) {
       return ['contracts'];
     }

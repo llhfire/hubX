@@ -40,6 +40,11 @@ import { SalaryPage } from "./pages/contract-cost/SalaryPage";
 import { ContractCostDetail } from "./pages/contract-cost/ContractCostDetail";
 import DeliveryPlanPage from "./pages/delivery-plan/DeliveryPlanPage";
 import PaymentKanban from "./pages/contracts/PaymentKanban";
+import { EmployeeList } from "./pages/employee";
+import { EmployeeDetail } from "./pages/employee";
+import { AttendanceManagement } from "./pages/employee";
+import { PerformanceManagement } from "./pages/employee";
+import { LevelRateSettings } from "./pages/employee";
 
 export const router = createBrowserRouter([
   {
@@ -74,6 +79,11 @@ export const router = createBrowserRouter([
       { path: "paymentinvoice", Component: PaymentInvoiceList },
       { path: "contractrecord", Component: ContractRecordList },
       { path: "reports", Component: Reports },
+      { path: "employees", Component: EmployeeList },
+      { path: "employees/attendance", Component: AttendanceManagement },
+      { path: "employees/performance", Component: PerformanceManagement },
+      { path: "employees/level-rates", Component: LevelRateSettings },
+      { path: "employees/:id", Component: EmployeeDetail },
       { path: "system/organization", Component: Organization },
       { path: "system/permission", Component: UserPermission },
       { path: "system/company", Component: CompanyEntity },
