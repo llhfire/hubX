@@ -124,6 +124,12 @@ export interface Contract {
   receivedAmount?: number;
   receivableAmount?: number;
   executionStatus?: ExecutionStatus;
+
+  // 回款看板扩展
+  collectionRecords?: CollectionRecord[];
+  paymentBlockers?: PaymentBlocker[];
+  dunningRecords?: DunningRecord[];
+  paymentStatus?: PaymentStatus;
 }
 
 // 报价单结构（与 LeadDetail.tsx:191-231 quotationHistory 对齐）
@@ -137,6 +143,51 @@ export interface QuotationRecord {
   period?: string;
   createTime?: string;
   entity?: string;
+}
+
+// ---- 回款看板相关类型 ----
+
+export type PaymentStatus = 'normal' | 'upcoming' | 'overdue' | 'blocked' | 'settled';
+
+export type BlockerType = 'overdue_unpaid' | 'customer_delay' | 'invoice_unpaid' | 'acceptance_stuck' | 'dispute';
+
+export const BLOCKER_TYPE_LABELS: Record<BlockerType, string> = {
+  overdue_unpaid: '逾期未付',
+  customer_delay: '客户拖延',
+  invoice_unpaid: '开票未回',
+  acceptance_stuck: '验收卡住',
+  dispute: '合同纠纷',
+};
+
+export interface CollectionRecord {
+  id: string;
+  contractId: string;
+  amount: number;
+  date: string;
+  method: string;
+  note: string;
+}
+
+export interface PaymentBlocker {
+  id: string;
+  contractId: string;
+  type: BlockerType;
+  title: string;
+  description: string;
+  amountBlocked: number;
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+}
+
+export interface DunningRecord {
+  id: string;
+  contractId: string;
+  date: string;
+  method: string;
+  contactPerson: string;
+  result: string;
+  nextPlan: string;
 }
 
 // 合同模板接口
