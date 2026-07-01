@@ -13,9 +13,12 @@ import {
 } from 'react';
 import type {
   ApprovalNode,
+  CollectionRecord,
   Contract,
   ContractFormData,
   ContractStatus,
+  DunningRecord,
+  PaymentBlocker,
   ScanArchiveEntry,
   ScanFile,
   WizardInput,
@@ -42,6 +45,11 @@ interface ContractsContextValue {
   ) => ScanArchiveEntry | null;
   setPrimaryScan: (id: string, entryId: string) => void;
   voidContract: (id: string, reason: string) => void;
+  // 回款操作
+  addCollection: (contractId: string, record: Omit<CollectionRecord, 'id' | 'contractId'>) => void;
+  addBlocker: (contractId: string, blocker: Omit<PaymentBlocker, 'id' | 'contractId' | 'createdAt'>) => void;
+  resolveBlocker: (contractId: string, blockerId: string) => void;
+  addDunning: (contractId: string, record: Omit<DunningRecord, 'id' | 'contractId'>) => void;
 }
 
 const ContractsContext = createContext<ContractsContextValue | null>(null);
@@ -298,6 +306,59 @@ export function ContractsProvider({ children }: PropsWithChildren) {
     [updateContract],
   );
 
+  const addCollection = useCallback(
+    (contractId: string, record: Omit<CollectionRecord, 'id' | 'contractId'>) => {
+      updateContract(contractId, (c) => {
+        const newRecord: CollectionRecord = {
+          ...record,
+          id: `col-${Date.now()}`,
+          contractId,
+        };
+        const records = [...(c.collectionRecords ?? []), newRecord];
+        const received = records.reduce((s, r) => s + r.amount, 0);
+        return { ...c, collectionRecords: records, receivedAmount: received };
+      });
+    },
+    [updateContract],
+  );
+
+  const addBlocker = useCallback(
+    (contractId: string, blocker: Omit<PaymentBlocker, 'id' | 'contractId' | 'createdAt'>) => {
+      updateContract(contractId, (c) => {
+        const newBlocker: PaymentBlocker = {
+          ...blocker,
+          id: `blocker-${Date.now()}`,
+          contractId,
+          createdAt: nowString(),
+        };
+        return { ...c, paymentBlockers: [...(c.paymentBlockers ?? []), newBlocker] };
+      });
+    },
+    [updateContract],
+  );
+
+  const resolveBlocker = useCallback(
+    (contractId: string, blockerId: string) => {
+      updateContract(contractId, (c) => ({
+        ...c,
+        paymentBlockers: (c.paymentBlockers ?? []).map((b) =>
+          b.id === blockerId ? { ...b, resolvedAt: nowString(), resolvedBy: '当前用户' } : b,
+        ),
+      }));
+    },
+    [updateContract],
+  );
+
+  const addDunning = useCallback(
+    (contractId: string, record: Omit<DunningRecord, 'id' | 'contractId'>) => {
+      updateContract(contractId, (c) => {
+        const newRecord: DunningRecord = { ...record, id: `dun-${Date.now()}`, contractId };
+        return { ...c, dunningRecords: [...(c.dunningRecords ?? []), newRecord] };
+      });
+    },
+    [updateContract],
+  );
+
   const value = useMemo<ContractsContextValue>(
     () => ({
       contracts,
@@ -313,14 +374,22 @@ export function ContractsProvider({ children }: PropsWithChildren) {
       uploadScan,
       setPrimaryScan,
       voidContract,
+      addCollection,
+      addBlocker,
+      resolveBlocker,
+      addDunning,
     }),
     [
+      addBlocker,
+      addCollection,
+      addDunning,
       approveStep,
       contracts,
       createFromWizard,
       getById,
       markMailed,
       rejectStep,
+      resolveBlocker,
       saveAsVersion,
       saveDraft,
       setPrimaryScan,
