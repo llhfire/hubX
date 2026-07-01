@@ -76,7 +76,15 @@ export function MainLayout() {
       ],
     },
     { key: '/customers', icon: <IconUser />, label: '客户管理' },
-    { key: '/contracts', icon: <IconFile />, label: '合同管理' },
+    {
+      key: 'contracts',
+      icon: <IconFile />,
+      label: '合同管理',
+      children: [
+        { key: '/contracts', label: '合同列表' },
+        { key: '/contracts/payments', label: '回款看板' },
+      ],
+    },
     { key: '/projects', icon: <IconApps />, label: '项目管理' },
     {
       key: 'dailyreport',
@@ -152,6 +160,9 @@ export function MainLayout() {
 
   const getOpenKeys = () => {
     const path = location.pathname;
+    if (path.startsWith('/contracts/')) {
+      return ['contracts'];
+    }
     if (path.startsWith('/leads/')) {
       return ['leads'];
     }

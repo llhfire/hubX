@@ -39,6 +39,7 @@ import { LeadCostAnalysis } from "./pages/lead-cost/LeadCostAnalysis";
 import { SalaryPage } from "./pages/contract-cost/SalaryPage";
 import { ContractCostDetail } from "./pages/contract-cost/ContractCostDetail";
 import DeliveryPlanPage from "./pages/delivery-plan/DeliveryPlanPage";
+import PaymentKanban from "./pages/contracts/PaymentKanban";
 
 export const router = createBrowserRouter([
   {
@@ -59,6 +60,7 @@ export const router = createBrowserRouter([
       { path: "contracts", Component: Contracts },
       { path: "contracts/new", Component: ContractWizard },
       { path: "contracts/:id/edit", Component: ContractEditor },
+      { path: "contracts/payments", Component: PaymentKanban },
       { path: "contracts/:id", Component: ContractDetail },
       { path: "projects", Component: Projects },
       { path: "projects/:id", Component: ProjectDetail },
