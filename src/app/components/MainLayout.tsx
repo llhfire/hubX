@@ -33,17 +33,17 @@ export function MainLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [dailyReportVisible, setDailyReportVisible] = useState(false);
   const [roleSelectVisible, setRoleSelectVisible] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'sales' | 'general'>('sales');
+  const [selectedRole, setSelectedRole] = useState<'sales' | 'general' | 'ad-delivery' | 'dev'>('dev');
   const [currentUserId] = useState('user-sales-zhangsan');
   const { reminders, submitDailyReport } = useReminders();
   const showUnsubmittedBadge = hasDailyReportUnsubmittedReminder(reminders);
 
   const handleDailyReportOpen = () => {
-    setSelectedRole('sales');
+    setSelectedRole('dev');
     setRoleSelectVisible(true);
   };
 
-  const handleRoleSelect = (role: 'sales' | 'general') => {
+  const handleRoleSelect = (role: 'sales' | 'general' | 'ad-delivery' | 'dev') => {
     setSelectedRole(role);
     setRoleSelectVisible(false);
     setDailyReportVisible(true);
@@ -55,6 +55,7 @@ export function MainLayout() {
 
   const menuItems = [
     { key: '/', icon: <IconHome />, label: '工作台' },
+    { key: '/workbench', icon: <IconUser />, label: '个人工作台' },
     {
       key: 'leads',
       icon: <IconCustomerService />,
@@ -63,6 +64,7 @@ export function MainLayout() {
         { key: '/leads/public', label: '公海线索' },
         { key: '/leads/my', label: '我的线索' },
         { key: '/leads/trash', label: '垃圾线索' },
+        { key: '/leads/governance', label: '线索治理' },
       ],
     },
     {
@@ -84,6 +86,7 @@ export function MainLayout() {
       children: [
         { key: '/contracts', label: '合同列表' },
         { key: '/contracts/payments', label: '回款看板' },
+        { key: '/contracts/forecast', label: '回款预测' },
       ],
     },
     { key: '/projects', icon: <IconApps />, label: '项目管理' },
@@ -98,6 +101,13 @@ export function MainLayout() {
       ],
     },
     { key: '/reports', icon: <IconDashboard />, label: '数据报表' },
+    { key: '/assets', icon: <IconApps />, label: '资产管理' },
+    { key: '/maintenance', icon: <IconCustomerService />, label: '售后运维' },
+    { key: '/suppliers', icon: <IconUser />, label: '供应商管理' },
+    { key: '/knowledge', icon: <IconFile />, label: '知识库' },
+    { key: '/meetings', icon: <IconCalendar />, label: '会议管理' },
+    { key: '/roi', icon: <IconExperiment />, label: '全链路 ROI' },
+    { key: '/ai', icon: <IconApps />, label: 'AI 智能助手' },
     {
       key: 'employees',
       icon: <IconUserGroup />,
@@ -115,6 +125,7 @@ export function MainLayout() {
       label: '财务管理',
       children: [
         { key: '/finance/dashboard', label: '财务统计' },
+        { key: '/finance/project-cost', label: '项目成本核算' },
         { key: '/finance/salary', label: '工资表' },
         { key: '/quotation', label: '报价管理' },
         { key: '/businesstrip', label: '出差申请' },
@@ -147,7 +158,7 @@ export function MainLayout() {
   const getSelectedKeys = () => {
     const path = location.pathname;
     if (path.startsWith('/leads/')) {
-      if (path === '/leads/public' || path === '/leads/my' || path === '/leads/trash') {
+      if (path === '/leads/public' || path === '/leads/my' || path === '/leads/trash' || path === '/leads/governance') {
         return [path];
       }
       return ['/leads/my'];

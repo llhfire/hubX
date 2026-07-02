@@ -383,7 +383,10 @@ export function calcWorkDays(hireDateStr: string): number {
   return Math.floor((now.getTime() - hire.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export function formatCurrency(n: number): string { return `¥${n.toLocaleString()}`; }
+export function formatCurrency(n: number | undefined | null): string {
+  if (n === undefined || n === null) return '¥0';
+  return `¥${n.toLocaleString()}`;
+}
 
 export function getLevelColor(level: JobLevel): string {
   const l = parseInt(level.replace('L', ''), 10);

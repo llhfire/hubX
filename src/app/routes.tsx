@@ -38,13 +38,24 @@ import { LeadCostRecharge } from "./pages/lead-cost/LeadCostRecharge";
 import { LeadCostAnalysis } from "./pages/lead-cost/LeadCostAnalysis";
 import { SalaryPage } from "./pages/contract-cost/SalaryPage";
 import { ContractCostDetail } from "./pages/contract-cost/ContractCostDetail";
+import { ProjectCostAccounting } from "./pages/contract-cost/ProjectCostAccounting";
 import DeliveryPlanPage from "./pages/delivery-plan/DeliveryPlanPage";
 import PaymentKanban from "./pages/contracts/PaymentKanban";
+import { PaymentForecast } from "./pages/contracts/forecast/PaymentForecast";
 import { EmployeeList } from "./pages/employee";
 import { EmployeeDetail } from "./pages/employee";
 import { AttendanceManagement } from "./pages/employee";
 import { PerformanceManagement } from "./pages/employee";
 import { LevelRateSettings } from "./pages/employee";
+import { PersonalWorkbench } from "./pages/workbench/PersonalWorkbench";
+import { LeadGovernance } from "./pages/leads/LeadGovernance";
+import { AssetManagement } from "./pages/assets/AssetManagement";
+import { MaintenanceManagement } from "./pages/maintenance/MaintenanceManagement";
+import { SupplierManagement } from "./pages/suppliers/SupplierManagement";
+import { KnowledgeBase } from "./pages/knowledge/KnowledgeBase";
+import { MeetingManagement } from "./pages/meetings/MeetingManagement";
+import { FullChainROI } from "./pages/roi/FullChainROI";
+import { AIDriven } from "./pages/ai/AIDriven";
 
 export const router = createBrowserRouter([
   {
@@ -52,9 +63,11 @@ export const router = createBrowserRouter([
     Component: MainLayout,
     children: [
       { index: true, Component: Dashboard },
+      { path: "workbench", Component: PersonalWorkbench },
       { path: "leads/public", Component: PublicLeads },
       { path: "leads/my", Component: MyLeads },
       { path: "leads/trash", Component: TrashLeads },
+      { path: "leads/governance", Component: LeadGovernance },
       { path: "leads/:id", Component: LeadDetail },
       { path: "lead-cost/dashboard", Component: LeadCostDashboard },
       { path: "lead-cost/daily", Component: LeadCostDaily },
@@ -66,6 +79,7 @@ export const router = createBrowserRouter([
       { path: "contracts/new", Component: ContractWizard },
       { path: "contracts/:id/edit", Component: ContractEditor },
       { path: "contracts/payments", Component: PaymentKanban },
+      { path: "contracts/forecast", Component: PaymentForecast },
       { path: "contracts/:id", Component: ContractDetail },
       { path: "projects", Component: Projects },
       { path: "projects/:id", Component: ProjectDetail },
@@ -79,6 +93,13 @@ export const router = createBrowserRouter([
       { path: "paymentinvoice", Component: PaymentInvoiceList },
       { path: "contractrecord", Component: ContractRecordList },
       { path: "reports", Component: Reports },
+      { path: "assets", Component: AssetManagement },
+      { path: "maintenance", Component: MaintenanceManagement },
+      { path: "suppliers", Component: SupplierManagement },
+      { path: "knowledge", Component: KnowledgeBase },
+      { path: "meetings", Component: MeetingManagement },
+      { path: "roi", Component: FullChainROI },
+      { path: "ai", Component: AIDriven },
       { path: "employees", Component: EmployeeList },
       { path: "employees/attendance", Component: AttendanceManagement },
       { path: "employees/performance", Component: PerformanceManagement },
@@ -94,6 +115,7 @@ export const router = createBrowserRouter([
       { path: "system/bizapproval", Component: BusinessMappingList },
       { path: "system/expensecategory", Component: ExpenseCategoryManager },
       { path: "finance/dashboard", Component: FinancialDashboard },
+      { path: "finance/project-cost", Component: ProjectCostAccounting },
       { path: "finance/salary", Component: SalaryPage },
       { path: "finance/contract-cost/:contractId", Component: ContractCostDetail },
     ],

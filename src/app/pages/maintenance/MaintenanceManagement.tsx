@@ -1,0 +1,357 @@
+import { useState, useMemo } from 'react';
+import {
+  Card,
+  Grid,
+  Statistic,
+  Table,
+  Button,
+  Space,
+  Tag,
+  Tabs,
+  Modal,
+  Form,
+  Input,
+  Select,
+  DatePicker,
+  Typography,
+  Alert,
+  Progress,
+  Badge,
+  Popconfirm,
+  Timeline,
+} from '@arco-design/web-react';
+import {
+  IconCalendar,
+  IconCheckCircle,
+  IconClockCircle,
+  IconExclamationCircle,
+  IconPlus,
+  IconEdit,
+  IconFile,
+  IconUser,
+  IconCustomerService,
+} from '@arco-design/web-react/icon';
+
+const Row = Grid.Row;
+const Col = Grid.Col;
+const TabPane = Tabs.TabPane;
+const Title = Typography.Title;
+const FormItem = Form.Item;
+const SelectOption = Select.Option;
+
+// ---------- 类型 ----------
+
+type MaintenanceStatus = 'active' | 'expiring' | 'expired' | 'renewed';
+type TicketPriority = 'critical' | 'high' | 'medium' | 'low';
+type TicketStatus = 'open' | 'assigned' | 'processing' | 'resolved' | 'closed';
+
+interface MaintenanceRecord {
+  id: string;
+  projectName: string;
+  customerName: string;
+  contractNo: string;
+  deliveryDate: string;
+  freeMaintenanceEnd: string;
+  status: MaintenanceStatus;
+  hasPaidContract: boolean;
+  paidContractEnd?: string;
+  salesOwner: string;
+  notes?: string;
+}
+
+interface Ticket {
+  id: string;
+  title: string;
+  customerName: string;
+  projectName: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+  assignee: string;
+  createdAt: string;
+  slaDeadline: string;
+  resolvedAt?: string;
+  description: string;
+}
+
+interface RenewalContract {
+  id: string;
+  projectName: string;
+  customerName: string;
+  contractNo: string;
+  signDate: string;
+  endDate: string;
+  amount: number;
+  salesOwner: string;
+}
+
+// ---------- 工具 ----------
+
+function getDaysUntil(dateStr: string): number {
+  return Math.ceil((new Date(dateStr).getTime() - new Date('2026-07-02').getTime()) / (1000 * 60 * 60 * 24));
+}
+
+const MAINTENANCE_STATUS_LABELS: Record<MaintenanceStatus, { label: string; color: string }> = {
+  active:   { label: '维护期中', color: '#00b42a' },
+  expiring: { label: '即将到期', color: '#ff7d00' },
+  expired:  { label: '已到期',   color: '#f53f3f' },
+  renewed:  { label: '已续签',   color: '#165dff' },
+};
+
+const TICKET_PRIORITY_LABELS: Record<TicketPriority, { label: string; color: string }> = {
+  critical: { label: '紧急', color: '#f53f3f' },
+  high:     { label: '高',   color: '#ff7d00' },
+  medium:   { label: '中',   color: '#165dff' },
+  low:      { label: '低',   color: '#86909c' },
+};
+
+const TICKET_STATUS_LABELS: Record<TicketStatus, { label: string; color: string }> = {
+  open:       { label: '待分配', color: '#86909c' },
+  assigned:   { label: '已分配', color: '#165dff' },
+  processing: { label: '处理中', color: '#ff7d00' },
+  resolved:   { label: '已解决', color: '#00b42a' },
+  closed:     { label: '已关闭', color: '#c9cdd4' },
+};
+
+// ---------- 模拟数据 ----------
+
+const mockMaintenance: MaintenanceRecord[] = [
+  { id: 'mnt-1', projectName: '企业管理系统开发', customerName: '北京科技有限公司', contractNo: 'HT202601001', deliveryDate: '2026-03-20', freeMaintenanceEnd: '2026-09-20', status: 'active',   hasPaidContract: false, salesOwner: '张三' },
+  { id: 'mnt-2', projectName: '云服务平台项目',   customerName: '创新科技有限公司', contractNo: 'HT202601002', deliveryDate: '2026-04-01', freeMaintenanceEnd: '2026-07-15', status: 'expiring', hasPaidContract: false, salesOwner: '张三', notes: '即将到期，需跟进续费' },
+  { id: 'mnt-3', projectName: '电商平台小程序',   customerName: '东方电子商务有限公司', contractNo: 'HT202601003', deliveryDate: '2026-02-15', freeMaintenanceEnd: '2026-07-01', status: 'expired',  hasPaidContract: true,  paidContractEnd: '2027-07-01', salesOwner: '李四' },
+  { id: 'mnt-4', projectName: '智能制造 MES',    customerName: '华夏制造集团',     contractNo: 'HT202601004', deliveryDate: '2026-01-10', freeMaintenanceEnd: '2026-07-10', status: 'expiring', hasPaidContract: false, salesOwner: '王五', notes: '客户有续签意向' },
+  { id: 'mnt-5', projectName: '医疗健康 APP',    customerName: '康健医疗科技',     contractNo: 'HT202601005', deliveryDate: '2026-05-10', freeMaintenanceEnd: '2026-11-10', status: 'active',   hasPaidContract: false, salesOwner: '赵六' },
+];
+
+const mockTickets: Ticket[] = [
+  { id: 'tk-1', title: '登录页面加载缓慢', customerName: '北京科技有限公司', projectName: '企业管理系统开发', priority: 'high',     status: 'processing', assignee: '李四', createdAt: '2026-07-01 09:30', slaDeadline: '2026-07-01 17:00', description: '用户反馈登录页面加载超过 10 秒' },
+  { id: 'tk-2', title: '数据导出功能报错', customerName: '创新科技有限公司', projectName: '云服务平台项目',   priority: 'critical', status: 'assigned',   assignee: '王五', createdAt: '2026-07-02 08:00', slaDeadline: '2026-07-02 12:00', description: '导出 Excel 时报 500 错误' },
+  { id: 'tk-3', title: '移动端适配问题',  customerName: '东方电子商务有限公司', projectName: '电商平台小程序', priority: 'medium',  status: 'open',       assignee: '',     createdAt: '2026-07-02 10:15', slaDeadline: '2026-07-04 10:15', description: 'iPhone SE 上页面显示异常' },
+  { id: 'tk-4', title: '新增数据报表需求', customerName: '华夏制造集团', projectName: '智能制造 MES', priority: 'low',     status: 'resolved',   assignee: '赵六', createdAt: '2026-06-28 14:00', slaDeadline: '2026-07-05 14:00', resolvedAt: '2026-06-30 16:00', description: '客户希望增加生产统计报表' },
+  { id: 'tk-5', title: '系统偶尔卡顿',   customerName: '康健医疗科技', projectName: '医疗健康 APP', priority: 'medium',  status: 'closed',     assignee: '李四', createdAt: '2026-06-25 11:00', slaDeadline: '2026-07-02 11:00', resolvedAt: '2026-06-27 09:00', description: '使用高峰期系统响应慢' },
+];
+
+const mockRenewalContracts: RenewalContract[] = [
+  { id: 'rc-1', projectName: '电商平台小程序', customerName: '东方电子商务有限公司', contractNo: 'WH-2026-001', signDate: '2026-06-25', endDate: '2027-07-01', amount: 36000, salesOwner: '李四' },
+];
+
+// ---------- 主组件 ----------
+
+export function MaintenanceManagement() {
+  const [activeTab, setActiveTab] = useState('maintenance');
+  const [tickets, setTickets] = useState(mockTickets);
+  const [ticketModalVisible, setTicketModalVisible] = useState(false);
+  const [form] = Form.useForm();
+
+  const summary = useMemo(() => {
+    const active = mockMaintenance.filter(m => m.status === 'active').length;
+    const expiring = mockMaintenance.filter(m => m.status === 'expiring').length;
+    const expired = mockMaintenance.filter(m => m.status === 'expired').length;
+    const openTickets = tickets.filter(t => t.status === 'open' || t.status === 'assigned' || t.status === 'processing').length;
+    const criticalTickets = tickets.filter(t => t.priority === 'critical' && t.status !== 'closed' && t.status !== 'resolved').length;
+    return { active, expiring, expired, openTickets, criticalTickets, totalProjects: mockMaintenance.length };
+  }, [tickets]);
+
+  const handleAddTicket = () => {
+    form.resetFields();
+    form.setFieldsValue({ priority: 'medium' });
+    setTicketModalVisible(true);
+  };
+
+  const handleSubmitTicket = () => {
+    form.validate().then(values => {
+      const newTicket: Ticket = {
+        id: `tk-${Date.now()}`,
+        ...values,
+        status: 'open',
+        assignee: values.assignee || '',
+        createdAt: '2026-07-02 12:00',
+        slaDeadline: values.priority === 'critical' ? '2026-07-02 16:00' : values.priority === 'high' ? '2026-07-03 12:00' : '2026-07-05 12:00',
+      };
+      setTickets(prev => [newTicket, ...prev]);
+      setTicketModalVisible(false);
+    });
+  };
+
+  return (
+    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      {/* 摘要栏 */}
+      <Row gutter={16}>
+        <Col span={4}><Card><Statistic title="维护期项目" value={summary.active} suffix="个" icon={<IconCheckCircle style={{ color: '#00b42a' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="即将到期" value={summary.expiring} suffix="个" prefix={<IconExclamationCircle style={{ color: '#ff7d00' }} />} valueStyle={{ color: '#ff7d00' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="已到期" value={summary.expired} suffix="个" prefix={<IconExclamationCircle style={{ color: '#f53f3f' }} />} valueStyle={{ color: '#f53f3f' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="待处理工单" value={summary.openTickets} suffix="个" icon={<IconCustomerService style={{ color: 'rgb(var(--primary-6))' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="紧急工单" value={summary.criticalTickets} suffix="个" prefix={<IconExclamationCircle style={{ color: '#f53f3f' }} />} valueStyle={{ color: '#f53f3f' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="续签合同" value={mockRenewalContracts.length} suffix="个" icon={<IconFile style={{ color: '#165dff' }} />} /></Card></Col>
+      </Row>
+
+      {/* 到期预警 */}
+      {(summary.expiring > 0 || summary.expired > 0) && (
+        <Alert
+          type="warning"
+          content={
+            <span>
+              {summary.expiring > 0 && <strong style={{ color: '#ff7d00' }}>{summary.expiring} 个</strong>}
+              {summary.expiring > 0 && ' 项目维护期即将到期，请跟进续费。'}
+              {summary.expiring > 0 && summary.expired > 0 && ' '}
+              {summary.expired > 0 && <strong style={{ color: '#f53f3f' }}>{summary.expired} 个</strong>}
+              {summary.expired > 0 && ' 项目维护期已到期。'}
+            </span>
+          }
+          icon={<IconExclamationCircle />}
+        />
+      )}
+
+      {/* 主体 Tab */}
+      <Card bordered={false}>
+        <Tabs activeTab={activeTab} onChange={setActiveTab}>
+          <TabPane key="maintenance" title={<span><IconCalendar /> 维护期跟踪</span>} />
+          <TabPane key="tickets" title={<span><IconCustomerService /> 客户工单 <Badge count={summary.openTickets} style={{ background: 'rgb(var(--primary-6))' }} /></span>} />
+          <TabPane key="renewal" title={<span><IconFile /> 续费合同</span>} />
+        </Tabs>
+
+        <div style={{ paddingTop: 16 }}>
+          {/* 维护期跟踪 Tab */}
+          {activeTab === 'maintenance' && (
+            <Table
+              columns={[
+                { title: '项目名称', dataIndex: 'projectName', width: 150, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
+                { title: '客户', dataIndex: 'customerName', width: 130 },
+                { title: '合同编号', dataIndex: 'contractNo', width: 130 },
+                { title: '交付日期', dataIndex: 'deliveryDate', width: 100 },
+                {
+                  title: '免费维护截止', dataIndex: 'freeMaintenanceEnd', width: 120,
+                  render: (v: string, row: MaintenanceRecord) => {
+                    const days = getDaysUntil(v);
+                    if (days < 0) return <span style={{ color: '#f53f3f' }}>{v} (已到期)</span>;
+                    if (days <= 30) return <span style={{ color: '#ff7d00' }}>{v} ({days}天)</span>;
+                    return v;
+                  },
+                },
+                {
+                  title: '状态', dataIndex: 'status', width: 90,
+                  render: (s: MaintenanceStatus) => <Tag color={MAINTENANCE_STATUS_LABELS[s].color} style={{ color: '#fff' }}>{MAINTENANCE_STATUS_LABELS[s].label}</Tag>,
+                },
+                {
+                  title: '维护进度', width: 120,
+                  render: (_: unknown, row: MaintenanceRecord) => {
+                    const total = Math.ceil((new Date(row.freeMaintenanceEnd).getTime() - new Date(row.deliveryDate).getTime()) / (1000 * 60 * 60 * 24));
+                    const elapsed = total - getDaysUntil(row.freeMaintenanceEnd);
+                    return <Progress percent={Math.min(100, Math.round((elapsed / total) * 100))} size="small" />;
+                  },
+                },
+                { title: '付费合同', dataIndex: 'hasPaidContract', width: 80, render: (v: boolean) => v ? <Tag color="#00b42a" style={{ color: '#fff' }}>有</Tag> : <Tag>无</Tag> },
+                { title: '销售负责人', dataIndex: 'salesOwner', width: 90 },
+              ] as any}
+              data={mockMaintenance}
+              rowKey="id"
+              pagination={false}
+            />
+          )}
+
+          {/* 客户工单 Tab */}
+          {activeTab === 'tickets' && (
+            <div>
+              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                <Button type="primary" icon={<IconPlus />} onClick={handleAddTicket}>新建工单</Button>
+              </div>
+              <Table
+                columns={[
+                  {
+                    title: '优先级', dataIndex: 'priority', width: 70,
+                    render: (p: TicketPriority) => <Tag color={TICKET_PRIORITY_LABELS[p].color} style={{ color: '#fff' }}>{TICKET_PRIORITY_LABELS[p].label}</Tag>,
+                  },
+                  { title: '标题', dataIndex: 'title', width: 160, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
+                  { title: '客户', dataIndex: 'customerName', width: 130 },
+                  { title: '项目', dataIndex: 'projectName', width: 130 },
+                  {
+                    title: '状态', dataIndex: 'status', width: 80,
+                    render: (s: TicketStatus) => <Tag color={TICKET_STATUS_LABELS[s].color} style={{ color: '#fff' }}>{TICKET_STATUS_LABELS[s].label}</Tag>,
+                  },
+                  { title: '处理人', dataIndex: 'assignee', width: 70, render: (v: string) => v || <span style={{ color: 'var(--color-text-3)' }}>待分配</span> },
+                  { title: '创建时间', dataIndex: 'createdAt', width: 130 },
+                  {
+                    title: 'SLA 截止', dataIndex: 'slaDeadline', width: 130,
+                    render: (v: string, row: Ticket) => {
+                      if (row.status === 'closed' || row.status === 'resolved') return <span style={{ color: 'var(--color-text-3)' }}>—</span>;
+                      const days = getDaysUntil(v);
+                      if (days < 0) return <span style={{ color: '#f53f3f', fontWeight: 600 }}>超时 {Math.abs(days)} 天</span>;
+                      if (days === 0) return <span style={{ color: '#ff7d00', fontWeight: 600 }}>今日到期</span>;
+                      return v;
+                    },
+                  },
+                ] as any}
+                data={tickets}
+                rowKey="id"
+                pagination={false}
+              />
+            </div>
+          )}
+
+          {/* 续费合同 Tab */}
+          {activeTab === 'renewal' && (
+            <Table
+              columns={[
+                { title: '项目', dataIndex: 'projectName', width: 150, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
+                { title: '客户', dataIndex: 'customerName', width: 130 },
+                { title: '合同编号', dataIndex: 'contractNo', width: 130 },
+                { title: '签订日期', dataIndex: 'signDate', width: 100 },
+                { title: '到期日期', dataIndex: 'endDate', width: 100 },
+                { title: '合同金额', dataIndex: 'amount', width: 100, render: (v: number) => `¥${v.toLocaleString()}` },
+                { title: '销售负责人', dataIndex: 'salesOwner', width: 90 },
+              ] as any}
+              data={mockRenewalContracts}
+              rowKey="id"
+              pagination={false}
+            />
+          )}
+        </div>
+      </Card>
+
+      {/* 新建工单弹窗 */}
+      <Modal
+        title="新建客户工单"
+        visible={ticketModalVisible}
+        onOk={handleSubmitTicket}
+        onCancel={() => setTicketModalVisible(false)}
+        autoFocus={false}
+        focusLock={true}
+        style={{ width: 520 }}
+      >
+        <Form form={form} layout="vertical">
+          <FormItem label="工单标题" field="title" rules={[{ required: true, message: '请输入标题' }]}>
+            <Input placeholder="简要描述问题" />
+          </FormItem>
+          <Grid.Row gutter={16}>
+            <Grid.Col span={12}>
+              <FormItem label="客户" field="customerName" rules={[{ required: true, message: '请输入客户' }]}>
+                <Input placeholder="客户名称" />
+              </FormItem>
+            </Grid.Col>
+            <Grid.Col span={12}>
+              <FormItem label="项目" field="projectName" rules={[{ required: true, message: '请输入项目' }]}>
+                <Input placeholder="项目名称" />
+              </FormItem>
+            </Grid.Col>
+          </Grid.Row>
+          <Grid.Row gutter={16}>
+            <Grid.Col span={12}>
+              <FormItem label="优先级" field="priority" rules={[{ required: true }]}>
+                <Select placeholder="选择优先级">
+                  {Object.entries(TICKET_PRIORITY_LABELS).map(([k, m]) => <SelectOption key={k} value={k}>{m.label}</SelectOption>)}
+                </Select>
+              </FormItem>
+            </Grid.Col>
+            <Grid.Col span={12}>
+              <FormItem label="处理人" field="assignee">
+                <Input placeholder="指定处理人（可选）" />
+              </FormItem>
+            </Grid.Col>
+          </Grid.Row>
+          <FormItem label="问题描述" field="description">
+            <Input.TextArea placeholder="详细描述问题" autoSize={{ minRows: 3, maxRows: 6 }} />
+          </FormItem>
+        </Form>
+      </Modal>
+    </Space>
+  );
+}

@@ -1,18 +1,28 @@
 // src/app/pages/daily-report/DailyReportModal.tsx
 
 import { useState, useEffect, useRef } from 'react';
-import { Modal, DatePicker, Message } from '@arco-design/web-react';
+import { Modal, DatePicker, Message, Tag, Space } from '@arco-design/web-react';
 import { SalesDailyTemplate } from './SalesDailyTemplate';
 import { GeneralDailyTemplate } from './GeneralDailyTemplate';
-import { mockUsers, getSalesDailyLeadsData } from './templateConfig';
-import { DailyReport, DailyReportContent, SalesReportContent, GeneralReportContent } from './types';
+import { AdDeliveryDailyTemplate } from './AdDeliveryDailyTemplate';
+import { DevDailyTemplate } from './DevDailyTemplate';
+import { mockUsers, getSalesDailyLeadsData, getAdDeliveryMockData } from './templateConfig';
+import {
+  DailyReport,
+  DailyReportContent,
+  DailyTemplateType,
+  SalesReportContent,
+  GeneralReportContent,
+  AdDeliveryReportContent,
+  DevReportContent,
+} from './types';
 
 interface Props {
   visible: boolean;
   onCancel: () => void;
   onSubmit: (report: DailyReport) => void;
   currentUserId?: string;
-  defaultRole?: 'sales' | 'general';
+  defaultRole?: DailyTemplateType;
 }
 
 interface DailyReportSessionState {
@@ -21,32 +31,44 @@ interface DailyReportSessionState {
 }
 
 function createInitialContent(
-  templateType: 'sales' | 'general',
+  templateType: DailyTemplateType,
   currentUserId: string,
   date: Date,
 ): DailyReportContent {
   if (templateType === 'sales') {
-    const initialSalesContent: SalesReportContent = {
+    return {
       'lead-tracking': getSalesDailyLeadsData(currentUserId, date),
       'assistance-needed': '',
       'tomorrow-plan': '',
     };
-
-    return initialSalesContent;
   }
-
-  const initialGeneralContent: GeneralReportContent = {
+  if (templateType === 'ad-delivery') {
+    return {
+      'ad-delivery-data': getAdDeliveryMockData(),
+      'optimization-actions': '',
+      'tomorrow-plan': '',
+    };
+  }
+  if (templateType === 'dev') {
+    return {
+      'work-kind': 'dev-coding',
+      'project-tasks': [],
+      'code-progress': '',
+      'problems-encountered': '',
+      'tomorrow-plan': '',
+    };
+  }
+  return {
+    'work-kind': 'dev-coding',
     'project-tasks': [],
     'today-summary': '',
     'problems-encountered': '',
     'tomorrow-plan': '',
   };
-
-  return initialGeneralContent;
 }
 
 function createSessionState(
-  templateType: 'sales' | 'general',
+  templateType: DailyTemplateType,
   currentUserId: string,
   reportDate: Date,
 ): DailyReportSessionState {
@@ -56,20 +78,24 @@ function createSessionState(
   };
 }
 
+const TEMPLATE_LABELS: Record<DailyTemplateType, { label: string; color: string }> = {
+  sales:        { label: '销售日报', color: '#165dff' },
+  'ad-delivery': { label: '投放日报', color: '#ff7d00' },
+  dev:          { label: '开发日报', color: '#00b42a' },
+  general:      { label: '通用日报', color: '#7c3aed' },
+};
+
 export function DailyReportModal({ visible, onCancel, onSubmit, currentUserId = 'user-sales-zhangsan', defaultRole }: Props) {
-  const currentTemplateType: 'sales' | 'general' = defaultRole || 'general';
-  const [sessionState, setSessionState] = useState<DailyReportSessionState>(() => {
-    const initialDate = new Date();
-    return createSessionState(currentTemplateType, currentUserId, initialDate);
-  });
+  const currentTemplateType: DailyTemplateType = defaultRole || 'general';
+  const [sessionState, setSessionState] = useState<DailyReportSessionState>(() =>
+    createSessionState(currentTemplateType, currentUserId, new Date()),
+  );
   const wasVisibleRef = useRef(visible);
   const openingSessionRef = useRef<DailyReportSessionState | null>(null);
 
   if (visible && !wasVisibleRef.current && openingSessionRef.current === null) {
-    const nextReportDate = new Date();
-    openingSessionRef.current = createSessionState(currentTemplateType, currentUserId, nextReportDate);
+    openingSessionRef.current = createSessionState(currentTemplateType, currentUserId, new Date());
   }
-
   if (!visible && openingSessionRef.current !== null) {
     openingSessionRef.current = null;
   }
@@ -82,32 +108,34 @@ export function DailyReportModal({ visible, onCancel, onSubmit, currentUserId = 
       setSessionState(openingSessionRef.current);
       openingSessionRef.current = null;
     }
-
     wasVisibleRef.current = visible;
   }, [visible]);
 
   const handleContentChange = (newContent: DailyReportContent) => {
-    setSessionState((prevState) => ({
-      ...prevState,
-      content: newContent,
-    }));
+    setSessionState(prev => ({ ...prev, content: newContent }));
   };
 
   const handleSubmit = () => {
-    // 校验必填项
     if (!content?.['tomorrow-plan']) {
       Message.warning('请填写明日工作计划（必填）');
       return;
     }
 
     const user = mockUsers.find(u => u.id === currentUserId);
+    const templateIdMap: Record<DailyTemplateType, string> = {
+      sales: 'sales-template-default',
+      'ad-delivery': 'ad-delivery-template-default',
+      dev: 'dev-template-default',
+      general: 'general-template-default',
+    };
+
     const report: DailyReport = {
       id: `report-${Date.now()}`,
       userId: currentUserId,
       userName: user?.name || '未知用户',
       department: user?.department || '未知部门',
       reportDate: reportDate.toISOString().split('T')[0],
-      templateId: currentTemplateType === 'sales' ? 'sales-template-default' : 'general-template-default',
+      templateId: templateIdMap[currentTemplateType],
       templateType: currentTemplateType,
       content,
       status: 'submitted',
@@ -121,47 +149,38 @@ export function DailyReportModal({ visible, onCancel, onSubmit, currentUserId = 
   };
 
   const renderTemplate = () => {
-    if (currentTemplateType === 'sales') {
-      return (
-        <SalesDailyTemplate
-          userId={currentUserId}
-          date={reportDate}
-          initialContent={content as SalesReportContent}
-          onChange={handleContentChange}
-        />
-      );
+    switch (currentTemplateType) {
+      case 'sales':
+        return <SalesDailyTemplate userId={currentUserId} date={reportDate} initialContent={content as SalesReportContent} onChange={handleContentChange} />;
+      case 'ad-delivery':
+        return <AdDeliveryDailyTemplate content={content as AdDeliveryReportContent} onChange={handleContentChange} />;
+      case 'dev':
+        return <DevDailyTemplate content={content as DevReportContent} onChange={handleContentChange} />;
+      default:
+        return <GeneralDailyTemplate initialContent={content as GeneralReportContent | undefined} onChange={handleContentChange} />;
     }
-
-    return (
-      <GeneralDailyTemplate
-        initialContent={content as GeneralReportContent | undefined}
-        onChange={handleContentChange}
-      />
-    );
   };
+
+  const templateMeta = TEMPLATE_LABELS[currentTemplateType];
 
   return (
     <Modal
-      title="填写日报"
+      title={<Space><Tag color={templateMeta.color} style={{ color: '#fff' }}>{templateMeta.label}</Tag><span>填写日报</span></Space>}
       visible={visible}
       onCancel={onCancel}
       onOk={handleSubmit}
       okText="提交日报"
       cancelText="取消"
-      style={{ width: 700 }}
+      style={{ width: 780 }}
     >
       <div style={{ marginBottom: 16 }}>
         <span style={{ fontWeight: 500 }}>日期：</span>
         <DatePicker
           value={reportDate}
-          onChange={(date) => date && setSessionState((prevState) => ({
-            ...prevState,
-            reportDate: date,
-          }))}
+          onChange={(date) => date && setSessionState(prev => ({ ...prev, reportDate: date }))}
           style={{ width: 200 }}
         />
       </div>
-
       {renderTemplate()}
     </Modal>
   );
