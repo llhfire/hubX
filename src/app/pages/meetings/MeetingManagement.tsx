@@ -33,6 +33,7 @@ import {
   IconCheckCircle,
   IconCloseCircle,
   IconLocation,
+  IconUserGroup,
 } from '@arco-design/web-react/icon';
 
 const Row = Grid.Row;
@@ -221,9 +222,9 @@ export function MeetingManagement() {
       {/* 主体 Tab */}
       <Card bordered={false}>
         <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="meetings" title={<span><span style={{ fontSize: 16 }}>📅</span> 会议安排 <Badge count={summary.upcomingMeetings} style={{ background: 'var(--primary)' }} /></span>} />
-          <TabPane key="rooms" title={<span><span style={{ fontSize: 16 }}>🏢</span> 会议室管理</span>} />
-          <TabPane key="minutes" title={<span><span style={{ fontSize: 16 }}>📝</span> 会议记录</span>} />
+          <TabPane key="meetings" title={<span><IconCalendar style={{ fontSize: 16 }} /> 会议安排 <Badge count={summary.upcomingMeetings} style={{ background: 'var(--primary)' }} /></span>} />
+          <TabPane key="rooms" title={<span><IconLocation style={{ fontSize: 16 }} /> 会议室管理</span>} />
+          <TabPane key="minutes" title={<span><IconEdit style={{ fontSize: 16 }} /> 会议记录</span>} />
         </Tabs>
 
         <div style={{ paddingTop: 16 }}>
@@ -293,8 +294,8 @@ export function MeetingManagement() {
                         <Tag color={roomStatusLabels[room.status].color} style={{ color: '#fff' }}>{roomStatusLabels[room.status].label}</Tag>
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-2)', marginBottom: 8 }}>
-                        <div>📍 {room.location}</div>
-                        <div>👥 容量 {room.capacity} 人</div>
+                        <div><IconLocation style={{ marginRight: 4 }} /> {room.location}</div>
+                        <div><IconUserGroup style={{ marginRight: 4 }} /> 容量 {room.capacity} 人</div>
                       </div>
                       <Space size={4} wrap>
                         {room.equipment.map(e => <Tag key={e} size="small">{e}</Tag>)}
@@ -317,7 +318,7 @@ export function MeetingManagement() {
                 mockMinutes.map(min => (
                   <Card key={min.id} size="small" style={{ marginBottom: 16 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <Title heading={6} style={{ margin: 0 }}>📝 {min.meetingTitle}</Title>
+                      <Title heading={6} style={{ margin: 0 }}><IconEdit style={{ marginRight: 4 }} /> {min.meetingTitle}</Title>
                       <Typography.Text type="secondary" style={{ fontSize: 12 }}>{min.date}</Typography.Text>
                     </div>
 

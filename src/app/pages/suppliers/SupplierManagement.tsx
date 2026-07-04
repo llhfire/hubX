@@ -235,7 +235,7 @@ export function SupplierManagement() {
                       <div style={{ fontSize: 12, color: 'var(--color-text-2)' }}>
                         <div>联系人：{supplier.contactPerson}</div>
                         <div>合作 {supplier.totalContracts} 次 · 总额 ¥{supplier.totalAmount.toLocaleString()}</div>
-                        {supplier.notes && <div style={{ color: 'var(--color-text-3)', marginTop: 4 }}>📝 {supplier.notes}</div>}
+                        {supplier.notes && <div style={{ color: 'var(--color-text-3)', marginTop: 4 }}><IconEdit style={{ marginRight: 4 }} /> {supplier.notes}</div>}
                       </div>
                     </Card>
                   </Col>

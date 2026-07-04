@@ -29,6 +29,8 @@ import {
   IconExclamationCircle,
   IconExperiment,
   IconArrowRight,
+  IconSend,
+  IconFolder,
 } from '@arco-design/web-react/icon';
 
 const Row = Grid.Row;
@@ -234,7 +236,7 @@ export function AIDriven() {
               {mockPersonnelMatches.map(match => (
                 <Card key={match.taskTitle} size="small" style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <Title heading={6} style={{ margin: 0 }}>🎯 {match.taskTitle}</Title>
+                    <Title heading={6} style={{ margin: 0 }}><IconSend style={{ marginRight: 4 }} /> {match.taskTitle}</Title>
                     <Button type="text" size="small" onClick={() => { setSelectedMatch(match); setDetailModalVisible(true); }}>查看详情</Button>
                   </div>
                   <Row gutter={16}>
@@ -322,12 +324,12 @@ export function AIDriven() {
                             : <Tag color="var(--warning-500)" style={{ color: '#fff' }}>AI 建议</Tag>
                       }
                     >
-                      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>📅 {meeting.suggestedType}</div>
+                      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}><IconCalendar style={{ marginRight: 4 }} /> {meeting.suggestedType}</div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-2)', marginBottom: 4 }}>
-                        📁 {meeting.projectName} · {meeting.phase}
+                        <IconFolder style={{ marginRight: 4 }} /> {meeting.projectName} · {meeting.phase}
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-2)', marginBottom: 8 }}>
-                        🕐 {meeting.suggestedDate}
+                        <IconClockCircle style={{ marginRight: 4 }} /> {meeting.suggestedDate}
                       </div>
                       <div style={{ fontSize: 12, marginBottom: 8 }}>
                         <Avatar.Group size={20} maxCount={5}>
@@ -335,7 +337,7 @@ export function AIDriven() {
                         </Avatar.Group>
                         <span style={{ marginLeft: 8, color: 'var(--color-text-3)', fontSize: 11 }}>{meeting.attendees.join('、')}</span>
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 12 }}>📋 {meeting.agenda}</div>
+                      <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 12 }}><IconFile style={{ marginRight: 4 }} /> {meeting.agenda}</div>
                       {meeting.status === 'suggested' && (
                         <Space>
                           <Button type="primary" size="small" onClick={() => handleConfirmMeeting(meeting.id)}>确认安排</Button>

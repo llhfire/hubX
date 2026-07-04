@@ -25,6 +25,13 @@ import {
   IconCloseCircleFill,
   IconClockCircle,
   IconPlus,
+  IconFile,
+  IconHistory,
+  IconEdit,
+  IconCheck,
+  IconWechatpay,
+  IconPushpin,
+  IconCalendar,
 } from '@arco-design/web-react/icon';
 import { useContracts } from './contracts/ContractsContext';
 import { ContractStatusBadge } from './contracts/components/ContractStatusBadge';
@@ -46,11 +53,11 @@ interface FollowUpRecord {
   date: string;
 }
 
-const FOLLOW_UP_TYPES: Record<FollowUpRecord['type'], { label: string; color: string; icon: string }> = {
-  requirement_change: { label: '需求变更', color: 'orange', icon: '📝' },
-  ui_confirm:         { label: 'UI/原型确认', color: 'cyan', icon: '✅' },
-  dunning:            { label: '催款记录', color: 'red', icon: '💰' },
-  other:              { label: '其他', color: 'gray', icon: '📌' },
+const FOLLOW_UP_TYPES: Record<FollowUpRecord['type'], { label: string; color: string; icon: React.ReactNode }> = {
+  requirement_change: { label: '需求变更', color: 'orange', icon: <IconEdit size={12} /> },
+  ui_confirm:         { label: 'UI/原型确认', color: 'cyan', icon: <IconCheck size={12} /> },
+  dunning:            { label: '催款记录', color: 'red', icon: <IconWechatpay size={12} /> },
+  other:              { label: '其他', color: 'gray', icon: <IconPushpin size={12} /> },
 };
 
 const mockFollowUps: FollowUpRecord[] = [
@@ -329,59 +336,6 @@ export function ContractDetail() {
             </Tabs>
           </Card>
 
-          {/* 审批记录 */}
-          <Card title="审批记录" style={{ marginBottom: 16 }}>
-            {showApprovalForSelected ? (
-              <Timeline>
-                {contract.approvalFlow.map((node, index) => (
-                  <Timeline.Item
-                    key={index}
-                    dot={
-                      node.status === 'approved' ? (
-                        <IconCheckCircleFill style={{ fontSize: 16, color: 'rgb(var(--green-6))' }} />
-                      ) : node.status === 'rejected' ? (
-                        <IconCloseCircleFill style={{ fontSize: 16, color: 'rgb(var(--red-6))' }} />
-                      ) : (
-                        <IconClockCircle style={{ fontSize: 16, color: 'rgb(var(--orange-6))' }} />
-                      )
-                    }
-                  >
-                    <div style={{ marginBottom: 4 }}>
-                      <span style={{ fontWeight: 600, fontSize: 14 }}>{node.step}</span>
-                      {node.time && (
-                        <span style={{ marginLeft: 12, fontSize: 12, color: 'var(--color-text-3)' }}>
-                          {node.time}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 13, color: 'var(--color-text-2)', marginBottom: 4 }}>
-                      审批人：{node.approver}
-                    </div>
-                    {node.comment && (
-                      <div
-                        style={{
-                          fontSize: 13,
-                          color: 'var(--color-text-2)',
-                          padding: '6px 10px',
-                          background: 'var(--color-fill-2)',
-                          borderRadius: 4,
-                        }}
-                      >
-                        {node.comment}
-                      </div>
-                    )}
-                  </Timeline.Item>
-                ))}
-              </Timeline>
-            ) : (
-              <Result
-                status="info"
-                title="该版本未提交审批"
-                subTitle="切换到 ✅ 标记的版本可查看审批记录。"
-              />
-            )}
-          </Card>
-
         </Col>
 
         {/* 右侧动态侧边栏 30% */}
@@ -391,9 +345,9 @@ export function ContractDetail() {
             <ContractFlowProgress status={contract.status} />
           )}
 
-          {/* 右侧 Tab：跟进记录 / 版本历史 */}
+          {/* 右侧 Tab：跟进记录 / 审批记录 / 版本历史 */}
           <Tabs activeTab={activeRightTab} onChange={setActiveRightTab} style={{ marginTop: 16 }}>
-            <TabPane key="followup" title={<span>📋 跟进</span>}>
+            <TabPane key="followup" title={<span><IconFile size={14} /> 跟进</span>}>
               <Card
                 size="small"
                 style={{ borderRadius: 8 }}
@@ -403,9 +357,9 @@ export function ContractDetail() {
                   {followUps.map(fu => {
                     const typeMeta = FOLLOW_UP_TYPES[fu.type];
                     return (
-                      <Timeline.Item key={fu.id} dot={<span style={{ fontSize: 14 }}>{typeMeta.icon}</span>}>
+                      <Timeline.Item key={fu.id} dot={typeMeta.icon}>
                         <div style={{ marginBottom: 2 }}>
-                          <Tag color={typeMeta.color} style={{ color: '#fff' }} size="small">{typeMeta.label}</Tag>
+                          <Tag color={typeMeta.color} size="small">{typeMeta.label}</Tag>
                           <span style={{ fontWeight: 600, fontSize: 13, marginLeft: 4 }}>{fu.title}</span>
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>{fu.date} · {fu.author}</div>
@@ -418,7 +372,48 @@ export function ContractDetail() {
                 </Timeline>
               </Card>
             </TabPane>
-            <TabPane key="versions" title={<span>📜 版本</span>}>
+            <TabPane key="approval" title={<span><IconCalendar size={14} /> 审批</span>}>
+              <Card size="small" style={{ borderRadius: 8 }}>
+                {showApprovalForSelected ? (
+                  <Timeline>
+                    {contract.approvalFlow.map((node, index) => (
+                      <Timeline.Item
+                        key={index}
+                        dot={
+                          node.status === 'approved' ? (
+                            <IconCheckCircleFill style={{ fontSize: 14, color: 'var(--success-500)' }} />
+                          ) : node.status === 'rejected' ? (
+                            <IconCloseCircleFill style={{ fontSize: 14, color: 'var(--destructive-500)' }} />
+                          ) : (
+                            <IconClockCircle style={{ fontSize: 14, color: 'var(--warning-500)' }} />
+                          )
+                        }
+                      >
+                        <div style={{ marginBottom: 2 }}>
+                          <span style={{ fontWeight: 600, fontSize: 13 }}>{node.step}</span>
+                          {node.time && (
+                            <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--color-text-3)' }}>
+                              {node.time}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--color-text-2)', marginBottom: 2 }}>
+                          审批人：{node.approver}
+                        </div>
+                        {node.comment && (
+                          <div style={{ fontSize: 12, color: 'var(--color-text-2)', padding: '4px 8px', background: 'var(--color-fill-1)', borderRadius: 4 }}>
+                            {node.comment}
+                          </div>
+                        )}
+                      </Timeline.Item>
+                    ))}
+                  </Timeline>
+                ) : (
+                  <Result status="info" title="该版本未提交审批" size="small" />
+                )}
+              </Card>
+            </TabPane>
+            <TabPane key="versions" title={<span><IconHistory size={14} /> 版本</span>}>
               <VersionTimeline
                 contract={contract}
                 selectedVersionNo={selectedVersionNo}

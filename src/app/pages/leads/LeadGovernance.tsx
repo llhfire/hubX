@@ -343,7 +343,7 @@ export function LeadGovernance() {
                   render: (v: string, row: LeadRecord) => {
                     if (!v || ['已签单', '已终止'].includes(row.status)) return '—';
                     const isOverdue = new Date(v) < new Date('2026-07-02');
-                    return <span style={{ color: isOverdue ? 'var(--destructive-500)' : 'inherit', fontWeight: isOverdue ? 600 : 400 }}>{v}{isOverdue ? ' ⚠️' : ''}</span>;
+                    return <span style={{ color: isOverdue ? 'var(--destructive-500)' : 'inherit', fontWeight: isOverdue ? 600 : 400 }}>{v}{isOverdue ? ' ' : ''}{isOverdue && <IconExclamationCircle style={{ color: 'var(--warning-500)' }} />}</span>;
                   },
                 },
               ] as any}

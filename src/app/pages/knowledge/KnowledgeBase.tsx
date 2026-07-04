@@ -35,6 +35,7 @@ import {
   IconApps,
   IconStar,
   IconFolder,
+  IconDesktop,
 } from '@arco-design/web-react/icon';
 
 const Row = Grid.Row;
@@ -75,12 +76,12 @@ interface Template {
 
 // ---------- 工具 ----------
 
-const CATEGORY_LABELS: Record<DocCategory, { label: string; icon: string; color: string }> = {
-  tech:     { label: '技术方案', icon: '💻', color: 'var(--primary)' },
-  sop:      { label: 'SOP 流程', icon: '📋', color: 'var(--success-500)' },
-  template: { label: '模板',     icon: '📄', color: 'var(--chart-5)' },
-  review:   { label: '项目复盘', icon: '🔍', color: 'var(--warning-500)' },
-  other:    { label: '其他',     icon: '📁', color: 'var(--muted-foreground)' },
+const CATEGORY_LABELS: Record<DocCategory, { label: string; icon: React.ReactNode; color: string }> = {
+  tech:     { label: '技术方案', icon: <IconDesktop size={14} />,  color: 'var(--primary)' },
+  sop:      { label: 'SOP 流程', icon: <IconFile size={14} />,      color: 'var(--success-500)' },
+  template: { label: '模板',     icon: <IconFile size={14} />,      color: 'var(--chart-5)' },
+  review:   { label: '项目复盘', icon: <IconSearch size={14} />,   color: 'var(--warning-500)' },
+  other:    { label: '其他',     icon: <IconFolder size={14} />,    color: 'var(--muted-foreground)' },
 };
 
 const PERMISSION_LABELS: Record<Permission, { label: string; color: string }> = {
@@ -199,10 +200,10 @@ export function KnowledgeBase() {
       <Card bordered={false}>
         <Tabs activeTab={activeTab} onChange={setActiveTab}>
           <TabPane key="all" title={<span><IconFile /> 全部文档</span>} />
-          <TabPane key="tech" title={<span>💻 技术方案</span>} />
-          <TabPane key="sop" title={<span>📋 SOP 流程</span>} />
-          <TabPane key="template" title={<span>📄 模板库</span>} />
-          <TabPane key="review" title={<span>🔍 项目复盘</span>} />
+          <TabPane key="tech" title={<span><IconDesktop size={14} /> 技术方案</span>} />
+          <TabPane key="sop" title={<span><IconFile size={14} /> SOP 流程</span>} />
+          <TabPane key="template" title={<span><IconFile size={14} /> 模板库</span>} />
+          <TabPane key="review" title={<span><IconSearch size={14} /> 项目复盘</span>} />
         </Tabs>
 
         <div style={{ paddingTop: 16 }}>
@@ -288,7 +289,7 @@ export function KnowledgeBase() {
               {mockTemplates.map(tpl => (
                 <Col span={6} key={tpl.id} style={{ marginBottom: 16 }}>
                   <Card size="small" style={{ borderRadius: 8 }} extra={<Tag color="purple" style={{ color: '#fff' }}>模板</Tag>}>
-                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>📄 {tpl.name}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}><IconFile size={14} style={{ marginRight: 4 }} /> {tpl.name}</div>
                     <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>{tpl.description}</Typography.Text>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Tag size="small">{tpl.category}</Tag>
