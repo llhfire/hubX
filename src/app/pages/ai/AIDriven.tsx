@@ -162,12 +162,12 @@ export function AIDriven() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {/* 顶部摘要 */}
       <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="AI 拆解任务" value={summary.totalTasks} suffix="个" icon={<IconApps style={{ color: 'rgb(var(--primary-6))' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="已分配" value={summary.assigned} suffix="个" icon={<IconCheckCircle style={{ color: '#00b42a' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="高风险节点" value={summary.highRiskMilestones} suffix="个" prefix={<IconExclamationCircle style={{ color: '#f53f3f' }} />} valueStyle={{ color: '#f53f3f' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="待确认会议" value={summary.suggestedMeetings} suffix="场" icon={<IconCalendar style={{ color: '#ff7d00' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="人员匹配" value={mockPersonnelMatches.length} suffix="项" icon={<IconUser style={{ color: '#7c3aed' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="AI 建议" value={mockMilestones.length} suffix="条" icon={<IconExperiment style={{ color: '#0fc6c2' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="AI 拆解任务" value={summary.totalTasks} suffix="个" icon={<IconApps style={{ color: 'var(--primary)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="已分配" value={summary.assigned} suffix="个" icon={<IconCheckCircle style={{ color: 'var(--success-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="高风险节点" value={summary.highRiskMilestones} suffix="个" prefix={<IconExclamationCircle style={{ color: 'var(--destructive-500)' }} />} valueStyle={{ color: 'var(--destructive-500)' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="待确认会议" value={summary.suggestedMeetings} suffix="场" icon={<IconCalendar style={{ color: 'var(--warning-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="人员匹配" value={mockPersonnelMatches.length} suffix="项" icon={<IconUser style={{ color: 'var(--chart-5)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="AI 建议" value={mockMilestones.length} suffix="条" icon={<IconExperiment style={{ color: 'var(--info-500)' }} />} /></Card></Col>
       </Row>
 
       {/* 主体 Tab */}
@@ -175,8 +175,8 @@ export function AIDriven() {
         <Tabs activeTab={activeTab} onChange={setActiveTab}>
           <TabPane key="tasks" title={<span><IconApps /> 智能任务拆解</span>} />
           <TabPane key="personnel" title={<span><IconUser /> 智能人员分配</span>} />
-          <TabPane key="milestones" title={<span><IconClockCircle /> 智能跟进提醒 <Badge count={summary.highRiskMilestones} style={{ background: '#f53f3f' }} /></span>} />
-          <TabPane key="meetings" title={<span><IconCalendar /> 智能会议安排 <Badge count={summary.suggestedMeetings} style={{ background: '#ff7d00' }} /></span>} />
+          <TabPane key="milestones" title={<span><IconClockCircle /> 智能跟进提醒 <Badge count={summary.highRiskMilestones} style={{ background: 'var(--destructive-500)' }} /></span>} />
+          <TabPane key="meetings" title={<span><IconCalendar /> 智能会议安排 <Badge count={summary.suggestedMeetings} style={{ background: 'var(--warning-500)' }} /></span>} />
         </Tabs>
 
         <div style={{ paddingTop: 16 }}>
@@ -204,12 +204,12 @@ export function AIDriven() {
                   },
                   {
                     title: '优先级', dataIndex: 'priority', width: 70,
-                    render: (p: string) => <Tag color={p === 'high' ? '#f53f3f' : p === 'medium' ? '#165dff' : '#86909c'} style={{ color: '#fff' }}>{p === 'high' ? '高' : p === 'medium' ? '中' : '低'}</Tag>,
+                    render: (p: string) => <Tag color={p === 'high' ? 'var(--destructive-500)' : p === 'medium' ? 'var(--primary)' : 'var(--muted-foreground)'} style={{ color: '#fff' }}>{p === 'high' ? '高' : p === 'medium' ? '中' : '低'}</Tag>,
                   },
                   {
                     title: '状态', dataIndex: 'status', width: 80,
                     render: (s: string) => {
-                      const map: Record<string, { label: string; color: string }> = { pending: { label: '待分配', color: '#86909c' }, assigned: { label: '已分配', color: '#165dff' }, in_progress: { label: '进行中', color: '#00b42a' } };
+                      const map: Record<string, { label: string; color: string }> = { pending: { label: '待分配', color: 'var(--muted-foreground)' }, assigned: { label: '已分配', color: 'var(--primary)' }, in_progress: { label: '进行中', color: 'var(--success-500)' } };
                       const m = map[s] || map.pending;
                       return <Tag color={m.color} style={{ color: '#fff' }}>{m.label}</Tag>;
                     },
@@ -240,19 +240,19 @@ export function AIDriven() {
                   <Row gutter={16}>
                     {match.candidates.map(c => (
                       <Col span={8} key={c.name}>
-                        <Card size="small" style={{ borderColor: c.matchScore >= 90 ? '#00b42a' : 'var(--color-border)', borderWidth: c.matchScore >= 90 ? 2 : 1 }}>
+                        <Card size="small" style={{ borderColor: c.matchScore >= 90 ? 'var(--success-500)' : 'var(--color-border)', borderWidth: c.matchScore >= 90 ? 2 : 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                            <Avatar size={32} style={{ background: 'rgb(var(--primary-6))' }}>{c.name.slice(0, 1)}</Avatar>
+                            <Avatar size={32} style={{ background: 'var(--primary)' }}>{c.name.slice(0, 1)}</Avatar>
                             <div>
                               <div style={{ fontWeight: 600 }}>{c.name}</div>
-                              <Tag color={c.matchScore >= 90 ? '#00b42a' : c.matchScore >= 70 ? '#ff7d00' : '#86909c'} style={{ color: '#fff' }} size="small">
+                              <Tag color={c.matchScore >= 90 ? 'var(--success-500)' : c.matchScore >= 70 ? 'var(--warning-500)' : 'var(--muted-foreground)'} style={{ color: '#fff' }} size="small">
                                 匹配度 {c.matchScore}%
                               </Tag>
                             </div>
                           </div>
                           <div style={{ fontSize: 12, marginBottom: 4 }}>
                             <span style={{ color: 'var(--color-text-3)' }}>负载：</span>
-                            <span style={{ color: c.currentLoad > 80 ? '#f53f3f' : c.currentLoad > 60 ? '#ff7d00' : '#00b42a' }}>{c.currentLoad}%</span>
+                            <span style={{ color: c.currentLoad > 80 ? 'var(--destructive-500)' : c.currentLoad > 60 ? 'var(--warning-500)' : 'var(--success-500)' }}>{c.currentLoad}%</span>
                           </div>
                           <div style={{ fontSize: 12, color: 'var(--color-text-3)' }}>
                             技能：{c.skills.join('、')}
@@ -281,14 +281,14 @@ export function AIDriven() {
                 columns={[
                   {
                     title: '风险', dataIndex: 'risk', width: 70,
-                    render: (r: string) => <Tag color={r === 'high' ? '#f53f3f' : r === 'medium' ? '#ff7d00' : '#00b42a'} style={{ color: '#fff' }}>{r === 'high' ? '高' : r === 'medium' ? '中' : '低'}</Tag>,
+                    render: (r: string) => <Tag color={r === 'high' ? 'var(--destructive-500)' : r === 'medium' ? 'var(--warning-500)' : 'var(--success-500)'} style={{ color: '#fff' }}>{r === 'high' ? '高' : r === 'medium' ? '中' : '低'}</Tag>,
                   },
                   { title: '项目', dataIndex: 'projectName', width: 140, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
                   { title: '里程碑', dataIndex: 'milestone', width: 120 },
                   { title: '截止日期', dataIndex: 'dueDate', width: 100 },
                   {
                     title: '剩余天数', dataIndex: 'daysUntil', width: 90,
-                    render: (v: number) => <span style={{ color: v <= 5 ? '#f53f3f' : v <= 10 ? '#ff7d00' : 'inherit', fontWeight: v <= 5 ? 600 : 400 }}>{v} 天</span>,
+                    render: (v: number) => <span style={{ color: v <= 5 ? 'var(--destructive-500)' : v <= 10 ? 'var(--warning-500)' : 'inherit', fontWeight: v <= 5 ? 600 : 400 }}>{v} 天</span>,
                   },
                   { title: 'AI 建议', dataIndex: 'suggestion' },
                 ] as any}
@@ -316,10 +316,10 @@ export function AIDriven() {
                       style={{ borderRadius: 8, opacity: meeting.status === 'dismissed' ? 0.5 : 1 }}
                       extra={
                         meeting.status === 'confirmed'
-                          ? <Tag color="#00b42a" style={{ color: '#fff' }}>已确认</Tag>
+                          ? <Tag color="var(--success-500)" style={{ color: '#fff' }}>已确认</Tag>
                           : meeting.status === 'dismissed'
                             ? <Tag>已忽略</Tag>
-                            : <Tag color="#ff7d00" style={{ color: '#fff' }}>AI 建议</Tag>
+                            : <Tag color="var(--warning-500)" style={{ color: '#fff' }}>AI 建议</Tag>
                       }
                     >
                       <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>📅 {meeting.suggestedType}</div>
@@ -331,7 +331,7 @@ export function AIDriven() {
                       </div>
                       <div style={{ fontSize: 12, marginBottom: 8 }}>
                         <Avatar.Group size={20} maxCount={5}>
-                          {meeting.attendees.map(a => <Avatar key={a} style={{ background: 'rgb(var(--primary-6))', fontSize: 10 }}>{a.slice(0, 1)}</Avatar>)}
+                          {meeting.attendees.map(a => <Avatar key={a} style={{ background: 'var(--primary)', fontSize: 10 }}>{a.slice(0, 1)}</Avatar>)}
                         </Avatar.Group>
                         <span style={{ marginLeft: 8, color: 'var(--color-text-3)', fontSize: 11 }}>{meeting.attendees.join('、')}</span>
                       </div>
@@ -364,14 +364,14 @@ export function AIDriven() {
             {selectedMatch.candidates.map((c, idx) => (
               <Timeline.Item
                 key={c.name}
-                dot={idx === 0 ? <IconCheckCircle style={{ color: '#00b42a', fontSize: 16 }} /> : undefined}
+                dot={idx === 0 ? <IconCheckCircle style={{ color: 'var(--success-500)', fontSize: 16 }} /> : undefined}
                 label={`${c.matchScore}% 匹配`}
               >
                 <div style={{ fontWeight: 600 }}>{c.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--color-text-2)' }}>
                   技能：{c.skills.join('、')} | 当前负载：{c.currentLoad}%
                 </div>
-                <Progress percent={c.matchScore} size="small" color={c.matchScore >= 90 ? '#00b42a' : '#ff7d00'} style={{ marginTop: 4 }} />
+                <Progress percent={c.matchScore} size="small" color={c.matchScore >= 90 ? 'var(--success-500)' : 'var(--warning-500)'} style={{ marginTop: 4 }} />
               </Timeline.Item>
             ))}
           </Timeline>

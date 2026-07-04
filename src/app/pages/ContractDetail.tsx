@@ -14,12 +14,17 @@ import {
   Button,
   Select,
   Tag,
+  Modal,
+  Form,
+  Input,
+  Message,
 } from '@arco-design/web-react';
 import {
   IconLeft,
   IconCheckCircleFill,
   IconCloseCircleFill,
   IconClockCircle,
+  IconPlus,
 } from '@arco-design/web-react/icon';
 import { useContracts } from './contracts/ContractsContext';
 import { ContractStatusBadge } from './contracts/components/ContractStatusBadge';
@@ -28,6 +33,34 @@ import { VersionTimeline } from './contracts/components/VersionTimeline';
 import { ScanFileList } from './contracts/components/ScanFileList';
 import { ContractFlowProgress } from './contracts/components/ContractFlowProgress';
 import { CONTRACT_STATUS_LABEL } from './contracts/utils';
+import type { Contract, ContractStatus } from './contracts/types';
+
+const FormItem = Form.Item;
+
+interface FollowUpRecord {
+  id: string;
+  type: 'requirement_change' | 'ui_confirm' | 'dunning' | 'other';
+  title: string;
+  content: string;
+  author: string;
+  date: string;
+}
+
+const FOLLOW_UP_TYPES: Record<FollowUpRecord['type'], { label: string; color: string; icon: string }> = {
+  requirement_change: { label: '需求变更', color: 'orange', icon: '📝' },
+  ui_confirm:         { label: 'UI/原型确认', color: 'cyan', icon: '✅' },
+  dunning:            { label: '催款记录', color: 'red', icon: '💰' },
+  other:              { label: '其他', color: 'gray', icon: '📌' },
+};
+
+const mockFollowUps: FollowUpRecord[] = [
+  { id: 'fu-1', type: 'requirement_change', title: '新增报表功能需求', content: '客户希望增加月度统计报表功能，预计增加工作量 3 人天，费用增加 ¥15,000。', author: '张三', date: '2026-06-28' },
+  { id: 'fu-2', type: 'ui_confirm', title: 'CRM 首页设计确认', content: '客户已确认 CRM 首页设计稿 V2，无修改意见，可以进入开发阶段。', author: '陈明', date: '2026-06-25' },
+  { id: 'fu-3', type: 'dunning', title: '第二期款项催款', content: '已电话联系联系客户财务，对方确认本周内支付第二期款项 ¥360,000。', author: '张三', date: '2026-06-22' },
+  { id: 'fu-4', type: 'requirement_change', title: '登录方式调整', content: '客户要求增加微信扫码登录，原有手机验证码登录保留。已评估技术可行性，无额外成本。', author: '李四', date: '2026-06-18' },
+  { id: 'fu-5', type: 'ui_confirm', title: '移动端原型确认', content: '客户已签字确认移动端 APP 原型设计，包含 12 个核心页面流程图。', author: '陈明', date: '2026-06-15' },
+  { id: 'fu-6', type: 'dunning', title: '首期款项到账确认', content: '已收到客户首期款项 ¥480,000，银行回单已归档。', author: '张三', date: '2026-06-10' },
+];
 
 const { Row, Col } = Grid;
 const TabPane = Tabs.TabPane;
@@ -56,6 +89,7 @@ export function ContractDetail() {
   }
 
   const [activeTab, setActiveTab] = useState('document');
+  const [activeRightTab, setActiveRightTab] = useState('followup');
 
   if (!contract) {
     return (
@@ -112,6 +146,25 @@ export function ContractDetail() {
     : contract.status === 'archived'
       ? 'supplemental'
       : null;
+
+  // 跟进记录
+  const [followUps, setFollowUps] = useState<FollowUpRecord[]>(mockFollowUps);
+  const [followUpModalVisible, setFollowUpModalVisible] = useState(false);
+  const [followUpForm] = Form.useForm();
+
+  const handleAddFollowUp = () => {
+    followUpForm.validate().then(values => {
+      const newRecord: FollowUpRecord = {
+        id: `fu-${Date.now()}`,
+        ...values,
+        author: '当前用户',
+        date: '2026-07-02',
+      };
+      setFollowUps(prev => [newRecord, ...prev]);
+      setFollowUpModalVisible(false);
+      Message.success('跟进记录已添加');
+    });
+  };
 
   return (
     <div>
@@ -185,6 +238,53 @@ export function ContractDetail() {
                 { label: '联系电话', value: cd.customerPhone },
                 { label: '税务登记号', value: cd.customerTaxNo || '—' },
               ]}
+            />
+          </Card>
+
+          {/* 款项与回款计划 */}
+          <Card title="款项与回款计划" style={{ marginBottom: 16 }}>
+            <div
+              style={{
+                background: 'var(--color-fill-2)',
+                padding: 16,
+                borderRadius: 6,
+                marginBottom: 16,
+              }}
+            >
+              <Row gutter={16}>
+                <Col span={6}>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>合同总额</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--primary)' }}>
+                    ¥{totalAmount.toLocaleString()}
+                  </div>
+                </Col>
+                <Col span={6}>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>已回款</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--success-500)' }}>
+                    ¥{receivedAmount.toLocaleString()}
+                  </div>
+                </Col>
+                <Col span={6}>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>待回款</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--warning-500)' }}>
+                    ¥{receivableAmount.toLocaleString()}
+                  </div>
+                </Col>
+                <Col span={6}>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>到账率</div>
+                  <Progress
+                    percent={receivedRate}
+                    color={receivedRate >= 80 ? 'var(--success-500)' : 'var(--warning-500)'}
+                    style={{ marginTop: 8 }}
+                  />
+                </Col>
+              </Row>
+            </div>
+            <Table
+              columns={paymentColumns}
+              data={cd.paymentPlans}
+              pagination={false}
+              rowKey="period"
             />
           </Card>
 
@@ -282,53 +382,6 @@ export function ContractDetail() {
             )}
           </Card>
 
-          {/* 款项与回款计划 */}
-          <Card title="款项与回款计划" style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                background: 'var(--color-fill-2)',
-                padding: 16,
-                borderRadius: 6,
-                marginBottom: 16,
-              }}
-            >
-              <Row gutter={16}>
-                <Col span={6}>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>合同总额</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: 'rgb(var(--primary-6))' }}>
-                    ¥{totalAmount.toLocaleString()}
-                  </div>
-                </Col>
-                <Col span={6}>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>已回款</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: 'rgb(var(--success-6))' }}>
-                    ¥{receivedAmount.toLocaleString()}
-                  </div>
-                </Col>
-                <Col span={6}>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>待回款</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: 'rgb(var(--orange-6))' }}>
-                    ¥{receivableAmount.toLocaleString()}
-                  </div>
-                </Col>
-                <Col span={6}>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>到账率</div>
-                  <Progress
-                    percent={receivedRate}
-                    color={receivedRate >= 80 ? '#00b42a' : '#f77234'}
-                    style={{ marginTop: 8 }}
-                  />
-                </Col>
-              </Row>
-            </div>
-
-            <Table
-              columns={paymentColumns}
-              data={cd.paymentPlans}
-              pagination={false}
-              rowKey="period"
-            />
-          </Card>
         </Col>
 
         {/* 右侧动态侧边栏 30% */}
@@ -337,28 +390,71 @@ export function ContractDetail() {
           {contract.status !== 'archived' && (
             <ContractFlowProgress status={contract.status} />
           )}
-          {contract.status === 'archived' && (
-            <Card title="项目里程碑" style={{ marginBottom: 16 }}>
-              <div style={{ color: 'var(--color-text-3)', padding: 8 }}>
-                合同已归档，项目里程碑由项目模块接管展示。
-                <Space style={{ marginTop: 12 }}>
-                  <Button type="text" size="small" onClick={() => navigate('/projects')}>
-                    去项目管理
-                  </Button>
-                </Space>
-              </div>
-            </Card>
-          )}
 
-          <div style={{ marginTop: 16 }}>
-            <VersionTimeline
-              contract={contract}
-              selectedVersionNo={selectedVersionNo}
-              onSelectVersion={setSelectedVersionNo}
-            />
-          </div>
+          {/* 右侧 Tab：跟进记录 / 版本历史 */}
+          <Tabs activeTab={activeRightTab} onChange={setActiveRightTab} style={{ marginTop: 16 }}>
+            <TabPane key="followup" title={<span>📋 跟进</span>}>
+              <Card
+                size="small"
+                style={{ borderRadius: 8 }}
+                extra={<Button type="text" icon={<IconPlus />} size="small" onClick={() => setFollowUpModalVisible(true)} />}
+              >
+                <Timeline>
+                  {followUps.map(fu => {
+                    const typeMeta = FOLLOW_UP_TYPES[fu.type];
+                    return (
+                      <Timeline.Item key={fu.id} dot={<span style={{ fontSize: 14 }}>{typeMeta.icon}</span>}>
+                        <div style={{ marginBottom: 2 }}>
+                          <Tag color={typeMeta.color} style={{ color: '#fff' }} size="small">{typeMeta.label}</Tag>
+                          <span style={{ fontWeight: 600, fontSize: 13, marginLeft: 4 }}>{fu.title}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>{fu.date} · {fu.author}</div>
+                        <div style={{ fontSize: 12, color: 'var(--color-text-2)', padding: '4px 8px', background: 'var(--color-fill-1)', borderRadius: 4 }}>
+                          {fu.content}
+                        </div>
+                      </Timeline.Item>
+                    );
+                  })}
+                </Timeline>
+              </Card>
+            </TabPane>
+            <TabPane key="versions" title={<span>📜 版本</span>}>
+              <VersionTimeline
+                contract={contract}
+                selectedVersionNo={selectedVersionNo}
+                onSelectVersion={setSelectedVersionNo}
+              />
+            </TabPane>
+          </Tabs>
         </Col>
       </Row>
+
+      {/* 添加跟进记录弹窗 */}
+      <Modal
+        title="添加跟进记录"
+        visible={followUpModalVisible}
+        onOk={handleAddFollowUp}
+        onCancel={() => setFollowUpModalVisible(false)}
+        autoFocus={false}
+        focusLock={true}
+        style={{ width: 520 }}
+      >
+        <Form form={followUpForm} layout="vertical">
+          <FormItem label="跟进类型" field="type" rules={[{ required: true, message: '请选择类型' }]}>
+            <Select placeholder="选择跟进类型">
+              {Object.entries(FOLLOW_UP_TYPES).map(([k, m]) => (
+                <Select.Option key={k} value={k}>{m.icon} {m.label}</Select.Option>
+              ))}
+            </Select>
+          </FormItem>
+          <FormItem label="标题" field="title" rules={[{ required: true, message: '请输入标题' }]}>
+            <Input placeholder="简要描述" />
+          </FormItem>
+          <FormItem label="详细内容" field="content" rules={[{ required: true, message: '请输入内容' }]}>
+            <Input.TextArea placeholder="详细描述跟进内容..." autoSize={{ minRows: 3, maxRows: 6 }} />
+          </FormItem>
+        </Form>
+      </Modal>
     </div>
   );
 }

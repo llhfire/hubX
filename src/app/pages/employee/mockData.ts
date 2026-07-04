@@ -390,15 +390,15 @@ export function formatCurrency(n: number | undefined | null): string {
 
 export function getLevelColor(level: JobLevel): string {
   const l = parseInt(level.replace('L', ''), 10);
-  return l >= 9 ? '#7c3aed' : l >= 7 ? '#165dff' : l >= 5 ? '#00b42a' : l >= 3 ? '#ff7d00' : '#86909c';
+  return l >= 9 ? 'var(--chart-5)' : l >= 7 ? 'var(--primary)' : l >= 5 ? 'var(--success-500)' : l >= 3 ? 'var(--warning-500)' : 'var(--muted-foreground)';
 }
 
 export function getStatusColor(s: EmploymentStatus): string {
-  return { '已转正': '#00b42a', '在职': '#165dff', '试用期': '#ff7d00', '休假中': '#0fc6c2', '已离职': '#c9cdd4' }[s] || '#86909c';
+  return { '已转正': 'var(--success-500)', '在职': 'var(--primary)', '试用期': 'var(--warning-500)', '休假中': 'var(--info-500)', '已离职': 'var(--muted-foreground)' }[s] || 'var(--muted-foreground)';
 }
 
 export function getRankColor(r: PerformanceRank): string {
-  return { 'S': '#7c3aed', 'A': '#00b42a', 'B': '#165dff', 'C': '#ff7d00', 'D': '#f53f3f' }[r] || '#86909c';
+  return { 'S': 'var(--chart-5)', 'A': 'var(--success-500)', 'B': 'var(--primary)', 'C': 'var(--warning-500)', 'D': 'var(--destructive-500)' }[r] || 'var(--muted-foreground)';
 }
 
 /** 根据技能树全局定义 + 员工能力值推导技能状态 */

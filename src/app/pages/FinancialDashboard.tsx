@@ -150,7 +150,7 @@ export function FinancialDashboard() {
   // Contract table columns
   const contractColumns = [
     { title: '合同名称', dataIndex: 'name', width: 220, render: (v: string, record: any) => contractCostPermissions.contractCostView
-      ? <a style={{ color: 'rgb(var(--primary-6))', cursor: 'pointer' }} onClick={() => navigate(`/finance/contract-cost/${record.key}`)}>{v}</a>
+      ? <a style={{ color: 'var(--primary)', cursor: 'pointer', padding: '2px 4px', borderRadius: 4 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'} onClick={() => navigate(`/finance/contract-cost/${record.key}`)}>{v}</a>
       : <span>{v}</span> },
     { title: '客户', dataIndex: 'customer', width: 200 },
     { title: '合同总额', dataIndex: 'total', width: 110, render: (v: number) => `¥${(v / 10000).toFixed(0)}万` },

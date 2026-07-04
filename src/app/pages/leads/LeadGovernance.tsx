@@ -193,12 +193,12 @@ export function LeadGovernance() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {/* 摘要栏 */}
       <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="线索总数" value={summary.total} suffix="条" prefix={<IconCustomerService style={{ color: 'rgb(var(--primary-6))' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="活跃线索" value={summary.active} suffix="条" icon={<IconExperiment style={{ color: '#165dff' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="逾期未跟进" value={summary.overdue} suffix="条" prefix={<IconExclamationCircle style={{ color: '#f53f3f' }} />} valueStyle={{ color: summary.overdue > 0 ? '#f53f3f' : '#00b42a' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="违规记录" value={summary.violations} suffix="条" prefix={<IconCloseCircle style={{ color: '#ff7d00' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="平均合规率" value={summary.avgCompliance} suffix="%" prefix={<IconCheckCircle style={{ color: '#00b42a' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="已转化" value={summary.conversions} suffix="条" prefix={<IconUser style={{ color: '#7c3aed' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="线索总数" value={summary.total} suffix="条" prefix={<IconCustomerService style={{ color: 'var(--primary)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="活跃线索" value={summary.active} suffix="条" icon={<IconExperiment style={{ color: 'var(--primary)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="逾期未跟进" value={summary.overdue} suffix="条" prefix={<IconExclamationCircle style={{ color: 'var(--destructive-500)' }} />} valueStyle={{ color: summary.overdue > 0 ? 'var(--destructive-500)' : 'var(--success-500)' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="违规记录" value={summary.violations} suffix="条" prefix={<IconCloseCircle style={{ color: 'var(--warning-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="平均合规率" value={summary.avgCompliance} suffix="%" prefix={<IconCheckCircle style={{ color: 'var(--success-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="已转化" value={summary.conversions} suffix="条" prefix={<IconUser style={{ color: 'var(--chart-5)' }} />} /></Card></Col>
       </Row>
 
       {/* 主体 Tab */}
@@ -226,7 +226,7 @@ export function LeadGovernance() {
                   title: '合规率', dataIndex: 'complianceRate', width: 140,
                   render: (v: number) => (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Progress percent={v} size="small" color={v >= 80 ? '#00b42a' : v >= 60 ? '#ff7d00' : '#f53f3f'} style={{ flex: 1 }} />
+                      <Progress percent={v} size="small" color={v >= 80 ? 'var(--success-500)' : v >= 60 ? 'var(--warning-500)' : 'var(--destructive-500)'} style={{ flex: 1 }} />
                       <span style={{ fontSize: 12, fontWeight: 600, width: 36 }}>{v}%</span>
                     </div>
                   ),
@@ -235,7 +235,7 @@ export function LeadGovernance() {
                 {
                   title: '违规', dataIndex: 'violations', width: 60,
                   render: (_: unknown, row: SalesGovernance) => row.violations.length > 0
-                    ? <Badge count={row.violations.length} style={{ background: '#f53f3f' }} />
+                    ? <Badge count={row.violations.length} style={{ background: 'var(--destructive-500)' }} />
                     : <Tag color="green">无</Tag>,
                 },
               ] as any}
@@ -261,7 +261,7 @@ export function LeadGovernance() {
                   {
                     title: '严重度', dataIndex: 'severity', width: 80,
                     render: (s: string) => (
-                      <Tag color={s === 'high' ? '#f53f3f' : s === 'medium' ? '#ff7d00' : '#86909c'} style={{ color: '#fff' }}>
+                      <Tag color={s === 'high' ? 'var(--destructive-500)' : s === 'medium' ? 'var(--warning-500)' : 'var(--muted-foreground)'} style={{ color: '#fff' }}>
                         {s === 'high' ? '高' : s === 'medium' ? '中' : '低'}
                       </Tag>
                     ),
@@ -292,10 +292,10 @@ export function LeadGovernance() {
               <Row gutter={16}>
                 {rules.map(rule => (
                   <Col span={8} key={rule.id} style={{ marginBottom: 16 }}>
-                    <Card size="small" style={{ borderColor: rule.enabled ? 'rgb(var(--primary-6))' : 'var(--color-border)', borderWidth: rule.enabled ? 2 : 1 }}>
+                    <Card size="small" style={{ borderColor: rule.enabled ? 'var(--primary)' : 'var(--color-border)', borderWidth: rule.enabled ? 2 : 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                         <span style={{ fontWeight: 600, fontSize: 14 }}>{rule.name}</span>
-                        <Tag color={rule.enabled ? 'rgb(var(--primary-6))' : 'default'} style={{ color: rule.enabled ? '#fff' : undefined }}>
+                        <Tag color={rule.enabled ? 'var(--primary)' : 'default'} style={{ color: rule.enabled ? '#fff' : undefined }}>
                           {rule.enabled ? '已启用' : '已禁用'}
                         </Tag>
                       </div>
@@ -327,23 +327,23 @@ export function LeadGovernance() {
               columns={[
                 { title: '线索名称', dataIndex: 'name', width: 160 },
                 { title: '来源', dataIndex: 'source', width: 90, render: (v: string) => <Tag>{v}</Tag> },
-                { title: '等级', dataIndex: 'level', width: 60, render: (v: string) => <Tag color={v === '高' ? '#f53f3f' : v === '中' ? '#ff7d00' : '#86909c'} style={{ color: '#fff' }}>{v}</Tag> },
+                { title: '等级', dataIndex: 'level', width: 60, render: (v: string) => <Tag color={v === '高' ? 'var(--destructive-500)' : v === '中' ? 'var(--warning-500)' : 'var(--muted-foreground)'} style={{ color: '#fff' }}>{v}</Tag> },
                 {
                   title: '状态', dataIndex: 'status', width: 90,
                   render: (s: string) => {
-                    const map: Record<string, string> = { '未联系': '#86909c', '未接通': '#ff7d00', '初步沟通': '#165dff', '需求调研': '#0fc6c2', '方案报价': '#7c3aed', '合同洽谈': '#ff7d00', '已签单': '#00b42a', '已终止': '#f53f3f' };
-                    return <Tag color={map[s] || '#86909c'} style={{ color: '#fff' }}>{s}</Tag>;
+                    const map: Record<string, string> = { '未联系': 'var(--muted-foreground)', '未接通': 'var(--warning-500)', '初步沟通': 'var(--primary)', '需求调研': 'var(--info-500)', '方案报价': 'var(--chart-5)', '合同洽谈': 'var(--warning-500)', '已签单': 'var(--success-500)', '已终止': 'var(--destructive-500)' };
+                    return <Tag color={map[s] || 'var(--muted-foreground)'} style={{ color: '#fff' }}>{s}</Tag>;
                   },
                 },
                 { title: '负责人', dataIndex: 'owner', width: 70 },
                 { title: '跟进次数', dataIndex: 'followCount', width: 80, render: (v: number) => `${v}次` },
-                { title: '持有天数', dataIndex: 'daysHeld', width: 80, render: (v: number) => <span style={{ color: v > 20 ? '#f53f3f' : v > 14 ? '#ff7d00' : 'inherit' }}>{v}天</span> },
+                { title: '持有天数', dataIndex: 'daysHeld', width: 80, render: (v: number) => <span style={{ color: v > 20 ? 'var(--destructive-500)' : v > 14 ? 'var(--warning-500)' : 'inherit' }}>{v}天</span> },
                 {
                   title: '下次跟进', dataIndex: 'nextFollowTime', width: 100,
                   render: (v: string, row: LeadRecord) => {
                     if (!v || ['已签单', '已终止'].includes(row.status)) return '—';
                     const isOverdue = new Date(v) < new Date('2026-07-02');
-                    return <span style={{ color: isOverdue ? '#f53f3f' : 'inherit', fontWeight: isOverdue ? 600 : 400 }}>{v}{isOverdue ? ' ⚠️' : ''}</span>;
+                    return <span style={{ color: isOverdue ? 'var(--destructive-500)' : 'inherit', fontWeight: isOverdue ? 600 : 400 }}>{v}{isOverdue ? ' ⚠️' : ''}</span>;
                   },
                 },
               ] as any}

@@ -169,12 +169,12 @@ export function SupplierManagement() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {/* 摘要栏 */}
       <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="供应商数" value={summary.totalSuppliers} suffix="家" icon={<IconUser style={{ color: 'rgb(var(--primary-6))' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="分包合同" value={summary.totalContracts} suffix="个" icon={<IconFile style={{ color: '#165dff' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="供应商数" value={summary.totalSuppliers} suffix="家" icon={<IconUser style={{ color: 'var(--primary)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="分包合同" value={summary.totalContracts} suffix="个" icon={<IconFile style={{ color: 'var(--primary)' }} />} /></Card></Col>
         <Col span={4}><Card><Statistic title="合同总额" value={summary.totalAmount} prefix="¥" /></Card></Col>
-        <Col span={4}><Card><Statistic title="已付金额" value={summary.paidAmount} prefix="¥" icon={<IconCheckCircle style={{ color: '#00b42a' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="未付金额" value={summary.unpaidAmount} prefix="¥" icon={<IconCalendar style={{ color: '#f53f3f' }} />} valueStyle={{ color: '#f53f3f' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="合作评级" value={(suppliers.reduce((s, sup) => s + sup.rating, 0) / Math.max(suppliers.length, 1)).toFixed(1)} suffix="★" icon={<IconStar style={{ color: '#f7d038' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="已付金额" value={summary.paidAmount} prefix="¥" icon={<IconCheckCircle style={{ color: 'var(--success-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="未付金额" value={summary.unpaidAmount} prefix="¥" icon={<IconCalendar style={{ color: 'var(--destructive-500)' }} />} valueStyle={{ color: 'var(--destructive-500)' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="合作评级" value={(suppliers.reduce((s, sup) => s + sup.rating, 0) / Math.max(suppliers.length, 1)).toFixed(1)} suffix="★" icon={<IconStar style={{ color: 'var(--warning-300)' }} />} /></Card></Col>
       </Row>
 
       {/* 主体 Tab */}
@@ -208,7 +208,7 @@ export function SupplierManagement() {
                       }
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                        <Avatar size={40} style={{ background: supplier.type === 'company' ? 'rgb(var(--primary-6))' : '#7c3aed' }}>
+                        <Avatar size={40} style={{ background: supplier.type === 'company' ? 'var(--primary)' : 'var(--chart-5)' }}>
                           {supplier.name.slice(0, 1)}
                         </Avatar>
                         <div>
@@ -256,7 +256,7 @@ export function SupplierManagement() {
                 {
                   title: '状态', dataIndex: 'status', width: 80,
                   render: (s: string) => {
-                    const map: Record<string, { label: string; color: string }> = { active: { label: '执行中', color: '#165dff' }, completed: { label: '已完成', color: '#00b42a' }, terminated: { label: '已终止', color: '#f53f3f' } };
+                    const map: Record<string, { label: string; color: string }> = { active: { label: '执行中', color: 'var(--primary)' }, completed: { label: '已完成', color: 'var(--success-500)' }, terminated: { label: '已终止', color: 'var(--destructive-500)' } };
                     const m = map[s] || map.active;
                     return <Tag color={m.color} style={{ color: '#fff' }}>{m.label}</Tag>;
                   },
@@ -281,7 +281,7 @@ export function SupplierManagement() {
                 {
                   title: '状态', dataIndex: 'status', width: 80,
                   render: (s: string) => {
-                    const map: Record<string, { label: string; color: string }> = { paid: { label: '已付', color: '#00b42a' }, partial: { label: '部分', color: '#ff7d00' }, unpaid: { label: '未付', color: '#f53f3f' } };
+                    const map: Record<string, { label: string; color: string }> = { paid: { label: '已付', color: 'var(--success-500)' }, partial: { label: '部分', color: 'var(--warning-500)' }, unpaid: { label: '未付', color: 'var(--destructive-500)' } };
                     const m = map[s] || map.unpaid;
                     return <Tag color={m.color} style={{ color: '#fff' }}>{m.label}</Tag>;
                   },

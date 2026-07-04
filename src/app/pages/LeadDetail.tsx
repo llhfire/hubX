@@ -1099,10 +1099,13 @@ export function LeadDetail() {
                           <span
                             style={{
                               fontWeight: 500,
-                              color: 'rgb(var(--primary-6))',
+                              color: 'var(--primary)',
                               cursor: 'pointer',
-                              textDecoration: 'underline'
+                              padding: '2px 4px',
+                              borderRadius: 4,
                             }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             onClick={() => Message.info(`下载文件: ${item.file}`)}
                           >
                             {item.file}
@@ -1485,11 +1488,14 @@ export function LeadDetail() {
                               <span
                                 key={file.id}
                                 style={{
-                                  color: 'rgb(var(--primary-6))',
+                                  color: 'var(--primary)',
                                   fontSize: '12px',
                                   cursor: 'pointer',
-                                  textDecoration: 'underline'
+                                  padding: '2px 4px',
+                                  borderRadius: 4,
                                 }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                 onClick={() => Message.info(`下载附件: ${file.name}`)}
                               >
                                 {file.name} ({file.size})
@@ -1697,10 +1703,13 @@ export function LeadDetail() {
                                   <span style={{ color: 'var(--color-text-3)' }}>回款凭证：</span>
                                   <span
                                     style={{
-                                      color: 'rgb(var(--primary-6))',
+                                      color: 'var(--primary)',
                                       cursor: 'pointer',
-                                      textDecoration: 'underline'
+                                      padding: '2px 4px',
+                                      borderRadius: 4,
                                     }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                     onClick={() => Message.info(`查看凭证: ${payment.voucher}`)}
                                   >
                                     {payment.voucher}
@@ -1756,10 +1765,13 @@ export function LeadDetail() {
                                   <span style={{ color: 'var(--color-text-3)' }}>发票凭证：</span>
                                   <span
                                     style={{
-                                      color: 'rgb(var(--primary-6))',
+                                      color: 'var(--primary)',
                                       cursor: 'pointer',
-                                      textDecoration: 'underline'
+                                      padding: '2px 4px',
+                                      borderRadius: 4,
                                     }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                     onClick={() => Message.info(`查看发票: ${payment.invoiceVoucher}`)}
                                   >
                                     {payment.invoiceVoucher}

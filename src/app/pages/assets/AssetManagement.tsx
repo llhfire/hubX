@@ -74,21 +74,21 @@ interface InventoryRecord {
 // ---------- 工具 ----------
 
 const ASSET_TYPE_LABELS: Record<AssetType, { label: string; icon: string; color: string }> = {
-  server:           { label: '服务器',       icon: '☁️', color: '#165dff' },
-  domain:           { label: '域名',         icon: '🌐', color: '#00b42a' },
-  ssl:              { label: 'SSL 证书',     icon: '🔒', color: '#7c3aed' },
-  device:           { label: '设备',         icon: '📱', color: '#ff7d00' },
-  license:          { label: '软件许可证',    icon: '📄', color: '#0fc6c2' },
-  'software-copyright': { label: '软件著作权', icon: '©️', color: '#eb2f96' },
-  patent:           { label: '专利',         icon: '💡', color: '#f7d038' },
+  server:           { label: '服务器',       icon: '☁️', color: 'var(--primary)' },
+  domain:           { label: '域名',         icon: '🌐', color: 'var(--success-500)' },
+  ssl:              { label: 'SSL 证书',     icon: '🔒', color: 'var(--chart-5)' },
+  device:           { label: '设备',         icon: '📱', color: 'var(--warning-500)' },
+  license:          { label: '软件许可证',    icon: '📄', color: 'var(--info-500)' },
+  'software-copyright': { label: '软件著作权', icon: '©️', color: 'var(--chart-5)' },
+  patent:           { label: '专利',         icon: '💡', color: 'var(--warning-300)' },
 };
 
 const STATUS_LABELS: Record<AssetStatus, { label: string; color: string }> = {
-  active:     { label: '正常使用', color: '#00b42a' },
-  expiring:   { label: '即将到期', color: '#ff7d00' },
-  expired:    { label: '已到期',   color: '#f53f3f' },
-  transferred: { label: '已转让',   color: '#86909c' },
-  returned:   { label: '已归还',   color: '#165dff' },
+  active:     { label: '正常使用', color: 'var(--success-500)' },
+  expiring:   { label: '即将到期', color: 'var(--warning-500)' },
+  expired:    { label: '已到期',   color: 'var(--destructive-500)' },
+  transferred: { label: '已转让',   color: 'var(--muted-foreground)' },
+  returned:   { label: '已归还',   color: 'var(--primary)' },
 };
 
 function getDaysUntil(dateStr: string): number {
@@ -202,12 +202,12 @@ export function AssetManagement() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {/* 摘要栏 */}
       <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="资产总数" value={summary.total} suffix="件" icon={<IconApps style={{ color: 'rgb(var(--primary-6))' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="正常使用" value={summary.active} suffix="件" icon={<IconCheck style={{ color: '#00b42a' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="即将到期" value={summary.expiring} suffix="件" prefix={<IconExclamationCircle style={{ color: '#ff7d00' }} />} valueStyle={{ color: '#ff7d00' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="已到期" value={summary.expired} suffix="件" prefix={<IconExclamationCircle style={{ color: '#f53f3f' }} />} valueStyle={{ color: '#f53f3f' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="资产总数" value={summary.total} suffix="件" icon={<IconApps style={{ color: 'var(--primary)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="正常使用" value={summary.active} suffix="件" icon={<IconCheck style={{ color: 'var(--success-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="即将到期" value={summary.expiring} suffix="件" prefix={<IconExclamationCircle style={{ color: 'var(--warning-500)' }} />} valueStyle={{ color: 'var(--warning-500)' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="已到期" value={summary.expired} suffix="件" prefix={<IconExclamationCircle style={{ color: 'var(--destructive-500)' }} />} valueStyle={{ color: 'var(--destructive-500)' }} /></Card></Col>
         <Col span={4}><Card><Statistic title="资产总值" value={summary.totalValue} prefix="¥" /></Card></Col>
-        <Col span={4}><Card><Statistic title="盘点次数" value={mockInventoryRecords.length} suffix="次" icon={<IconCalendar style={{ color: '#7c3aed' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="盘点次数" value={mockInventoryRecords.length} suffix="次" icon={<IconCalendar style={{ color: 'var(--chart-5)' }} />} /></Card></Col>
       </Row>
 
       {/* 到期预警 */}
@@ -216,8 +216,8 @@ export function AssetManagement() {
           type="warning"
           content={
             <span>
-              有 <strong style={{ color: '#f53f3f' }}>{summary.expired} 件</strong> 资产已到期，
-              <strong style={{ color: '#ff7d00' }}>{summary.expiring} 件</strong> 即将在 30 天内到期，请及时处理续费或回收。
+              有 <strong style={{ color: 'var(--destructive-500)' }}>{summary.expired} 件</strong> 资产已到期，
+              <strong style={{ color: 'var(--warning-500)' }}>{summary.expiring} 件</strong> 即将在 30 天内到期，请及时处理续费或回收。
             </span>
           }
           icon={<IconExclamationCircle />}
@@ -268,8 +268,8 @@ export function AssetManagement() {
                 title: '到期日', dataIndex: 'expiryDate', width: 110,
                 render: (v: string, row: Asset) => {
                   const days = getDaysUntil(v);
-                  if (days < 0) return <span style={{ color: '#f53f3f' }}>{v} (已到期)</span>;
-                  if (days <= 30) return <span style={{ color: '#ff7d00' }}>{v} ({days}天)</span>;
+                  if (days < 0) return <span style={{ color: 'var(--destructive-500)' }}>{v} (已到期)</span>;
+                  if (days <= 30) return <span style={{ color: 'var(--warning-500)' }}>{v} ({days}天)</span>;
                   return v;
                 },
               },

@@ -486,9 +486,13 @@ export function ProjectLogView() {
                                     <div>
                                       <a style={{
                                         fontSize: 13,
-                                        color: 'rgb(var(--primary-6))',
-                                        textDecoration: 'underline',
-                                      }}>{att.name}</a>
+                                        color: 'var(--primary)',
+                                        padding: '2px 4px',
+                                        borderRadius: 4,
+                                      }}
+                                      onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'}
+                                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                      >{att.name}</a>
                                     </div>
                                     <div style={{ fontSize: 11, color: 'var(--color-text-3)' }}>{att.size}</div>
                                   </div>

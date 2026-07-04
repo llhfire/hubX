@@ -65,7 +65,9 @@ export function Contracts() {
       width: 220,
       render: (_: unknown, c: Contract) => (
         <a
-          style={{ color: 'rgb(var(--primary-6))' }}
+          style={{ color: 'var(--primary)', cursor: 'pointer', padding: '2px 4px', borderRadius: 4 }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           onClick={() => navigate(`/contracts/${c.id}`)}
         >
           {c.current.contractName}

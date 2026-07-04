@@ -208,11 +208,11 @@ export function PaymentForecast() {
       {/* 摘要栏 */}
       <Row gutter={16}>
         <Col span={4}><Card><Statistic title="合同总数" value={summary.totalContracts} suffix="个" prefix={<IconFile style={{ color: 'rgb(var(--primary-6))' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="合同总额" value={summary.totalAmount} prefix={<IconFile style={{ color: '#165dff' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="已回款" value={summary.totalReceived} prefix={<IconCheckCircle style={{ color: '#00b42a' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="逾期金额" value={summary.totalOverdue} prefix={<IconExclamationCircle style={{ color: '#f53f3f' }} />} valueStyle={{ color: summary.totalOverdue > 0 ? '#f53f3f' : '#00b42a' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="风险合同" value={summary.riskContracts} suffix="个" prefix={<IconClockCircle style={{ color: '#ff7d00' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="回款进度" value={Math.round((summary.totalReceived / Math.max(summary.totalAmount, 1)) * 100)} suffix="%" prefix={<IconExperiment style={{ color: '#7c3aed' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="合同总额" value={summary.totalAmount} prefix={<IconFile style={{ color: 'var(--primary)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="已回款" value={summary.totalReceived} prefix={<IconCheckCircle style={{ color: 'var(--success-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="逾期金额" value={summary.totalOverdue} prefix={<IconExclamationCircle style={{ color: 'var(--destructive-500)' }} />} valueStyle={{ color: summary.totalOverdue > 0 ? 'var(--destructive-500)' : 'var(--success-500)' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="风险合同" value={summary.riskContracts} suffix="个" prefix={<IconClockCircle style={{ color: 'var(--warning-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="回款进度" value={Math.round((summary.totalReceived / Math.max(summary.totalAmount, 1)) * 100)} suffix="%" prefix={<IconExperiment style={{ color: 'var(--chart-5)' }} />} /></Card></Col>
       </Row>
 
       {/* 主体 Tab */}
@@ -255,7 +255,7 @@ export function PaymentForecast() {
                     </div>
                     <Progress
                       percent={Math.round((selectedMilestones.totalReceived / Math.max(selectedContract.totalAmount, 1)) * 100)}
-                      color={selectedMilestones.overdueCount > 0 ? '#f53f3f' : 'rgb(var(--primary-6))'}
+                      color={selectedMilestones.overdueCount > 0 ? 'var(--destructive-500)' : 'var(--primary)'}
                       style={{ marginTop: 12 }}
                     />
                   </Card>
@@ -268,10 +268,10 @@ export function PaymentForecast() {
                         title: '状态', dataIndex: 'status', width: 80,
                         render: (s: string) => {
                           const map: Record<string, { label: string; color: string }> = {
-                            paid: { label: '已付', color: '#00b42a' },
-                            overdue: { label: '逾期', color: '#f53f3f' },
-                            upcoming: { label: '即将到期', color: '#ff7d00' },
-                            normal: { label: '正常', color: '#165dff' },
+                            paid: { label: '已付', color: 'var(--success-500)' },
+                            overdue: { label: '逾期', color: 'var(--destructive-500)' },
+                            upcoming: { label: '即将到期', color: 'var(--warning-500)' },
+                            normal: { label: '正常', color: 'var(--primary)' },
                           };
                           const m = map[s] || map.normal;
                           return <Tag color={m.color} style={{ color: '#fff' }}>{m.label}</Tag>;
@@ -282,13 +282,13 @@ export function PaymentForecast() {
                         title: '天数', dataIndex: 'daysUntil', width: 80,
                         render: (v: number, row: MilestoneStatus) => {
                           if (row.status === 'paid') return <span style={{ color: 'var(--color-text-3)' }}>—</span>;
-                          if (v < 0) return <span style={{ color: '#f53f3f', fontWeight: 600 }}>逾期 {Math.abs(v)} 天</span>;
-                          if (v <= 7) return <span style={{ color: '#ff7d00', fontWeight: 600 }}>{v} 天后</span>;
+                          if (v < 0) return <span style={{ color: 'var(--destructive-500)', fontWeight: 600 }}>逾期 {Math.abs(v)} 天</span>;
+                          if (v <= 7) return <span style={{ color: 'var(--warning-500)', fontWeight: 600 }}>{v} 天后</span>;
                           return <span>{v} 天后</span>;
                         },
                       },
                       { title: '计划金额', dataIndex: 'amount', width: 100, render: (v: number) => formatCurrency(v) },
-                      { title: '已回', dataIndex: 'receivedAmount', width: 100, render: (v: number) => v > 0 ? <span style={{ color: '#00b42a', fontWeight: 600 }}>{formatCurrency(v)}</span> : '—' },
+                      { title: '已回', dataIndex: 'receivedAmount', width: 100, render: (v: number) => v > 0 ? <span style={{ color: 'var(--success-500)', fontWeight: 600 }}>{formatCurrency(v)}</span> : '—' },
                       { title: '比例', dataIndex: 'percentage', width: 60, render: (v: number) => `${v}%` },
                     ] as any}
                     data={selectedMilestones.milestones}
@@ -316,7 +316,7 @@ export function PaymentForecast() {
                   { title: '月份', dataIndex: 'month', width: 100 },
                   {
                     title: '预计回款', dataIndex: 'incoming', width: 140,
-                    render: (v: number) => <span style={{ fontWeight: 700, color: v > 0 ? 'rgb(var(--primary-6))' : 'var(--color-text-3)' }}>{formatCurrency(v)}</span>,
+                    render: (v: number) => <span style={{ fontWeight: 700, color: v > 0 ? 'var(--primary)' : 'var(--color-text-3)' }}>{formatCurrency(v)}</span>,
                   },
                   { title: '涉及合同数', dataIndex: 'contractCount', width: 100, render: (v: number) => `${v} 个` },
                   {
@@ -381,10 +381,10 @@ function GanttChart({ contractMilestones }: GanttChartProps) {
   };
 
   const colors: Record<string, string> = {
-    paid: '#00b42a',
-    overdue: '#f53f3f',
-    upcoming: '#ff7d00',
-    normal: '#165dff',
+    paid: 'var(--success-500)',
+    overdue: 'var(--destructive-500)',
+    upcoming: 'var(--warning-500)',
+    normal: 'var(--primary)',
   };
 
   return (
@@ -411,8 +411,8 @@ function GanttChart({ contractMilestones }: GanttChartProps) {
             const x = dateToX('2026-07-02');
             return (
               <g>
-                <line x1={x} y1={headerHeight - 4} x2={x} y2={headerHeight + contractMilestones.length * rowHeight} stroke="#f53f3f" strokeWidth={2} strokeDasharray="4,3" />
-                <text x={x} y={headerHeight - 14} textAnchor="middle" fontSize={10} fill="#f53f3f" fontWeight={600}>今日</text>
+                <line x1={x} y1={headerHeight - 4} x2={x} y2={headerHeight + contractMilestones.length * rowHeight} stroke="var(--destructive-500)" strokeWidth={2} strokeDasharray="4,3" />
+                <text x={x} y={headerHeight - 14} textAnchor="middle" fontSize={10} fill="var(--destructive-500)" fontWeight={600}>今日</text>
               </g>
             );
           })()}
@@ -466,10 +466,10 @@ function GanttChart({ contractMilestones }: GanttChartProps) {
       {/* 图例 */}
       <div style={{ display: 'flex', gap: 24, marginTop: 16, padding: '12px 16px', background: 'var(--color-fill-1)', borderRadius: 8 }}>
         {[
-          { label: '已付', color: '#00b42a' },
-          { label: '逾期', color: '#f53f3f' },
-          { label: '即将到期（14天内）', color: '#ff7d00' },
-          { label: '正常', color: '#165dff' },
+          { label: '已付', color: 'var(--success-500)' },
+          { label: '逾期', color: 'var(--destructive-500)' },
+          { label: '即将到期（14天内）', color: 'var(--warning-500)' },
+          { label: '正常', color: 'var(--primary)' },
         ].map(item => (
           <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 14, height: 14, borderRadius: '50%', background: item.color }} />
@@ -477,7 +477,7 @@ function GanttChart({ contractMilestones }: GanttChartProps) {
           </div>
         ))}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 20, height: 2, background: '#f53f3f', borderTop: '2px dashed #f53f3f' }} />
+          <div style={{ width: 20, height: 2, background: 'var(--destructive-500)', borderTop: '2px dashed var(--destructive-500)' }} />
           <span style={{ fontSize: 12 }}>今日（2026-07-02）</span>
         </div>
       </div>

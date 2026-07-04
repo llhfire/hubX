@@ -125,7 +125,9 @@ export function Customers() {
       render: (name: string, record: any) => (
         <a
           onClick={() => navigate(`/customers/${record.key}`)}
-          style={{ fontWeight: 500, color: 'hsl(221 83% 53%)', cursor: 'pointer' }}
+          style={{ fontWeight: 500, color: 'var(--primary)', cursor: 'pointer', padding: '2px 4px', borderRadius: 4 }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
           {name}
         </a>

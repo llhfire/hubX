@@ -76,17 +76,17 @@ interface Template {
 // ---------- 工具 ----------
 
 const CATEGORY_LABELS: Record<DocCategory, { label: string; icon: string; color: string }> = {
-  tech:     { label: '技术方案', icon: '💻', color: '#165dff' },
-  sop:      { label: 'SOP 流程', icon: '📋', color: '#00b42a' },
-  template: { label: '模板',     icon: '📄', color: '#7c3aed' },
-  review:   { label: '项目复盘', icon: '🔍', color: '#ff7d00' },
-  other:    { label: '其他',     icon: '📁', color: '#86909c' },
+  tech:     { label: '技术方案', icon: '💻', color: 'var(--primary)' },
+  sop:      { label: 'SOP 流程', icon: '📋', color: 'var(--success-500)' },
+  template: { label: '模板',     icon: '📄', color: 'var(--chart-5)' },
+  review:   { label: '项目复盘', icon: '🔍', color: 'var(--warning-500)' },
+  other:    { label: '其他',     icon: '📁', color: 'var(--muted-foreground)' },
 };
 
 const PERMISSION_LABELS: Record<Permission, { label: string; color: string }> = {
-  public:     { label: '公开', color: '#00b42a' },
-  department: { label: '部门', color: '#165dff' },
-  project:    { label: '项目', color: '#ff7d00' },
+  public:     { label: '公开', color: 'var(--success-500)' },
+  department: { label: '部门', color: 'var(--primary)' },
+  project:    { label: '项目', color: 'var(--warning-500)' },
 };
 
 // ---------- 模拟数据 ----------
@@ -187,12 +187,12 @@ export function KnowledgeBase() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {/* 摘要栏 */}
       <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="文档总数" value={summary.total} suffix="篇" icon={<IconFile style={{ color: 'rgb(var(--primary-6))' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="技术方案" value={summary.tech} suffix="篇" icon={<IconApps style={{ color: '#165dff' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="SOP 流程" value={summary.sop} suffix="篇" icon={<IconStar style={{ color: '#00b42a' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="模板" value={summary.templates} suffix="个" icon={<IconFolder style={{ color: '#7c3aed' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="项目复盘" value={summary.reviews} suffix="篇" icon={<IconEye style={{ color: '#ff7d00' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="总阅读量" value={summary.totalViews} suffix="次" icon={<IconEye style={{ color: '#0fc6c2' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="文档总数" value={summary.total} suffix="篇" icon={<IconFile style={{ color: 'var(--primary)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="技术方案" value={summary.tech} suffix="篇" icon={<IconApps style={{ color: 'var(--primary)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="SOP 流程" value={summary.sop} suffix="篇" icon={<IconStar style={{ color: 'var(--success-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="模板" value={summary.templates} suffix="个" icon={<IconFolder style={{ color: 'var(--chart-5)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="项目复盘" value={summary.reviews} suffix="篇" icon={<IconEye style={{ color: 'var(--warning-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="总阅读量" value={summary.totalViews} suffix="次" icon={<IconEye style={{ color: 'var(--info-500)' }} />} /></Card></Col>
       </Row>
 
       {/* 主体 Tab */}

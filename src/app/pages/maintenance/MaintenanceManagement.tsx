@@ -91,25 +91,25 @@ function getDaysUntil(dateStr: string): number {
 }
 
 const MAINTENANCE_STATUS_LABELS: Record<MaintenanceStatus, { label: string; color: string }> = {
-  active:   { label: '维护期中', color: '#00b42a' },
-  expiring: { label: '即将到期', color: '#ff7d00' },
-  expired:  { label: '已到期',   color: '#f53f3f' },
-  renewed:  { label: '已续签',   color: '#165dff' },
+  active:   { label: '维护期中', color: 'var(--success-500)' },
+  expiring: { label: '即将到期', color: 'var(--warning-500)' },
+  expired:  { label: '已到期',   color: 'var(--destructive-500)' },
+  renewed:  { label: '已续签',   color: 'var(--primary)' },
 };
 
 const TICKET_PRIORITY_LABELS: Record<TicketPriority, { label: string; color: string }> = {
-  critical: { label: '紧急', color: '#f53f3f' },
-  high:     { label: '高',   color: '#ff7d00' },
-  medium:   { label: '中',   color: '#165dff' },
-  low:      { label: '低',   color: '#86909c' },
+  critical: { label: '紧急', color: 'var(--destructive-500)' },
+  high:     { label: '高',   color: 'var(--warning-500)' },
+  medium:   { label: '中',   color: 'var(--primary)' },
+  low:      { label: '低',   color: 'var(--muted-foreground)' },
 };
 
 const TICKET_STATUS_LABELS: Record<TicketStatus, { label: string; color: string }> = {
-  open:       { label: '待分配', color: '#86909c' },
-  assigned:   { label: '已分配', color: '#165dff' },
-  processing: { label: '处理中', color: '#ff7d00' },
-  resolved:   { label: '已解决', color: '#00b42a' },
-  closed:     { label: '已关闭', color: '#c9cdd4' },
+  open:       { label: '待分配', color: 'var(--muted-foreground)' },
+  assigned:   { label: '已分配', color: 'var(--primary)' },
+  processing: { label: '处理中', color: 'var(--warning-500)' },
+  resolved:   { label: '已解决', color: 'var(--success-500)' },
+  closed:     { label: '已关闭', color: 'var(--muted-foreground)' },
 };
 
 // ---------- 模拟数据 ----------
@@ -176,12 +176,12 @@ export function MaintenanceManagement() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {/* 摘要栏 */}
       <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="维护期项目" value={summary.active} suffix="个" icon={<IconCheckCircle style={{ color: '#00b42a' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="即将到期" value={summary.expiring} suffix="个" prefix={<IconExclamationCircle style={{ color: '#ff7d00' }} />} valueStyle={{ color: '#ff7d00' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="已到期" value={summary.expired} suffix="个" prefix={<IconExclamationCircle style={{ color: '#f53f3f' }} />} valueStyle={{ color: '#f53f3f' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="维护期项目" value={summary.active} suffix="个" icon={<IconCheckCircle style={{ color: 'var(--success-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="即将到期" value={summary.expiring} suffix="个" prefix={<IconExclamationCircle style={{ color: 'var(--warning-500)' }} />} valueStyle={{ color: 'var(--warning-500)' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="已到期" value={summary.expired} suffix="个" prefix={<IconExclamationCircle style={{ color: 'var(--destructive-500)' }} />} valueStyle={{ color: 'var(--destructive-500)' }} /></Card></Col>
         <Col span={4}><Card><Statistic title="待处理工单" value={summary.openTickets} suffix="个" icon={<IconCustomerService style={{ color: 'rgb(var(--primary-6))' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="紧急工单" value={summary.criticalTickets} suffix="个" prefix={<IconExclamationCircle style={{ color: '#f53f3f' }} />} valueStyle={{ color: '#f53f3f' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="续签合同" value={mockRenewalContracts.length} suffix="个" icon={<IconFile style={{ color: '#165dff' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="紧急工单" value={summary.criticalTickets} suffix="个" prefix={<IconExclamationCircle style={{ color: 'var(--destructive-500)' }} />} valueStyle={{ color: 'var(--destructive-500)' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="续签合同" value={mockRenewalContracts.length} suffix="个" icon={<IconFile style={{ color: 'var(--primary)' }} />} /></Card></Col>
       </Row>
 
       {/* 到期预警 */}
@@ -190,10 +190,10 @@ export function MaintenanceManagement() {
           type="warning"
           content={
             <span>
-              {summary.expiring > 0 && <strong style={{ color: '#ff7d00' }}>{summary.expiring} 个</strong>}
+              {summary.expiring > 0 && <strong style={{ color: 'var(--warning-500)' }}>{summary.expiring} 个</strong>}
               {summary.expiring > 0 && ' 项目维护期即将到期，请跟进续费。'}
               {summary.expiring > 0 && summary.expired > 0 && ' '}
-              {summary.expired > 0 && <strong style={{ color: '#f53f3f' }}>{summary.expired} 个</strong>}
+              {summary.expired > 0 && <strong style={{ color: 'var(--destructive-500)' }}>{summary.expired} 个</strong>}
               {summary.expired > 0 && ' 项目维护期已到期。'}
             </span>
           }
@@ -222,8 +222,8 @@ export function MaintenanceManagement() {
                   title: '免费维护截止', dataIndex: 'freeMaintenanceEnd', width: 120,
                   render: (v: string, row: MaintenanceRecord) => {
                     const days = getDaysUntil(v);
-                    if (days < 0) return <span style={{ color: '#f53f3f' }}>{v} (已到期)</span>;
-                    if (days <= 30) return <span style={{ color: '#ff7d00' }}>{v} ({days}天)</span>;
+                    if (days < 0) return <span style={{ color: 'var(--destructive-500)' }}>{v} (已到期)</span>;
+                    if (days <= 30) return <span style={{ color: 'var(--warning-500)' }}>{v} ({days}天)</span>;
                     return v;
                   },
                 },
@@ -239,7 +239,7 @@ export function MaintenanceManagement() {
                     return <Progress percent={Math.min(100, Math.round((elapsed / total) * 100))} size="small" />;
                   },
                 },
-                { title: '付费合同', dataIndex: 'hasPaidContract', width: 80, render: (v: boolean) => v ? <Tag color="#00b42a" style={{ color: '#fff' }}>有</Tag> : <Tag>无</Tag> },
+                { title: '付费合同', dataIndex: 'hasPaidContract', width: 80, render: (v: boolean) => v ? <Tag color="var(--success-500)" style={{ color: '#fff' }}>有</Tag> : <Tag>无</Tag> },
                 { title: '销售负责人', dataIndex: 'salesOwner', width: 90 },
               ] as any}
               data={mockMaintenance}
@@ -274,8 +274,8 @@ export function MaintenanceManagement() {
                     render: (v: string, row: Ticket) => {
                       if (row.status === 'closed' || row.status === 'resolved') return <span style={{ color: 'var(--color-text-3)' }}>—</span>;
                       const days = getDaysUntil(v);
-                      if (days < 0) return <span style={{ color: '#f53f3f', fontWeight: 600 }}>超时 {Math.abs(days)} 天</span>;
-                      if (days === 0) return <span style={{ color: '#ff7d00', fontWeight: 600 }}>今日到期</span>;
+                      if (days < 0) return <span style={{ color: 'var(--destructive-500)', fontWeight: 600 }}>超时 {Math.abs(days)} 天</span>;
+                      if (days === 0) return <span style={{ color: 'var(--warning-500)', fontWeight: 600 }}>今日到期</span>;
                       return v;
                     },
                   },

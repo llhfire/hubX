@@ -194,34 +194,34 @@ export function MeetingManagement() {
   };
 
   const roomStatusLabels: Record<string, { label: string; color: string }> = {
-    available:   { label: '空闲', color: '#00b42a' },
-    occupied:    { label: '使用中', color: '#165dff' },
-    maintenance: { label: '维护中', color: '#f53f3f' },
+    available:   { label: '空闲', color: 'var(--success-500)' },
+    occupied:    { label: '使用中', color: 'var(--primary)' },
+    maintenance: { label: '维护中', color: 'var(--destructive-500)' },
   };
 
   const meetingStatusLabels: Record<string, { label: string; color: string }> = {
-    scheduled:  { label: '已预约', color: '#165dff' },
-    ongoing:    { label: '进行中', color: '#00b42a' },
-    completed:  { label: '已结束', color: '#86909c' },
-    cancelled:  { label: '已取消', color: '#f53f3f' },
+    scheduled:  { label: '已预约', color: 'var(--primary)' },
+    ongoing:    { label: '进行中', color: 'var(--success-500)' },
+    completed:  { label: '已结束', color: 'var(--muted-foreground)' },
+    cancelled:  { label: '已取消', color: 'var(--destructive-500)' },
   };
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {/* 摘要栏 */}
       <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="会议室" value={summary.totalRooms} suffix="间" icon={<IconLocation style={{ color: 'rgb(var(--primary-6))' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="空闲" value={summary.availableRooms} suffix="间" icon={<IconCheckCircle style={{ color: '#00b42a' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="今日会议" value={summary.todayMeetings} suffix="场" icon={<IconCalendar style={{ color: '#ff7d00' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="待开会议" value={summary.upcomingMeetings} suffix="场" icon={<IconClockCircle style={{ color: '#165dff' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="会议总数" value={summary.totalMeetings} suffix="场" icon={<IconFile style={{ color: '#7c3aed' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="已完成" value={summary.completedMeetings} suffix="场" icon={<IconCheckCircle style={{ color: '#00b42a' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="会议室" value={summary.totalRooms} suffix="间" icon={<IconLocation style={{ color: 'var(--primary)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="空闲" value={summary.availableRooms} suffix="间" icon={<IconCheckCircle style={{ color: 'var(--success-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="今日会议" value={summary.todayMeetings} suffix="场" icon={<IconCalendar style={{ color: 'var(--warning-500)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="待开会议" value={summary.upcomingMeetings} suffix="场" icon={<IconClockCircle style={{ color: 'var(--primary)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="会议总数" value={summary.totalMeetings} suffix="场" icon={<IconFile style={{ color: 'var(--chart-5)' }} />} /></Card></Col>
+        <Col span={4}><Card><Statistic title="已完成" value={summary.completedMeetings} suffix="场" icon={<IconCheckCircle style={{ color: 'var(--success-500)' }} />} /></Card></Col>
       </Row>
 
       {/* 主体 Tab */}
       <Card bordered={false}>
         <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="meetings" title={<span><span style={{ fontSize: 16 }}>📅</span> 会议安排 <Badge count={summary.upcomingMeetings} style={{ background: 'rgb(var(--primary-6))' }} /></span>} />
+          <TabPane key="meetings" title={<span><span style={{ fontSize: 16 }}>📅</span> 会议安排 <Badge count={summary.upcomingMeetings} style={{ background: 'var(--primary)' }} /></span>} />
           <TabPane key="rooms" title={<span><span style={{ fontSize: 16 }}>🏢</span> 会议室管理</span>} />
           <TabPane key="minutes" title={<span><span style={{ fontSize: 16 }}>📝</span> 会议记录</span>} />
         </Tabs>
@@ -238,15 +238,15 @@ export function MeetingManagement() {
                   { title: '会议主题', dataIndex: 'title', width: 180, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
                   {
                     title: '优先级', dataIndex: 'priority', width: 70,
-                    render: (p: string) => <Tag color={p === 'high' ? '#f53f3f' : p === 'normal' ? '#165dff' : '#86909c'} style={{ color: '#fff' }}>{p === 'high' ? '高' : p === 'normal' ? '普通' : '低'}</Tag>,
+                    render: (p: string) => <Tag color={p === 'high' ? 'var(--destructive-500)' : p === 'normal' ? 'var(--primary)' : 'var(--muted-foreground)'} style={{ color: '#fff' }}>{p === 'high' ? '高' : p === 'normal' ? '普通' : '低'}</Tag>,
                   },
                   { title: '会议室', dataIndex: 'roomName', width: 110 },
                   { title: '时间', dataIndex: 'startTime', width: 200, render: (_: unknown, row: Meeting) => `${row.startTime} ~ ${row.endTime.slice(11)}` },
                   { title: '组织人', dataIndex: 'organizer', width: 70 },
-                  { title: '参会人', dataIndex: 'attendees', width: 120, render: (a: string[]) => <Avatar.Group size={24} maxCount={4}>{a.map(u => <Avatar key={u} style={{ background: 'rgb(var(--primary-6))', fontSize: 11 }}>{u.slice(0, 1)}</Avatar>)}</Avatar.Group> },
+                  { title: '参会人', dataIndex: 'attendees', width: 120, render: (a: string[]) => <Avatar.Group size={24} maxCount={4}>{a.map(u => <Avatar key={u} style={{ background: 'var(--primary)', fontSize: 11 }}>{u.slice(0, 1)}</Avatar>)}</Avatar.Group> },
                   {
                     title: '状态', dataIndex: 'status', width: 70,
-                    render: (s: string) => <Tag color={meetingStatusLabels[s]?.color || '#86909c'} style={{ color: '#fff' }}>{meetingStatusLabels[s]?.label || s}</Tag>,
+                    render: (s: string) => <Tag color={meetingStatusLabels[s]?.color || 'var(--muted-foreground)'} style={{ color: '#fff' }}>{meetingStatusLabels[s]?.label || s}</Tag>,
                   },
                   {
                     title: '操作', width: 130,
@@ -341,7 +341,7 @@ export function MeetingManagement() {
                             { title: '截止日期', dataIndex: 'deadline', width: 100 },
                             {
                               title: '状态', dataIndex: 'done', width: 70,
-                              render: (done: boolean) => done ? <Tag color="#00b42a" style={{ color: '#fff' }} size="small">已完成</Tag> : <Tag color="#ff7d00" style={{ color: '#fff' }} size="small">待办</Tag>,
+                              render: (done: boolean) => done ? <Tag color="var(--success-500)" style={{ color: '#fff' }} size="small">已完成</Tag> : <Tag color="var(--warning-500)" style={{ color: '#fff' }} size="small">待办</Tag>,
                             },
                           ] as any}
                           data={min.actionItems}
