@@ -229,7 +229,7 @@ export function MaintenanceManagement() {
                 },
                 {
                   title: '状态', dataIndex: 'status', width: 90,
-                  render: (s: MaintenanceStatus) => <Tag color={MAINTENANCE_STATUS_LABELS[s].color} style={{ color: '#fff' }}>{MAINTENANCE_STATUS_LABELS[s].label}</Tag>,
+                  render: (s: MaintenanceStatus) => <Tag color={MAINTENANCE_STATUS_LABELS[s].color}>{MAINTENANCE_STATUS_LABELS[s].label}</Tag>,
                 },
                 {
                   title: '维护进度', width: 120,
@@ -239,7 +239,7 @@ export function MaintenanceManagement() {
                     return <Progress percent={Math.min(100, Math.round((elapsed / total) * 100))} size="small" />;
                   },
                 },
-                { title: '付费合同', dataIndex: 'hasPaidContract', width: 80, render: (v: boolean) => v ? <Tag color="var(--success-500)" style={{ color: '#fff' }}>有</Tag> : <Tag>无</Tag> },
+                { title: '付费合同', dataIndex: 'hasPaidContract', width: 80, render: (v: boolean) => v ? <Tag color="var(--success-500)">有</Tag> : <Tag>无</Tag> },
                 { title: '销售负责人', dataIndex: 'salesOwner', width: 90 },
               ] as any}
               data={mockMaintenance}
@@ -258,14 +258,14 @@ export function MaintenanceManagement() {
                 columns={[
                   {
                     title: '优先级', dataIndex: 'priority', width: 70,
-                    render: (p: TicketPriority) => <Tag color={TICKET_PRIORITY_LABELS[p].color} style={{ color: '#fff' }}>{TICKET_PRIORITY_LABELS[p].label}</Tag>,
+                    render: (p: TicketPriority) => <Tag color={TICKET_PRIORITY_LABELS[p].color}>{TICKET_PRIORITY_LABELS[p].label}</Tag>,
                   },
                   { title: '标题', dataIndex: 'title', width: 160, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
                   { title: '客户', dataIndex: 'customerName', width: 130 },
                   { title: '项目', dataIndex: 'projectName', width: 130 },
                   {
                     title: '状态', dataIndex: 'status', width: 80,
-                    render: (s: TicketStatus) => <Tag color={TICKET_STATUS_LABELS[s].color} style={{ color: '#fff' }}>{TICKET_STATUS_LABELS[s].label}</Tag>,
+                    render: (s: TicketStatus) => <Tag color={TICKET_STATUS_LABELS[s].color}>{TICKET_STATUS_LABELS[s].label}</Tag>,
                   },
                   { title: '处理人', dataIndex: 'assignee', width: 70, render: (v: string) => v || <span style={{ color: 'var(--color-text-3)' }}>待分配</span> },
                   { title: '创建时间', dataIndex: 'createdAt', width: 130 },

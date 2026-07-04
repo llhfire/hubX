@@ -239,7 +239,7 @@ export function MeetingManagement() {
                   { title: '会议主题', dataIndex: 'title', width: 180, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
                   {
                     title: '优先级', dataIndex: 'priority', width: 70,
-                    render: (p: string) => <Tag color={p === 'high' ? 'var(--destructive-500)' : p === 'normal' ? 'var(--primary)' : 'var(--muted-foreground)'} style={{ color: '#fff' }}>{p === 'high' ? '高' : p === 'normal' ? '普通' : '低'}</Tag>,
+                    render: (p: string) => <Tag color={p === 'high' ? 'var(--destructive-500)' : p === 'normal' ? 'var(--primary)' : 'var(--muted-foreground)'}>{p === 'high' ? '高' : p === 'normal' ? '普通' : '低'}</Tag>,
                   },
                   { title: '会议室', dataIndex: 'roomName', width: 110 },
                   { title: '时间', dataIndex: 'startTime', width: 200, render: (_: unknown, row: Meeting) => `${row.startTime} ~ ${row.endTime.slice(11)}` },
@@ -247,7 +247,7 @@ export function MeetingManagement() {
                   { title: '参会人', dataIndex: 'attendees', width: 120, render: (a: string[]) => <Avatar.Group size={24} maxCount={4}>{a.map(u => <Avatar key={u} style={{ background: 'var(--primary)', fontSize: 11 }}>{u.slice(0, 1)}</Avatar>)}</Avatar.Group> },
                   {
                     title: '状态', dataIndex: 'status', width: 70,
-                    render: (s: string) => <Tag color={meetingStatusLabels[s]?.color || 'var(--muted-foreground)'} style={{ color: '#fff' }}>{meetingStatusLabels[s]?.label || s}</Tag>,
+                    render: (s: string) => <Tag color={meetingStatusLabels[s]?.color || 'var(--muted-foreground)'}>{meetingStatusLabels[s]?.label || s}</Tag>,
                   },
                   {
                     title: '操作', width: 130,
@@ -291,7 +291,7 @@ export function MeetingManagement() {
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                         <span style={{ fontWeight: 600, fontSize: 15 }}>{room.name}</span>
-                        <Tag color={roomStatusLabels[room.status].color} style={{ color: '#fff' }}>{roomStatusLabels[room.status].label}</Tag>
+                        <Tag color={roomStatusLabels[room.status].color}>{roomStatusLabels[room.status].label}</Tag>
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-2)', marginBottom: 8 }}>
                         <div><IconLocation style={{ marginRight: 4 }} /> {room.location}</div>
@@ -342,7 +342,7 @@ export function MeetingManagement() {
                             { title: '截止日期', dataIndex: 'deadline', width: 100 },
                             {
                               title: '状态', dataIndex: 'done', width: 70,
-                              render: (done: boolean) => done ? <Tag color="var(--success-500)" style={{ color: '#fff' }} size="small">已完成</Tag> : <Tag color="var(--warning-500)" style={{ color: '#fff' }} size="small">待办</Tag>,
+                              render: (done: boolean) => done ? <Tag color="var(--success-500)" size="small">已完成</Tag> : <Tag color="var(--warning-500)" size="small">待办</Tag>,
                             },
                           ] as any}
                           data={min.actionItems}

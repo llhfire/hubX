@@ -246,10 +246,10 @@ export function PaymentForecast() {
                         <Typography.Text type="secondary">{selectedContract.customerName} · {selectedContract.contractNo}</Typography.Text>
                       </div>
                       <Space>
-                        <Tag color="blue" style={{ color: '#fff' }}>总额 {formatCurrency(selectedContract.totalAmount)}</Tag>
-                        <Tag color="green" style={{ color: '#fff' }}>已回 {formatCurrency(selectedMilestones.totalReceived)}</Tag>
+                        <Tag color="blue">总额 {formatCurrency(selectedContract.totalAmount)}</Tag>
+                        <Tag color="green">已回 {formatCurrency(selectedMilestones.totalReceived)}</Tag>
                         {selectedMilestones.overdueCount > 0 && (
-                          <Tag color="red" style={{ color: '#fff' }}>逾期 {selectedMilestones.overdueCount} 期</Tag>
+                          <Tag color="red">逾期 {selectedMilestones.overdueCount} 期</Tag>
                         )}
                       </Space>
                     </div>
@@ -274,7 +274,7 @@ export function PaymentForecast() {
                             normal: { label: '正常', color: 'var(--primary)' },
                           };
                           const m = map[s] || map.normal;
-                          return <Tag color={m.color} style={{ color: '#fff' }}>{m.label}</Tag>;
+                          return <Tag color={m.color}>{m.label}</Tag>;
                         },
                       },
                       { title: '计划日期', dataIndex: 'expectedDate', width: 110 },
@@ -321,7 +321,7 @@ export function PaymentForecast() {
                   { title: '涉及合同数', dataIndex: 'contractCount', width: 100, render: (v: number) => `${v} 个` },
                   {
                     title: '风险节点', dataIndex: 'riskCount', width: 100,
-                    render: (v: number) => v > 0 ? <Tag color="orange" style={{ color: '#fff' }}>{v} 个</Tag> : <Tag color="green">无</Tag>,
+                    render: (v: number) => v > 0 ? <Tag color="orange">{v} 个</Tag> : <Tag color="green">无</Tag>,
                   },
                   {
                     title: '累计回款', width: 140,

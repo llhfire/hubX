@@ -246,7 +246,7 @@ export function KnowledgeBase() {
                   },
                   {
                     title: '分类', dataIndex: 'category', width: 90,
-                    render: (c: DocCategory) => <Tag color={CATEGORY_LABELS[c].color} style={{ color: '#fff' }}>{CATEGORY_LABELS[c].label}</Tag>,
+                    render: (c: DocCategory) => <Tag color={CATEGORY_LABELS[c].color}>{CATEGORY_LABELS[c].label}</Tag>,
                   },
                   {
                     title: '标签', dataIndex: 'tags', width: 200,
@@ -260,7 +260,7 @@ export function KnowledgeBase() {
                   { title: '部门', dataIndex: 'department', width: 70 },
                   {
                     title: '权限', dataIndex: 'permission', width: 70,
-                    render: (p: Permission) => <Tag color={PERMISSION_LABELS[p].color} style={{ color: '#fff' }}>{PERMISSION_LABELS[p].label}</Tag>,
+                    render: (p: Permission) => <Tag color={PERMISSION_LABELS[p].color}>{PERMISSION_LABELS[p].label}</Tag>,
                   },
                   { title: '阅读', dataIndex: 'views', width: 60, render: (v: number) => `${v}次` },
                   { title: '更新时间', dataIndex: 'updatedAt', width: 100 },
@@ -288,7 +288,7 @@ export function KnowledgeBase() {
             <Row gutter={16}>
               {mockTemplates.map(tpl => (
                 <Col span={6} key={tpl.id} style={{ marginBottom: 16 }}>
-                  <Card size="small" style={{ borderRadius: 8 }} extra={<Tag color="purple" style={{ color: '#fff' }}>模板</Tag>}>
+                  <Card size="small" style={{ borderRadius: 8 }} extra={<Tag color="purple">模板</Tag>}>
                     <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}><IconFile size={14} style={{ marginRight: 4 }} /> {tpl.name}</div>
                     <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>{tpl.description}</Typography.Text>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -354,8 +354,8 @@ export function KnowledgeBase() {
         {detailDoc && (
           <div>
             <Space style={{ marginBottom: 12 }}>
-              <Tag color={CATEGORY_LABELS[detailDoc.category].color} style={{ color: '#fff' }}>{CATEGORY_LABELS[detailDoc.category].label}</Tag>
-              <Tag color={PERMISSION_LABELS[detailDoc.permission].color} style={{ color: '#fff' }}>{PERMISSION_LABELS[detailDoc.permission].label}</Tag>
+              <Tag color={CATEGORY_LABELS[detailDoc.category].color}>{CATEGORY_LABELS[detailDoc.category].label}</Tag>
+              <Tag color={PERMISSION_LABELS[detailDoc.permission].color}>{PERMISSION_LABELS[detailDoc.permission].label}</Tag>
               {detailDoc.tags.map(t => <Tag key={t}>{t}</Tag>)}
             </Space>
             <Descriptions

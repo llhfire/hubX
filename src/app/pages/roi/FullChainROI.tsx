@@ -175,7 +175,7 @@ export function FullChainROI() {
                     <div style={{ fontSize: 13, fontWeight: 600, textAlign: 'center', marginBottom: 8 }}>{stage.stage}</div>
                     {/* 转化率 */}
                     {stage.conversionRate !== undefined && (
-                      <Tag color="blue" style={{ color: '#fff' }} size="small">
+                      <Tag color="blue" style={{}} size="small">
                         转化率 {stage.conversionRate}%
                       </Tag>
                     )}
@@ -235,7 +235,7 @@ export function FullChainROI() {
                 { title: '转化率', dataIndex: 'conversionRate', width: 80, render: (v: number) => <Progress percent={v} size="small" /> },
                 {
                   title: 'ROI', dataIndex: 'roi', width: 100,
-                  render: (v: number) => <Tag color={v > 5000 ? 'var(--success-500)' : v > 3000 ? 'var(--warning-500)' : 'var(--destructive-500)'} style={{ color: '#fff', fontWeight: 600 }}>{v}%</Tag>,
+                  render: (v: number) => <Tag color={v > 5000 ? 'var(--success-500)' : v > 3000 ? 'var(--warning-500)' : 'var(--destructive-500)'} style={{ fontWeight: 600 }}>{v}%</Tag>,
                   sorter: (a: ChannelROI, b: ChannelROI) => a.roi - b.roi,
                 },
               ] as any}
@@ -279,7 +279,7 @@ export function FullChainROI() {
                 { title: '利润', dataIndex: 'profit', width: 100, render: (v: number) => <span style={{ fontWeight: 600, color: 'var(--success-500)' }}>¥{(v / 10000).toFixed(0)}万</span> },
                 {
                   title: '利润率', dataIndex: 'profitMargin', width: 100,
-                  render: (v: number) => <Tag color={v >= 45 ? 'var(--success-500)' : v >= 35 ? 'var(--warning-500)' : 'var(--destructive-500)'} style={{ color: '#fff' }}>{v}%</Tag>,
+                  render: (v: number) => <Tag color={v >= 45 ? 'var(--success-500)' : v >= 35 ? 'var(--warning-500)' : 'var(--destructive-500)'} >{v}%</Tag>,
                   sorter: (a: ProjectROI, b: ProjectROI) => a.profitMargin - b.profitMargin,
                 },
                 { title: '工期(天)', dataIndex: 'duration', width: 80 },

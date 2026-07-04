@@ -116,7 +116,7 @@ function SkillCard({ skill, empScore }: { skill: SkillNode; empScore: number }) 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <span style={{ fontWeight: 600, fontSize: 13 }}>{skill.name}</span>
         {unlocked ? (
-          <Tag color={ABILITY_DIMENSION_COLORS[skill.domain]} style={{ color: '#fff' }} size="small">{mastery}</Tag>
+          <Tag color={ABILITY_DIMENSION_COLORS[skill.domain]} size="small">{mastery}</Tag>
         ) : (
           <Tag size="small">🔒 {skill.requiredScore}+</Tag>
         )}
@@ -168,9 +168,9 @@ export function EmployeeDetail() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Title heading={4} style={{ margin: 0 }}>{employee.name}</Title>
-                  <Tag color={getLevelColor(employee.level)} style={{ color: '#fff', fontWeight: 600 }}>{employee.level}</Tag>
-                  <Tag color={getStatusColor(employee.employmentStatus)} style={{ color: '#fff' }}>{employee.employmentStatus}</Tag>
-                  {cap?.promotionEligible && <Tag color="#ff7d00" style={{ color: '#fff' }}>可晋级</Tag>}
+                  <Tag color={getLevelColor(employee.level)} style={{fontWeight: 600 }}>{employee.level}</Tag>
+                  <Tag color={getStatusColor(employee.employmentStatus)}>{employee.employmentStatus}</Tag>
+                  {cap?.promotionEligible && <Tag color="#ff7d00">可晋级</Tag>}
                 </div>
                 <div style={{ marginTop: 4, color: 'var(--color-text-2)', fontSize: 13 }}>
                   {employee.jobNumber} · {employee.department} · {employee.position}
@@ -216,8 +216,8 @@ export function EmployeeDetail() {
               <Title heading={6} style={{ marginBottom: 12 }}><Space><IconIdcard /> 工作信息</Space></Title>
               <Descriptions column={3} labelStyle={{ color: 'var(--color-text-2)', fontWeight: 500 }} data={[
                 { label: '所属部门', value: employee.department }, { label: '职位', value: employee.position },
-                { label: '职级', value: <Tag color={getLevelColor(employee.level)} style={{ color: '#fff' }}>{employee.level}</Tag> },
-                { label: '在职状态', value: <Tag color={getStatusColor(employee.employmentStatus)} style={{ color: '#fff' }}>{employee.employmentStatus}</Tag> },
+                { label: '职级', value: <Tag color={getLevelColor(employee.level)}>{employee.level}</Tag> },
+                { label: '在职状态', value: <Tag color={getStatusColor(employee.employmentStatus)}>{employee.employmentStatus}</Tag> },
                 { label: '入职日期', value: employee.hireDate }, { label: '转正日期', value: employee.转正Date || '—' },
                 { label: '合同到期日', value: employee.contractEndDate },
                 { label: '标准时薪', value: <span style={{ fontWeight: 700, color: 'rgb(var(--primary-6))' }}>{formatCurrency(employee.standardHourlyRate)}/h</span> },
@@ -261,7 +261,7 @@ export function EmployeeDetail() {
                       <Progress percent={calcPromotionProgress(cap.weightedScore, employee.level)} color={cap.promotionEligible ? '#00b42a' : 'rgb(var(--primary-6))'} />
                     </div>
                     {cap.promotionEligible ? (
-                      <Tag color="#00b42a" style={{ color: '#fff', fontSize: 13, padding: '4px 12px' }}>
+                      <Tag color="#00b42a" style={{fontSize: 13, padding: '4px 12px' }}>
                         <IconTrophy /> 已达标，具备晋升资格！
                       </Tag>
                     ) : (
@@ -278,7 +278,7 @@ export function EmployeeDetail() {
               <Tabs type="card-gutter" defaultActiveTab="tech">
                 {(['tech', 'biz', 'mgmt', 'tool', 'domain'] as AbilityDimension[]).map(domain => (
                   <TabPane key={domain} title={
-                    <Tag color={ABILITY_DIMENSION_COLORS[domain]} style={{ color: '#fff' }}>{ABILITY_DIMENSION_LABELS[domain]}</Tag>
+                    <Tag color={ABILITY_DIMENSION_COLORS[domain]}>{ABILITY_DIMENSION_LABELS[domain]}</Tag>
                   }>
                     <Row gutter={16}>
                       {[1, 2, 3].map(layer => {
@@ -286,7 +286,7 @@ export function EmployeeDetail() {
                         return (
                           <Col span={8} key={layer}>
                             <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <Tag color={layer === 1 ? '#00b42a' : layer === 2 ? '#165dff' : '#7c3aed'} style={{ color: '#fff' }}>
+                              <Tag color={layer === 1 ? '#00b42a' : layer === 2 ? '#165dff' : '#7c3aed'}>
                                 {layer === 1 ? '基础' : layer === 2 ? '进阶' : '专家'}
                               </Tag>
                             </div>
@@ -328,7 +328,7 @@ export function EmployeeDetail() {
                   { title: '类型', dataIndex: 'type', width: 70, render: (t: any) => <Tag>{t}</Tag> },
                   { title: '开始', dataIndex: 'startDate', width: 110 }, { title: '结束', dataIndex: 'endDate', width: 110 },
                   { title: '天数', dataIndex: 'days', width: 60 }, { title: '事由', dataIndex: 'reason' },
-                  { title: '状态', dataIndex: 'status', width: 80, render: (s: any) => <Tag color={s === '已批准' ? '#00b42a' : s === '待审批' ? '#ff7d00' : '#f53f3f'} style={{ color: '#fff' }}>{s}</Tag> },
+                  { title: '状态', dataIndex: 'status', width: 80, render: (s: any) => <Tag color={s === '已批准' ? '#00b42a' : s === '待审批' ? '#ff7d00' : '#f53f3f'}>{s}</Tag> },
                   { title: '审批人', dataIndex: 'approvedBy', width: 80 },
                 ] as any}
                 data={empAttendance} rowKey="id" pagination={false}
@@ -346,7 +346,7 @@ export function EmployeeDetail() {
                     <Card>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Statistic title={p.periodLabel} value={p.totalScore} suffix="分" />
-                        <Tag color={getRankColor(p.rank)} style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>{p.rank}</Tag>
+                        <Tag color={getRankColor(p.rank)} style={{fontWeight: 700, fontSize: 16 }}>{p.rank}</Tag>
                       </div>
                       <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-text-3)' }}>KPI {p.kpiScore} · 行为 {p.behaviorScore}</div>
                     </Card>
@@ -357,7 +357,7 @@ export function EmployeeDetail() {
                 columns={[
                   { title: '周期', dataIndex: 'periodLabel', width: 100 }, { title: 'KPI', dataIndex: 'kpiScore', width: 60 },
                   { title: '行为', dataIndex: 'behaviorScore', width: 60 }, { title: '综合', dataIndex: 'totalScore', width: 60 },
-                  { title: '评级', dataIndex: 'rank', width: 60, render: (r: any) => <Tag color={getRankColor(r)} style={{ color: '#fff' }}>{r}</Tag> },
+                  { title: '评级', dataIndex: 'rank', width: 60, render: (r: any) => <Tag color={getRankColor(r)}>{r}</Tag> },
                   { title: '考核人', dataIndex: 'evaluator', width: 80 }, { title: '评语', dataIndex: 'comment', ellipsis: true },
                 ] as any}
                 data={[...performance].reverse()} rowKey="id" pagination={false}
@@ -487,7 +487,7 @@ function BigFiveCard({ bigFive }: { bigFive: BigFiveProfile }) {
   return (
     <Card title={<span><span style={{ fontSize: 16 }}>🧬</span> 大五人格 OCEAN</span>} bodyStyle={{ paddingBottom: 8 }}>
       <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 16 }}>
-        最突出特征：<Tag color={topTrait.color} style={{ color: '#fff', marginLeft: 4 }}>{topTrait.cn} {topTrait.value}</Tag>
+        最突出特征：<Tag color={topTrait.color} style={{marginLeft: 4 }}>{topTrait.cn} {topTrait.value}</Tag>
       </Typography.Text>
       {traits.map(t => (
         <div key={t.label} style={{ marginBottom: 12 }}>
@@ -528,7 +528,7 @@ function DISCCard({ disc }: { disc: DISCProfile }) {
             </div>
           ))}
         </div>
-        <Tag color={all.find(a => a.key === disc.primaryStyle)?.color} style={{ color: '#fff', marginTop: 8 }}>
+        <Tag color={all.find(a => a.key === disc.primaryStyle)?.color} style={{marginTop: 8 }}>
           {all.find(a => a.key === disc.primaryStyle)?.label}型 · {all.find(a => a.key === disc.primaryStyle)?.desc}
         </Tag>
       </div>
@@ -567,7 +567,7 @@ function EnneagramCard({ enneagram }: { enneagram: EnneagramProfile }) {
             }}>
               {enneagram.type}
             </div>
-            <Tag color={colors[enneagram.type - 1]} style={{ color: '#fff', fontSize: 14 }}>{info.name}</Tag>
+            <Tag color={colors[enneagram.type - 1]} style={{fontSize: 14 }}>{info.name}</Tag>
             {enneagram.wing && <Tag style={{ marginTop: 4 }}>W{enneagram.wing}</Tag>}
           </div>
         </Col>

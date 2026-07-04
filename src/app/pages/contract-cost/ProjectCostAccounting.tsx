@@ -163,7 +163,7 @@ export function ProjectCostAccounting() {
       title: '状态', dataIndex: 'status', width: 80,
       render: (s: string) => {
         const colors: Record<string, string> = { '进行中': '#165dff', '已完成': '#00b42a', '验收中': '#0fc6c2', '未开始': '#86909c', '延迟': '#f53f3f', '搁置': '#c9cdd4', '催款中': '#ff7d00' };
-        return <Tag color={colors[s] || '#86909c'} style={{ color: '#fff' }}>{s}</Tag>;
+        return <Tag color={colors[s] || '#86909c'}>{s}</Tag>;
       },
     },
     {
@@ -201,7 +201,7 @@ export function ProjectCostAccounting() {
       title: '利润率', dataIndex: 'profitMargin', width: 90,
       render: (v: number, row: ProjectCostRow) => (
         <Tooltip content={row.budgetAlert === 'danger' ? '亏损预警' : row.budgetAlert === 'warning' ? '利润率偏低' : '健康'}>
-          <Tag color={row.budgetAlert === 'danger' ? '#f53f3f' : row.budgetAlert === 'warning' ? '#ff7d00' : '#00b42a'} style={{ color: '#fff' }}>
+          <Tag color={row.budgetAlert === 'danger' ? '#f53f3f' : row.budgetAlert === 'warning' ? '#ff7d00' : '#00b42a'}>
             {v}%
           </Tag>
         </Tooltip>

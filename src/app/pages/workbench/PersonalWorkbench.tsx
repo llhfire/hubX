@@ -151,7 +151,7 @@ export function PersonalWorkbench() {
               <Title heading={4} style={{ margin: 0 }}>早上好，{currentEmployee.name} 👋</Title>
               <Typography.Text type="secondary">
                 {currentEmployee.department} · {currentEmployee.position} · {currentEmployee.level}
-                {personality?.mbti && <Tag color="#7c3aed" style={{ color: '#fff', marginLeft: 8 }}>{personality.mbti.type}</Tag>}
+                {personality?.mbti && <Tag color="#7c3aed" style={{marginLeft: 8 }}>{personality.mbti.type}</Tag>}
               </Typography.Text>
             </div>
           </div>
@@ -232,7 +232,7 @@ export function PersonalWorkbench() {
                     <Progress percent={calcPromotionProgress(cap.weightedScore, currentEmployee.level)} color={cap.promotionEligible ? '#00b42a' : 'rgb(var(--primary-6))'} size="large" />
                     <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
                       加权总分 {cap.weightedScore} 分
-                      {cap.promotionEligible && <Tag color="#00b42a" style={{ color: '#fff', marginLeft: 8 }} size="small">可晋级</Tag>}
+                      {cap.promotionEligible && <Tag color="#00b42a" style={{marginLeft: 8 }} size="small">可晋级</Tag>}
                     </Typography.Text>
                   </Card>
                 )}
@@ -273,7 +273,7 @@ export function PersonalWorkbench() {
                       <List.Item key={task.id} style={{ padding: '8px 0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                           <Space>
-                            <Tag color={task.priority === 'high' ? '#f53f3f' : task.priority === 'medium' ? '#ff7d00' : '#86909c'} style={{ color: '#fff' }}>
+                            <Tag color={task.priority === 'high' ? '#f53f3f' : task.priority === 'medium' ? '#ff7d00' : '#86909c'}>
                               {task.priority === 'high' ? '高' : task.priority === 'medium' ? '中' : '低'}
                             </Tag>
                             <span style={{ fontSize: 13 }}>{task.title}</span>
@@ -293,9 +293,9 @@ export function PersonalWorkbench() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
                 <Space>
-                  <Tag color="rgb(var(--primary-6))" style={{ color: '#fff' }}>全部 {mockTasks.length}</Tag>
+                  <Tag color="rgb(var(--primary-6))">全部 {mockTasks.length}</Tag>
                   <Tag>待办 {mockTasks.filter(t => !t.done).length}</Tag>
-                  <Tag color="#00b42a" style={{ color: '#fff' }}>已完成 {mockTasks.filter(t => t.done).length}</Tag>
+                  <Tag color="#00b42a">已完成 {mockTasks.filter(t => t.done).length}</Tag>
                 </Space>
                 <Button type="primary" icon={<IconPlus />} size="small">新建任务</Button>
               </div>
@@ -304,7 +304,7 @@ export function PersonalWorkbench() {
                   {
                     title: '优先级', dataIndex: 'priority', width: 70,
                     render: (p: string) => (
-                      <Tag color={p === 'high' ? '#f53f3f' : p === 'medium' ? '#ff7d00' : '#86909c'} style={{ color: '#fff' }}>
+                      <Tag color={p === 'high' ? '#f53f3f' : p === 'medium' ? '#ff7d00' : '#86909c'}>
                         {p === 'high' ? '高' : p === 'medium' ? '中' : '低'}
                       </Tag>
                     ),
@@ -322,8 +322,8 @@ export function PersonalWorkbench() {
                   {
                     title: '状态', dataIndex: 'done', width: 80,
                     render: (done: boolean) => done
-                      ? <Tag color="#00b42a" style={{ color: '#fff' }}>已完成</Tag>
-                      : <Tag color="#ff7d00" style={{ color: '#fff' }}>待办</Tag>,
+                      ? <Tag color="#00b42a">已完成</Tag>
+                      : <Tag color="#ff7d00">待办</Tag>,
                   },
                 ] as any}
                 data={mockTasks}
@@ -355,10 +355,10 @@ export function PersonalWorkbench() {
                 <Col span={14}>
                   <Card title="技能掌握" size="small" bodyStyle={{ padding: '16px' }}>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                      <Tag color="#00b42a" style={{ color: '#fff' }}>
+                      <Tag color="#00b42a">
                         已解锁 {cap.skills.filter(s => s.status === 'unlocked').length}
                       </Tag>
-                      <Tag color="#c9cdd4" style={{ color: '#fff' }}>
+                      <Tag color="#c9cdd4">
                         待解锁 {cap.skills.filter(s => s.status === 'locked').length}
                       </Tag>
                     </div>
@@ -367,7 +367,7 @@ export function PersonalWorkbench() {
                         <Typography.Text type="secondary" style={{ fontSize: 11 }}>下一个可解锁技能</Typography.Text>
                         <div style={{ fontWeight: 600, marginTop: 4 }}>
                           🔓 {nextSkill.name}
-                          <Tag color={ABILITY_DIMENSION_COLORS[nextSkill.domain]} style={{ color: '#fff', marginLeft: 8 }} size="small">
+                          <Tag color={ABILITY_DIMENSION_COLORS[nextSkill.domain]} style={{marginLeft: 8 }} size="small">
                             {ABILITY_DIMENSION_LABELS[nextSkill.domain]}
                           </Tag>
                         </div>
@@ -382,7 +382,6 @@ export function PersonalWorkbench() {
                             <span style={{ fontSize: 13 }}>{node?.name || s.id}</span>
                             <Tag
                               color={s.mastery === 'expert' ? '#7c3aed' : s.mastery === 'proficient' ? '#165dff' : '#86909c'}
-                              style={{ color: '#fff' }}
                               size="small"
                             >
                               {s.mastery === 'expert' ? '精通' : s.mastery === 'proficient' ? '熟练' : '入门'}
@@ -406,7 +405,7 @@ export function PersonalWorkbench() {
                     <Card size="small">
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                         <span style={{ fontWeight: 600 }}>{p.name}</span>
-                        <Tag color={p.status === '验收中' ? '#00b42a' : 'rgb(var(--primary-6))'} style={{ color: '#fff' }}>{p.status}</Tag>
+                        <Tag color={p.status === '验收中' ? '#00b42a' : 'rgb(var(--primary-6))'}>{p.status}</Tag>
                       </div>
                       <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>角色：{p.role}</Typography.Text>
                       <Progress percent={p.progress} color="rgb(var(--primary-6))" size="small" />

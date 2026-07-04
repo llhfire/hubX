@@ -194,7 +194,7 @@ export function AIDriven() {
               <Table
                 columns={[
                   { title: '任务', dataIndex: 'title', width: 160, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
-                  { title: '阶段', dataIndex: 'phase', width: 80, render: (v: string) => <Tag color="blue" style={{ color: '#fff' }}>{v}</Tag> },
+                  { title: '阶段', dataIndex: 'phase', width: 80, render: (v: string) => <Tag color="blue" >{v}</Tag> },
                   { title: '预估工期', dataIndex: 'estimatedDays', width: 80, render: (v: number) => `${v}天` },
                   {
                     title: '所需技能', dataIndex: 'requiredSkills', width: 160,
@@ -202,18 +202,18 @@ export function AIDriven() {
                   },
                   {
                     title: '推荐人员', dataIndex: 'suggestedAssignee', width: 80,
-                    render: (v: string) => <Tag color="purple" style={{ color: '#fff' }}>{v}</Tag>,
+                    render: (v: string) => <Tag color="purple" >{v}</Tag>,
                   },
                   {
                     title: '优先级', dataIndex: 'priority', width: 70,
-                    render: (p: string) => <Tag color={p === 'high' ? 'var(--destructive-500)' : p === 'medium' ? 'var(--primary)' : 'var(--muted-foreground)'} style={{ color: '#fff' }}>{p === 'high' ? '高' : p === 'medium' ? '中' : '低'}</Tag>,
+                    render: (p: string) => <Tag color={p === 'high' ? 'var(--destructive-500)' : p === 'medium' ? 'var(--primary)' : 'var(--muted-foreground)'} >{p === 'high' ? '高' : p === 'medium' ? '中' : '低'}</Tag>,
                   },
                   {
                     title: '状态', dataIndex: 'status', width: 80,
                     render: (s: string) => {
                       const map: Record<string, { label: string; color: string }> = { pending: { label: '待分配', color: 'var(--muted-foreground)' }, assigned: { label: '已分配', color: 'var(--primary)' }, in_progress: { label: '进行中', color: 'var(--success-500)' } };
                       const m = map[s] || map.pending;
-                      return <Tag color={m.color} style={{ color: '#fff' }}>{m.label}</Tag>;
+                      return <Tag color={m.color} >{m.label}</Tag>;
                     },
                   },
                 ] as any}
@@ -247,7 +247,7 @@ export function AIDriven() {
                             <Avatar size={32} style={{ background: 'var(--primary)' }}>{c.name.slice(0, 1)}</Avatar>
                             <div>
                               <div style={{ fontWeight: 600 }}>{c.name}</div>
-                              <Tag color={c.matchScore >= 90 ? 'var(--success-500)' : c.matchScore >= 70 ? 'var(--warning-500)' : 'var(--muted-foreground)'} style={{ color: '#fff' }} size="small">
+                              <Tag color={c.matchScore >= 90 ? 'var(--success-500)' : c.matchScore >= 70 ? 'var(--warning-500)' : 'var(--muted-foreground)'}  size="small">
                                 匹配度 {c.matchScore}%
                               </Tag>
                             </div>
@@ -283,7 +283,7 @@ export function AIDriven() {
                 columns={[
                   {
                     title: '风险', dataIndex: 'risk', width: 70,
-                    render: (r: string) => <Tag color={r === 'high' ? 'var(--destructive-500)' : r === 'medium' ? 'var(--warning-500)' : 'var(--success-500)'} style={{ color: '#fff' }}>{r === 'high' ? '高' : r === 'medium' ? '中' : '低'}</Tag>,
+                    render: (r: string) => <Tag color={r === 'high' ? 'var(--destructive-500)' : r === 'medium' ? 'var(--warning-500)' : 'var(--success-500)'} >{r === 'high' ? '高' : r === 'medium' ? '中' : '低'}</Tag>,
                   },
                   { title: '项目', dataIndex: 'projectName', width: 140, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
                   { title: '里程碑', dataIndex: 'milestone', width: 120 },
@@ -318,10 +318,10 @@ export function AIDriven() {
                       style={{ borderRadius: 8, opacity: meeting.status === 'dismissed' ? 0.5 : 1 }}
                       extra={
                         meeting.status === 'confirmed'
-                          ? <Tag color="var(--success-500)" style={{ color: '#fff' }}>已确认</Tag>
+                          ? <Tag color="var(--success-500)" >已确认</Tag>
                           : meeting.status === 'dismissed'
                             ? <Tag>已忽略</Tag>
-                            : <Tag color="var(--warning-500)" style={{ color: '#fff' }}>AI 建议</Tag>
+                            : <Tag color="var(--warning-500)" >AI 建议</Tag>
                       }
                     >
                       <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}><IconCalendar style={{ marginRight: 4 }} /> {meeting.suggestedType}</div>

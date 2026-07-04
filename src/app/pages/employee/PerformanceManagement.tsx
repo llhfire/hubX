@@ -156,7 +156,7 @@ export function PerformanceManagement() {
       dataIndex: 'rank',
       width: 70,
       render: (rank: PerformanceRank) => (
-        <Tag color={RANK_META[rank].color} style={{ color: '#fff', fontWeight: 700 }}>
+        <Tag color={RANK_META[rank].color} style={{ fontWeight: 700 }}>
           {rank} · {RANK_META[rank].label}
         </Tag>
       ),
@@ -341,14 +341,14 @@ export function PerformanceManagement() {
                 <span style={{ color: 'var(--color-text-2)' }}>综合得分预览：</span>
                 <Tag
                   color={getRankColor(previewPerf.rank)}
-                  style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}
+                  style={{ fontWeight: 700, fontSize: 14 }}
                 >
                   {previewPerf.totalScore} 分
                 </Tag>
               </Space>
               <Space>
                 <span style={{ color: 'var(--color-text-2)' }}>评级：</span>
-                <Tag color={getRankColor(previewPerf.rank)} style={{ color: '#fff', fontWeight: 700 }}>
+                <Tag color={getRankColor(previewPerf.rank)} style={{ fontWeight: 700 }}>
                   {previewPerf.rank} · {RANK_META[previewPerf.rank]?.label || ''}
                 </Tag>
               </Space>

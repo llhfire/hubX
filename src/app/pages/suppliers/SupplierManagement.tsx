@@ -213,7 +213,7 @@ export function SupplierManagement() {
                         </Avatar>
                         <div>
                           <div style={{ fontWeight: 600 }}>{supplier.name}</div>
-                          <Tag size="small" color={supplier.type === 'company' ? 'blue' : 'purple'} style={{ color: '#fff' }}>
+                          <Tag size="small" color={supplier.type === 'company' ? 'blue' : 'purple'}>
                             {supplier.type === 'company' ? '企业' : '个人'}
                           </Tag>
                         </div>
@@ -258,7 +258,7 @@ export function SupplierManagement() {
                   render: (s: string) => {
                     const map: Record<string, { label: string; color: string }> = { active: { label: '执行中', color: 'var(--primary)' }, completed: { label: '已完成', color: 'var(--success-500)' }, terminated: { label: '已终止', color: 'var(--destructive-500)' } };
                     const m = map[s] || map.active;
-                    return <Tag color={m.color} style={{ color: '#fff' }}>{m.label}</Tag>;
+                    return <Tag color={m.color}>{m.label}</Tag>;
                   },
                 },
                 { title: '描述', dataIndex: 'description' },
@@ -283,7 +283,7 @@ export function SupplierManagement() {
                   render: (s: string) => {
                     const map: Record<string, { label: string; color: string }> = { paid: { label: '已付', color: 'var(--success-500)' }, partial: { label: '部分', color: 'var(--warning-500)' }, unpaid: { label: '未付', color: 'var(--destructive-500)' } };
                     const m = map[s] || map.unpaid;
-                    return <Tag color={m.color} style={{ color: '#fff' }}>{m.label}</Tag>;
+                    return <Tag color={m.color}>{m.label}</Tag>;
                   },
                 },
                 { title: '应付日期', dataIndex: 'dueDate', width: 100 },

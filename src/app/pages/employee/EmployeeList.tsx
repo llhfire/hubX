@@ -155,7 +155,7 @@ export function EmployeeList() {
       title: 'MBTI',
       width: 70,
       render: (_: unknown, record: Employee) => record.personality?.mbti
-        ? <Tag color="#7c3aed" style={{ color: '#fff', fontWeight: 600 }}>{record.personality.mbti.type}</Tag>
+        ? <Tag color="#7c3aed" style={{fontWeight: 600 }}>{record.personality.mbti.type}</Tag>
         : <span style={{ color: 'var(--color-text-3)' }}>—</span>,
     },
     {
@@ -169,7 +169,7 @@ export function EmployeeList() {
       dataIndex: 'level',
       width: 70,
       render: (level: JobLevel) => (
-        <Tag color={getLevelColor(level)} style={{ color: '#fff', fontWeight: 600 }}>
+        <Tag color={getLevelColor(level)} style={{fontWeight: 600 }}>
           {level}
         </Tag>
       ),
@@ -179,7 +179,7 @@ export function EmployeeList() {
       dataIndex: 'employmentStatus',
       width: 80,
       render: (status: EmploymentStatus) => (
-        <Tag color={getStatusColor(status)} style={{ color: '#fff' }}>
+        <Tag color={getStatusColor(status)}>
           {status}
         </Tag>
       ),

@@ -264,7 +264,7 @@ export function AssetManagement() {
               },
               {
                 title: '类型', dataIndex: 'type', width: 90,
-                render: (t: AssetType) => <Tag color={ASSET_TYPE_LABELS[t].color} style={{ color: '#fff' }}>{ASSET_TYPE_LABELS[t].label}</Tag>,
+                render: (t: AssetType) => <Tag color={ASSET_TYPE_LABELS[t].color}>{ASSET_TYPE_LABELS[t].label}</Tag>,
               },
               { title: '供应商', dataIndex: 'vendor', width: 100 },
               {
@@ -278,7 +278,7 @@ export function AssetManagement() {
               },
               {
                 title: '状态', dataIndex: 'status', width: 90,
-                render: (s: AssetStatus) => <Tag color={STATUS_LABELS[s].color} style={{ color: '#fff' }}>{STATUS_LABELS[s].label}</Tag>,
+                render: (s: AssetStatus) => <Tag color={STATUS_LABELS[s].color}>{STATUS_LABELS[s].label}</Tag>,
               },
               { title: '使用人', dataIndex: 'assignee', width: 80, render: (v: string) => v || '—' },
               { title: '部门', dataIndex: 'department', width: 80, render: (v: string) => v || '—' },
@@ -318,7 +318,7 @@ export function AssetManagement() {
             },
             {
               title: '异常', dataIndex: 'anomalies', width: 70,
-              render: (v: number) => v > 0 ? <Tag color="red" style={{ color: '#fff' }}>{v}项</Tag> : <Tag color="green">无</Tag>,
+              render: (v: number) => v > 0 ? <Tag color="red">{v}项</Tag> : <Tag color="green">无</Tag>,
             },
             { title: '备注', dataIndex: 'notes' },
           ] as any}

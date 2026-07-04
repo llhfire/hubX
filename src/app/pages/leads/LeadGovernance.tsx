@@ -219,7 +219,7 @@ export function LeadGovernance() {
                 { title: '活跃线索', dataIndex: 'activeLeads', width: 80, render: (v: number) => `${v}条` },
                 { title: '今日跟进', dataIndex: 'followedToday', width: 80, render: (v: number) => `${v}次` },
                 { title: '本周跟进', dataIndex: 'followedThisWeek', width: 90, render: (v: number) => `${v}次` },
-                { title: '逾期线索', dataIndex: 'overdueCount', width: 80, render: (v: number) => v > 0 ? <Tag color="red" style={{ color: '#fff' }}>{v}条</Tag> : <Tag color="green">0</Tag> },
+                { title: '逾期线索', dataIndex: 'overdueCount', width: 80, render: (v: number) => v > 0 ? <Tag color="red">{v}条</Tag> : <Tag color="green">0</Tag> },
                 { title: '平均响应', dataIndex: 'avgResponseHours', width: 90, render: (v: number) => `${v}h` },
                 { title: '已转化', dataIndex: 'conversionCount', width: 70, render: (v: number) => `${v}条` },
                 {
@@ -261,7 +261,7 @@ export function LeadGovernance() {
                   {
                     title: '严重度', dataIndex: 'severity', width: 80,
                     render: (s: string) => (
-                      <Tag color={s === 'high' ? 'var(--destructive-500)' : s === 'medium' ? 'var(--warning-500)' : 'var(--muted-foreground)'} style={{ color: '#fff' }}>
+                      <Tag color={s === 'high' ? 'var(--destructive-500)' : s === 'medium' ? 'var(--warning-500)' : 'var(--muted-foreground)'}>
                         {s === 'high' ? '高' : s === 'medium' ? '中' : '低'}
                       </Tag>
                     ),
@@ -295,7 +295,7 @@ export function LeadGovernance() {
                     <Card size="small" style={{ borderColor: rule.enabled ? 'var(--primary)' : 'var(--color-border)', borderWidth: rule.enabled ? 2 : 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                         <span style={{ fontWeight: 600, fontSize: 14 }}>{rule.name}</span>
-                        <Tag color={rule.enabled ? 'var(--primary)' : 'default'} style={{ color: rule.enabled ? '#fff' : undefined }}>
+                        <Tag color={rule.enabled ? 'var(--primary)' : 'default'}>
                           {rule.enabled ? '已启用' : '已禁用'}
                         </Tag>
                       </div>
@@ -327,12 +327,12 @@ export function LeadGovernance() {
               columns={[
                 { title: '线索名称', dataIndex: 'name', width: 160 },
                 { title: '来源', dataIndex: 'source', width: 90, render: (v: string) => <Tag>{v}</Tag> },
-                { title: '等级', dataIndex: 'level', width: 60, render: (v: string) => <Tag color={v === '高' ? 'var(--destructive-500)' : v === '中' ? 'var(--warning-500)' : 'var(--muted-foreground)'} style={{ color: '#fff' }}>{v}</Tag> },
+                { title: '等级', dataIndex: 'level', width: 60, render: (v: string) => <Tag color={v === '高' ? 'var(--destructive-500)' : v === '中' ? 'var(--warning-500)' : 'var(--muted-foreground)'}>{v}</Tag> },
                 {
                   title: '状态', dataIndex: 'status', width: 90,
                   render: (s: string) => {
                     const map: Record<string, string> = { '未联系': 'var(--muted-foreground)', '未接通': 'var(--warning-500)', '初步沟通': 'var(--primary)', '需求调研': 'var(--info-500)', '方案报价': 'var(--chart-5)', '合同洽谈': 'var(--warning-500)', '已签单': 'var(--success-500)', '已终止': 'var(--destructive-500)' };
-                    return <Tag color={map[s] || 'var(--muted-foreground)'} style={{ color: '#fff' }}>{s}</Tag>;
+                    return <Tag color={map[s] || 'var(--muted-foreground)'}>{s}</Tag>;
                   },
                 },
                 { title: '负责人', dataIndex: 'owner', width: 70 },

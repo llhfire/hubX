@@ -134,7 +134,7 @@ export function AttendanceManagement() {
       dataIndex: 'type',
       width: 70,
       render: (t: LeaveType) => (
-        <Tag color={LEAVE_TYPE_COLORS[t]} style={{ color: '#fff' }}>{t}</Tag>
+        <Tag color={LEAVE_TYPE_COLORS[t]}>{t}</Tag>
       ),
     },
     { title: '开始日期', dataIndex: 'startDate', width: 110 },
@@ -146,7 +146,7 @@ export function AttendanceManagement() {
       dataIndex: 'status',
       width: 80,
       render: (s: AttendanceStatus) => (
-        <Tag color={getStatusColor(s)} style={{ color: '#fff' }}>{s}</Tag>
+        <Tag color={getStatusColor(s)}>{s}</Tag>
       ),
     },
     {

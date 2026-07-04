@@ -53,7 +53,7 @@ export function LevelRateSettings() {
       dataIndex: 'level',
       width: 70,
       render: (v: string) => (
-        <Tag color={getLevelColor(v as any)} style={{ color: '#fff', fontWeight: 700 }}>
+        <Tag color={getLevelColor(v as any)} style={{ fontWeight: 700 }}>
           {v}
         </Tag>
       ),

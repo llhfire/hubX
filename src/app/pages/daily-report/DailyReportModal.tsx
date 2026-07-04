@@ -165,7 +165,7 @@ export function DailyReportModal({ visible, onCancel, onSubmit, currentUserId = 
 
   return (
     <Modal
-      title={<Space><Tag color={templateMeta.color} style={{ color: '#fff' }}>{templateMeta.label}</Tag><span>填写日报</span></Space>}
+      title={<Space><Tag color={templateMeta.color}>{templateMeta.label}</Tag><span>填写日报</span></Space>}
       visible={visible}
       onCancel={onCancel}
       onOk={handleSubmit}
