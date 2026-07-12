@@ -1,6 +1,6 @@
 import { createBrowserRouter } from "react-router";
 import { MainLayout } from "./components/MainLayout";
-import { Dashboard } from "./pages/Dashboard";
+import Dashboard from "./pages/dashboard/Dashboard";
 import { PublicLeads } from "./pages/PublicLeads";
 import { MyLeads } from "./pages/MyLeads";
 import { TrashLeads } from "./pages/TrashLeads";

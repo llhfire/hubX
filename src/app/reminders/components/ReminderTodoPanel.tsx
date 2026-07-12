@@ -25,9 +25,11 @@ export function getReminderPriorityLabel(priority: ReminderPriority): string {
 
 interface ReminderTodoPanelProps {
   onOpenDailyReport: () => void;
+  /** 透传外层 Card 样式（如工作台场景需要 height:100% 与相邻卡片等高） */
+  style?: React.CSSProperties;
 }
 
-export function ReminderTodoPanel({ onOpenDailyReport }: ReminderTodoPanelProps) {
+export function ReminderTodoPanel({ onOpenDailyReport, style }: ReminderTodoPanelProps) {
   const navigate = useNavigate();
   const { reminders } = useReminders();
 
@@ -48,7 +50,7 @@ export function ReminderTodoPanel({ onOpenDailyReport }: ReminderTodoPanelProps)
   };
 
   return (
-    <Card title="待我处理" style={{ marginBottom: 24 }}>
+    <Card title="待我处理" style={{ marginBottom: 24, ...style, display: 'flex', flexDirection: 'column' }}>
       {reminders.length === 0 ? (
         <Empty description="暂无待处理提醒" />
       ) : (
