@@ -8,10 +8,13 @@ export type ReminderType =
   | 'contract_mail_overdue'
   | 'contract_draft_stale'
   | 'lead_followup_overdue'
+  | 'workitem_assigned'
+  | 'workitem_due_soon'
+  | 'workitem_overdue'
 
 export type ReminderPriority = 'high' | 'medium' | 'low'
 
-export type ReminderSourceType = 'daily_report' | 'approval' | 'contract' | 'lead'
+export type ReminderSourceType = 'daily_report' | 'approval' | 'contract' | 'lead' | 'workitem'
 
 export type SnoozeOptionId = 'one_hour' | 'today_eod' | 'tomorrow_morning'
 

@@ -47,6 +47,7 @@ import {
   type SummaryRiskLevel,
 } from './projectDetailSummary';
 import { initialDeliveryPlans } from './delivery-plan/mockData';
+import { initialRequirements, initialTasks, initialDefects } from './issues/mockData';
 
 const { Title, Text } = Typography;
 const TabPane = Tabs.TabPane;
@@ -73,12 +74,18 @@ function getTodayString() {
 function SummaryHighlightCard({
   card,
   href,
+  onClick,
 }: {
   card: ProjectSummaryCard;
   href?: string;
+  onClick?: () => void;
 }) {
   const content = (
-    <Card bodyStyle={{ padding: 16 }} style={{ height: '100%' }}>
+    <Card
+      bodyStyle={{ padding: 16 }}
+      style={{ height: '100%', cursor: href || onClick ? 'pointer' : 'default' }}
+      onClick={onClick}
+    >
       <Space direction="vertical" size={8} style={{ width: '100%' }}>
         <div className="flex items-center justify-between gap-3">
           <Text type="secondary">{card.title}</Text>
@@ -111,18 +118,22 @@ function SummaryHighlightCard({
     </Card>
   );
 
-  if (!href) {
+  if (!href && !onClick) {
     return content;
   }
 
-  return (
-    <Link
-      to={href}
-      style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}
-    >
-      {content}
-    </Link>
-  );
+  if (href && !onClick) {
+    return (
+      <Link
+        to={href}
+        style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }
 
 function statusBadge(status: ProjectStatus) {
@@ -172,6 +183,12 @@ export function ProjectDetail() {
   const projectDocuments = documents.filter((document) => document.projectId === project.id);
   const deliveryPlan = initialDeliveryPlans[project.id];
   const today = getTodayString();
+  const workItemCounts = useMemo(() => ({
+    requirements: initialRequirements.filter(r => r.projectId === project.id).length,
+    tasks: initialTasks.filter(t => t.projectId === project.id).length,
+    defects: initialDefects.filter(d => d.projectId === project.id).length,
+  }), [project.id]);
+
   const summaryCards = useMemo(
     () =>
       buildProjectSummaryCards({
@@ -181,8 +198,9 @@ export function ProjectDetail() {
         memberHours,
         totalHours,
         today,
+        workItemCounts,
       }),
-    [deliveryPlan, memberHours, project, today, totalHours],
+    [deliveryPlan, memberHours, project, today, totalHours, workItemCounts],
   );
 
   const filteredAvailableLeads = useMemo(() => {
@@ -361,12 +379,17 @@ export function ProjectDetail() {
 
       <Grid.Row gutter={16} style={{ marginBottom: 16 }}>
         {summaryCards.map((card) => (
-          <Grid.Col span={6} key={card.key}>
+          <Grid.Col span={4} key={card.key}>
             <SummaryHighlightCard
               card={card}
               href={
                 card.key === 'delivery'
                   ? `/projects/${project.id}/delivery`
+                  : undefined
+              }
+              onClick={
+                card.key === 'workItems'
+                  ? () => navigate(`/projects/${project.id}/issues`)
                   : undefined
               }
             />
@@ -472,6 +495,7 @@ export function ProjectDetail() {
                 </div>
                 <Table columns={documentColumns} data={projectDocuments} rowKey="id" scroll={{ x: 960 }} pagination={false} />
               </TabPane>
+
             </Tabs>
           </Card>
         </Grid.Col>

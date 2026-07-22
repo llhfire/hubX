@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { initialRequirements, initialTasks, initialDefects } from './issues/mockData';
 import {
   Badge,
   Button,
@@ -19,7 +20,7 @@ import {
   Tag,
   Typography,
 } from '@arco-design/web-react';
-import { IconDelete, IconEdit, IconEye, IconPlus, IconSearch, IconSend } from '@arco-design/web-react/icon';
+import { IconDelete, IconEdit, IconEye, IconFile, IconPlus, IconSearch, IconSend } from '@arco-design/web-react/icon';
 import {
   BusinessLine,
   Project,
@@ -226,6 +227,22 @@ export function Projects() {
     },
     { title: '添加时间', dataIndex: 'createdAt', width: 150 },
     {
+      title: '工作项',
+      width: 120,
+      render: (_: unknown, record: Project) => {
+        const reqs = initialRequirements.filter(r => r.projectId === record.id).length;
+        const tsks = initialTasks.filter(t => t.projectId === record.id).length;
+        const bugs = initialDefects.filter(d => d.projectId === record.id).length;
+        return (
+          <Space size={4}>
+            <Tag color="blue" size="small">{reqs}需</Tag>
+            <Tag color="green" size="small">{tsks}任</Tag>
+            <Tag color="red" size="small">{bugs}缺</Tag>
+          </Space>
+        );
+      },
+    },
+    {
       title: '操作',
       width: 220,
       fixed: 'right' as const,
@@ -251,6 +268,88 @@ export function Projects() {
         <Title heading={4}>项目管理</Title>
         <Button type="primary" icon={<IconPlus />} onClick={openCreateModal}>新建项目</Button>
       </div>
+
+      {/* 顶部统计卡片 */}
+      <Grid.Row gutter={16} style={{ marginBottom: 16 }}>
+        <Grid.Col span={4}>
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <Typography.Text type="secondary" style={{ fontSize: 13 }}>全部项目</Typography.Text>
+                <div style={{ fontSize: 28, fontWeight: 600, marginTop: 4 }}>{projects.length}</div>
+              </div>
+              <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: 'rgba(22,93,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconFile style={{ fontSize: 20, color: '#165dff' }} />
+              </div>
+            </div>
+          </Card>
+        </Grid.Col>
+        <Grid.Col span={4}>
+          <Card onClick={() => navigate('/issues')} style={{ cursor: 'pointer' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <Typography.Text type="secondary" style={{ fontSize: 13 }}>工作项目</Typography.Text>
+                <div style={{ fontSize: 28, fontWeight: 600, marginTop: 4 }}>
+                  {initialRequirements.length + initialTasks.length + initialDefects.length}
+                </div>
+              </div>
+              <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: 'rgba(0,180,42,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconEdit style={{ fontSize: 20, color: '#00b42a' }} />
+              </div>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 12 }}>
+              <Typography.Text type="secondary">{initialRequirements.length} 需求</Typography.Text>
+              <Typography.Text type="secondary" style={{ marginLeft: 8 }}>{initialTasks.length} 任务</Typography.Text>
+              <Typography.Text type="secondary" style={{ marginLeft: 8 }}>{initialDefects.length} 缺陷</Typography.Text>
+            </div>
+          </Card>
+        </Grid.Col>
+        <Grid.Col span={4}>
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <Typography.Text type="secondary" style={{ fontSize: 13 }}>进行中</Typography.Text>
+                <div style={{ fontSize: 28, fontWeight: 600, marginTop: 4 }}>
+                  {projects.filter(p => p.status === '进行中').length}
+                </div>
+              </div>
+              <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: 'rgba(255,125,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconSend style={{ fontSize: 20, color: '#ff7d00' }} />
+              </div>
+            </div>
+          </Card>
+        </Grid.Col>
+        <Grid.Col span={4}>
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <Typography.Text type="secondary" style={{ fontSize: 13 }}>已完成</Typography.Text>
+                <div style={{ fontSize: 28, fontWeight: 600, marginTop: 4 }}>
+                  {projects.filter(p => p.status === '已完成' || p.status === '验收中').length}
+                </div>
+              </div>
+              <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: 'rgba(0,180,42,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconEye style={{ fontSize: 20, color: '#00b42a' }} />
+              </div>
+            </div>
+          </Card>
+        </Grid.Col>
+        <Grid.Col span={4}>
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <Typography.Text type="secondary" style={{ fontSize: 13 }}>延期/搁置</Typography.Text>
+                <div style={{ fontSize: 28, fontWeight: 600, marginTop: 4 }}>
+                  {projects.filter(p => p.status === '延迟' || p.status === '搁置').length}
+                </div>
+              </div>
+              <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: 'rgba(245,63,63,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconDelete style={{ fontSize: 20, color: '#f53f3f' }} />
+              </div>
+            </div>
+          </Card>
+        </Grid.Col>
+      </Grid.Row>
 
       <Card>
         <Space style={{ marginBottom: 16 }} wrap>

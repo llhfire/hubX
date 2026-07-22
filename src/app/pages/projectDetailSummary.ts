@@ -9,7 +9,7 @@ import type { Project, ProjectMemberHours } from './project-management/mockData'
 export type SummaryRiskLevel = '正常' | '注意' | '预警' | '严重';
 
 export interface ProjectSummaryCard {
-  key: 'delivery' | 'owner' | 'deadline' | 'hours';
+  key: 'delivery' | 'workItems' | 'owner' | 'deadline' | 'hours';
   title: string;
   value: string;
   alert: string;
@@ -24,6 +24,7 @@ interface BuildProjectSummaryCardsInput {
   memberHours: ProjectMemberHours[];
   totalHours: number;
   today: string;
+  workItemCounts: { requirements: number; tasks: number; defects: number };
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -119,6 +120,24 @@ function buildDeliveryCard(
       ? `最接近到期：${nearestStep.stepName}（${nearestStep.dueDate}）`
       : '当前无进行中的交付任务',
     level: '正常',
+  };
+}
+
+function buildWorkItemCard(
+  requirementCount: number,
+  taskCount: number,
+  defectCount: number,
+): ProjectSummaryCard {
+  const total = requirementCount + taskCount + defectCount;
+  const openDefects = defectCount;
+
+  return {
+    key: 'workItems',
+    title: '工作项目',
+    value: `${total}`,
+    alert: `${requirementCount} 需求 / ${taskCount} 任务 / ${defectCount} 缺陷`,
+    detail: openDefects > 0 ? `含 ${openDefects} 个待处理缺陷` : '暂无待处理缺陷',
+    level: openDefects >= 3 ? '预警' : '正常',
   };
 }
 
@@ -249,11 +268,12 @@ function buildHoursCard(
 export function buildProjectSummaryCards(
   input: BuildProjectSummaryCardsInput,
 ): ProjectSummaryCard[] {
-  const { project, allProjects, deliveryPlan, memberHours, totalHours, today } =
+  const { project, allProjects, deliveryPlan, memberHours, totalHours, today, workItemCounts } =
     input;
 
   return [
     buildDeliveryCard(project, deliveryPlan, today),
+    buildWorkItemCard(workItemCounts.requirements, workItemCounts.tasks, workItemCounts.defects),
     buildOwnerCard(project, allProjects),
     buildDeadlineCard(project, today),
     buildHoursCard(memberHours, totalHours),
