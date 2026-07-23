@@ -57,6 +57,7 @@ import { MeetingManagement } from "./pages/meetings/MeetingManagement";
 import { FullChainROI } from "./pages/roi/FullChainROI";
 import { AIDriven } from "./pages/ai/AIDriven";
 import { WorkItemsPage } from "./pages/issues/WorkItemsPage";
+import { ProjectDailyReportsPage } from "./pages/project-daily-reports/ProjectDailyReportsPage";
 
 export const router = createBrowserRouter([
   {
@@ -86,6 +87,8 @@ export const router = createBrowserRouter([
       { path: "projects/:id", Component: ProjectDetail },
       { path: "projects/:id/delivery", Component: DeliveryPlanPage },
       { path: "projects/:id/issues", Component: WorkItemsPage },
+      { path: "projects/:id/dailyreports", Component: ProjectDailyReportsPage },
+      { path: "issues", Component: WorkItemsPage },
       { path: "dailyreport/list", Component: DailyReportList },
       { path: "dailyreport/view", Component: DailyReportView },
       { path: "dailyreport/projectlog", Component: ProjectLogView },

@@ -10,7 +10,7 @@ import {
   Tag,
 } from '@arco-design/web-react';
 import { IconAt, IconSend } from '@arco-design/web-react/icon';
-import { Comment, WorkItemType } from '../types';
+import type { Comment, WorkItemActions, WorkItemType } from '../types';
 import { getEmployeeName } from '../mockData';
 import { initialEmployees } from '../../employee/mockData';
 
@@ -20,7 +20,7 @@ interface CommentSectionProps {
   workItemId: string;
   workItemType: WorkItemType;
   comments: Comment[];
-  workItems: any;
+  workItems: WorkItemActions;
   listOnly?: boolean;
   inputOnly?: boolean;
 }

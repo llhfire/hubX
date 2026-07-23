@@ -11,7 +11,8 @@ import {
 } from '@arco-design/web-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { WorkItemType } from '../types';
+import type { WorkItemActions, WorkItemType } from '../types';
+import { TYPE_LABEL_MAP, PRIORITY_OPTIONS, SEVERITY_OPTIONS } from '../constants';
 import { initialEmployees } from '../../employee/mockData';
 
 const FormItem = Form.Item;
@@ -19,17 +20,9 @@ const FormItem = Form.Item;
 interface WorkItemFormModalProps {
   type: WorkItemType;
   projectId: string;
-  workItems: any;
+  workItems: WorkItemActions;
   onClose: () => void;
 }
-
-const TYPE_LABEL_MAP: Record<WorkItemType, string> = {
-  requirement: '需求',
-  task: '任务',
-  defect: '缺陷',
-};
-
-const PRIORITY_OPTIONS = ['高', '中', '低'];
 
 export function WorkItemFormModal({ type, projectId, workItems, onClose }: WorkItemFormModalProps) {
   const [form] = Form.useForm();
@@ -180,10 +173,9 @@ export function WorkItemFormModal({ type, projectId, workItems, onClose }: WorkI
               rules={[{ required: true, message: '请选择严重程度' }]}
             >
               <Select placeholder="请选择">
-                <Select.Option value="致命">致命</Select.Option>
-                <Select.Option value="严重">严重</Select.Option>
-                <Select.Option value="一般">一般</Select.Option>
-                <Select.Option value="轻微">轻微</Select.Option>
+                {SEVERITY_OPTIONS.map(s => (
+                  <Select.Option key={s} value={s}>{s}</Select.Option>
+                ))}
               </Select>
             </FormItem>
             <FormItem label="复现步骤" field="reproductionSteps">

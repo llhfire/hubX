@@ -9,7 +9,7 @@ import type { Project, ProjectMemberHours } from './project-management/mockData'
 export type SummaryRiskLevel = '正常' | '注意' | '预警' | '严重';
 
 export interface ProjectSummaryCard {
-  key: 'delivery' | 'workItems' | 'owner' | 'deadline' | 'hours';
+  key: 'delivery' | 'workItems' | 'owner' | 'deadline' | 'hours' | 'customerActivity';
   title: string;
   value: string;
   alert: string;
@@ -265,6 +265,24 @@ function buildHoursCard(
   };
 }
 
+function buildCustomerActivityCard(
+  project: Project,
+  workItemCounts: { requirements: number; tasks: number; defects: number },
+): ProjectSummaryCard {
+  // 客户动态：基于工作项变化和线索关联数
+  const totalWorkItems = workItemCounts.requirements + workItemCounts.tasks + workItemCounts.defects;
+  const recentActivity = Math.min(workItemCounts.requirements + workItemCounts.tasks, 5);
+
+  return {
+    key: 'customerActivity',
+    title: '客户动态',
+    value: `${recentActivity}`,
+    alert: `${workItemCounts.requirements} 个新需求 / ${workItemCounts.tasks} 个任务`,
+    detail: totalWorkItems > 0 ? `共 ${totalWorkItems} 个工作项` : '暂无客户动态',
+    level: '正常',
+  };
+}
+
 export function buildProjectSummaryCards(
   input: BuildProjectSummaryCardsInput,
 ): ProjectSummaryCard[] {
@@ -277,5 +295,6 @@ export function buildProjectSummaryCards(
     buildOwnerCard(project, allProjects),
     buildDeadlineCard(project, today),
     buildHoursCard(memberHours, totalHours),
+    buildCustomerActivityCard(project, workItemCounts),
   ];
 }

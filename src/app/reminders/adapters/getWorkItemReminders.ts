@@ -1,6 +1,6 @@
 import type { ReminderItem } from '../types';
 import type { ReminderData } from '../mockData';
-import type { WorkItemStore } from '../../pages/issues/hooks/useWorkItems';
+import type { WorkItemStore } from '../../pages/issues/mockData';
 
 /**
  * 工作项提醒适配器

@@ -385,12 +385,16 @@ export function ProjectDetail() {
               href={
                 card.key === 'delivery'
                   ? `/projects/${project.id}/delivery`
-                  : undefined
+                  : card.key === 'hours'
+                    ? `/projects/${project.id}/dailyreports`
+                    : undefined
               }
               onClick={
                 card.key === 'workItems'
                   ? () => navigate(`/projects/${project.id}/issues`)
-                  : undefined
+                  : card.key === 'hours'
+                    ? () => navigate(`/projects/${project.id}/dailyreports`)
+                    : undefined
               }
             />
           </Grid.Col>
@@ -471,7 +475,13 @@ export function ProjectDetail() {
               </TabPane>
 
               <TabPane key="daily" title={`关联日报 (${projectDailyReports.length})`}>
-                <Title heading={6}>总工时列表</Title>
+                <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+                  <Text type="secondary">点击查看项目的日报列表和工时统计</Text>
+                  <Button type="primary" onClick={() => navigate(`/projects/${project.id}/dailyreports`)}>
+                    查看日报列表
+                  </Button>
+                </div>
+                <Title heading={6}>工时概览</Title>
                 <Table
                   columns={memberHourColumns}
                   data={memberHours}
@@ -484,8 +494,6 @@ export function ProjectDetail() {
                     </Table.Summary.Row>
                   )}
                 />
-                <Title heading={6} style={{ marginTop: 24 }}>日报列表</Title>
-                <Table columns={dailyColumns} data={projectDailyReports} rowKey="id" scroll={{ x: 1000 }} pagination={false} />
               </TabPane>
 
               <TabPane key="documents" title={`项目文档 (${projectDocuments.length})`}>

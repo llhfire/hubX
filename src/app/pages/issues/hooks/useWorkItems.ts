@@ -5,6 +5,7 @@ import {
   Requirement,
   Task,
   WorkItem,
+  WorkItemActions,
   WorkItemLink,
   WorkItemPriority,
   WorkItemFilter,
@@ -19,22 +20,22 @@ import {
 // 状态管理 Hook
 // ============================================================
 
-export function useWorkItems(projectId: string) {
+export function useWorkItems(projectId?: string): WorkItemActions {
   const [store, setStore] = useState(createInitialStore);
 
-  // ── 当前项目的工作项 ──────────────────────────────────
+  // ── 当前项目的工作项（projectId 为空时显示所有） ────────
   const projectRequirements = useMemo(
-    () => store.requirements.filter(r => r.projectId === projectId),
+    () => projectId ? store.requirements.filter(r => r.projectId === projectId) : store.requirements,
     [store.requirements, projectId]
   );
 
   const projectTasks = useMemo(
-    () => store.tasks.filter(t => t.projectId === projectId),
+    () => projectId ? store.tasks.filter(t => t.projectId === projectId) : store.tasks,
     [store.tasks, projectId]
   );
 
   const projectDefects = useMemo(
-    () => store.defects.filter(d => d.projectId === projectId),
+    () => projectId ? store.defects.filter(d => d.projectId === projectId) : store.defects,
     [store.defects, projectId]
   );
 
@@ -405,6 +406,18 @@ export function useWorkItems(projectId: string) {
       if (filter.priority.length > 0 && !filter.priority.includes(item.priority)) return false;
       if (filter.assigneeId.length > 0 && !filter.assigneeId.includes(item.assigneeId)) return false;
       if (filter.creatorId.length > 0 && !filter.creatorId.includes(item.creatorId)) return false;
+
+      // 处理额外筛选条件（如缺陷的严重程度）
+      const standardKeys = ['keyword', 'status', 'priority', 'assigneeId', 'creatorId', 'dateRange'];
+      for (const key of Object.keys(filter)) {
+        if (standardKeys.includes(key)) continue;
+        const filterValue = filter[key];
+        if (Array.isArray(filterValue) && filterValue.length > 0) {
+          const itemValue = (item as any)[key];
+          if (itemValue && !filterValue.includes(itemValue)) return false;
+        }
+      }
+
       return true;
     });
   }, []);

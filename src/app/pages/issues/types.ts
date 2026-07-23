@@ -142,7 +142,54 @@ export interface WorkItemFilter {
   assigneeId: string[];
   creatorId: string[];
   dateRange?: [string, string];
+  /** 扩展字段，支持额外筛选条件（如缺陷的严重程度） */
+  [key: string]: string | string[] | [string, string] | undefined;
 }
 
 // ── 工具类型：根据类型提取状态 ──────────────────────────────
 export type WorkItemStatus = RequirementStatus | TaskStatus | DefectStatus;
+
+// ── 工作项操作接口 ────────────────────────────────────────────
+export interface WorkItemActions {
+  // 数据
+  requirements: Requirement[];
+  tasks: Task[];
+  defects: Defect[];
+  allWorkItems: WorkItem[];
+  comments: Comment[];
+  activityLogs: ActivityLog[];
+  links: WorkItemLink[];
+  // 创建
+  createRequirement: (data: Omit<Requirement, 'id' | 'projectNo' | 'type' | 'createdAt' | 'updatedAt'>) => void;
+  createTask: (data: Omit<Task, 'id' | 'projectNo' | 'type' | 'createdAt' | 'updatedAt'>) => void;
+  createDefect: (data: Omit<Defect, 'id' | 'projectNo' | 'type' | 'createdAt' | 'updatedAt'>) => void;
+  // 状态流转
+  updateRequirementStatus: (id: string, status: RequirementStatus, actorId: string) => void;
+  updateTaskStatus: (id: string, status: TaskStatus, actorId: string) => void;
+  updateDefectStatus: (id: string, status: DefectStatus, actorId: string) => void;
+  // 编辑
+  updateRequirement: (id: string, data: Partial<Requirement>, actorId: string) => void;
+  updateTask: (id: string, data: Partial<Task>, actorId: string) => void;
+  updateDefect: (id: string, data: Partial<Defect>, actorId: string) => void;
+  // 评论
+  addComment: (workItemId: string, workItemType: WorkItemType, authorId: string, content: string, mentions?: string[]) => void;
+  getComments: (workItemId: string) => Comment[];
+  // 操作历史
+  getActivityLogs: (workItemId: string) => ActivityLog[];
+  // 关联
+  addLink: (sourceId: string, targetId: string) => void;
+  getLinks: (workItemId: string) => WorkItemLink[];
+  // 复制
+  duplicateWorkItem: (item: WorkItem, newProjectId?: string) => void;
+  // 筛选
+  filterItems: (items: WorkItem[], filter: WorkItemFilter) => WorkItem[];
+  // 统计
+  stats: WorkItemStats;
+}
+
+// ── 统计数据类型 ──────────────────────────────────────────────
+export interface WorkItemStats {
+  requirement: { total: number; pending: number; inProgress: number; completed: number };
+  task: { total: number; pending: number; inProgress: number; completed: number; blocked: number };
+  defect: { total: number; pending: number; inProgress: number; toVerify: number; closed: number };
+}

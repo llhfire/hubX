@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { initialRequirements, initialTasks, initialDefects } from './issues/mockData';
 import {
   Badge,
   Button,
@@ -227,22 +226,6 @@ export function Projects() {
     },
     { title: '添加时间', dataIndex: 'createdAt', width: 150 },
     {
-      title: '工作项',
-      width: 120,
-      render: (_: unknown, record: Project) => {
-        const reqs = initialRequirements.filter(r => r.projectId === record.id).length;
-        const tsks = initialTasks.filter(t => t.projectId === record.id).length;
-        const bugs = initialDefects.filter(d => d.projectId === record.id).length;
-        return (
-          <Space size={4}>
-            <Tag color="blue" size="small">{reqs}需</Tag>
-            <Tag color="green" size="small">{tsks}任</Tag>
-            <Tag color="red" size="small">{bugs}缺</Tag>
-          </Space>
-        );
-      },
-    },
-    {
       title: '操作',
       width: 220,
       fixed: 'right' as const,
@@ -281,26 +264,6 @@ export function Projects() {
               <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: 'rgba(22,93,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <IconFile style={{ fontSize: 20, color: '#165dff' }} />
               </div>
-            </div>
-          </Card>
-        </Grid.Col>
-        <Grid.Col span={4}>
-          <Card onClick={() => navigate('/issues')} style={{ cursor: 'pointer' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <Typography.Text type="secondary" style={{ fontSize: 13 }}>工作项目</Typography.Text>
-                <div style={{ fontSize: 28, fontWeight: 600, marginTop: 4 }}>
-                  {initialRequirements.length + initialTasks.length + initialDefects.length}
-                </div>
-              </div>
-              <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: 'rgba(0,180,42,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <IconEdit style={{ fontSize: 20, color: '#00b42a' }} />
-              </div>
-            </div>
-            <div style={{ marginTop: 8, fontSize: 12 }}>
-              <Typography.Text type="secondary">{initialRequirements.length} 需求</Typography.Text>
-              <Typography.Text type="secondary" style={{ marginLeft: 8 }}>{initialTasks.length} 任务</Typography.Text>
-              <Typography.Text type="secondary" style={{ marginLeft: 8 }}>{initialDefects.length} 缺陷</Typography.Text>
             </div>
           </Card>
         </Grid.Col>

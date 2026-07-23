@@ -18,3 +18,21 @@
   vertical-align: baseline;
 }
 
+/* TAPD 风格详情抽屉 - 隐藏默认头部空间 */
+.arco-drawer-header {
+  display: none !important;
+}
+.arco-drawer-body {
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+.arco-drawer-body .drawer-content-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
