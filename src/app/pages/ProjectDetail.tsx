@@ -449,6 +449,7 @@ export function ProjectDetail() {
                 <div className="px-6 pt-6">
                   <TabsList>
                     <TabsTrigger value="basic">基础信息</TabsTrigger>
+                    <TabsTrigger value="members">项目人员</TabsTrigger>
                     <TabsTrigger value="leads">关联线索 ({projectLeads.length})</TabsTrigger>
                     <TabsTrigger value="customers">关联客户</TabsTrigger>
                     <TabsTrigger value="daily">关联日报 ({projectDailyReports.length})</TabsTrigger>
@@ -471,13 +472,6 @@ export function ProjectDetail() {
                     <div><span className="text-muted-foreground">负责人：</span>{project.owner}</div>
                     <div><span className="text-muted-foreground">销售人员：</span>{project.salesUsers.join('、') || '-'}</div>
                     <div><span className="text-muted-foreground">协助人：</span>{project.assistants.join('、') || '-'}</div>
-                    <div><span className="text-muted-foreground">产品：</span>{project.productUsers.join('、') || '-'}</div>
-                    <div><span className="text-muted-foreground">UI：</span>{project.uiUsers.join('、') || '-'}</div>
-                    <div><span className="text-muted-foreground">前端：</span>{project.frontendUsers.join('、') || '-'}</div>
-                    <div><span className="text-muted-foreground">后端：</span>{project.backendUsers.join('、') || '-'}</div>
-                    <div><span className="text-muted-foreground">运维：</span>{project.opsUsers.join('、') || '-'}</div>
-                    <div><span className="text-muted-foreground">测试：</span>{project.testUsers.join('、') || '-'}</div>
-                    <div><span className="text-muted-foreground">法务：</span>{project.legalUsers.join('、') || '-'}</div>
                     <div><span className="text-muted-foreground">开始日期：</span>{project.startDate || '-'}</div>
                     <div><span className="text-muted-foreground">预计结束日期：</span>{project.expectedEndDate || '-'}</div>
                     <div><span className="text-muted-foreground">备注：</span>{project.remark || '-'}</div>
@@ -557,6 +551,104 @@ export function ProjectDetail() {
                       暂无附件
                     </div>
                   )}
+                </TabsContent>
+
+                {/* ── Members Tab ──────────────────────────────── */}
+                <TabsContent value="members" className="px-6 pb-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">项目团队成员</h4>
+                      <Button size="sm" onClick={() => {
+                        setEditingProject(project);
+                        setProjectModalVisible(true);
+                      }}>
+                        <Pencil className="h-4 w-4 mr-1" />
+                        编辑人员
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* 负责人 */}
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="text-sm text-muted-foreground mb-1">负责人</div>
+                          <div className="font-medium">{project.owner || '-'}</div>
+                        </CardContent>
+                      </Card>
+
+                      {/* 协助人 */}
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="text-sm text-muted-foreground mb-1">协助人</div>
+                          <div className="font-medium">{project.assistants.join('、') || '-'}</div>
+                        </CardContent>
+                      </Card>
+
+                      {/* 销售人员 */}
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="text-sm text-muted-foreground mb-1">销售人员</div>
+                          <div className="font-medium">{project.salesUsers.join('、') || '-'}</div>
+                        </CardContent>
+                      </Card>
+
+                      {/* 产品 */}
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="text-sm text-muted-foreground mb-1">产品</div>
+                          <div className="font-medium">{project.productUsers.join('、') || '-'}</div>
+                        </CardContent>
+                      </Card>
+
+                      {/* UI */}
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="text-sm text-muted-foreground mb-1">UI</div>
+                          <div className="font-medium">{project.uiUsers.join('、') || '-'}</div>
+                        </CardContent>
+                      </Card>
+
+                      {/* 前端 */}
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="text-sm text-muted-foreground mb-1">前端</div>
+                          <div className="font-medium">{project.frontendUsers.join('、') || '-'}</div>
+                        </CardContent>
+                      </Card>
+
+                      {/* 后端 */}
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="text-sm text-muted-foreground mb-1">后端</div>
+                          <div className="font-medium">{project.backendUsers.join('、') || '-'}</div>
+                        </CardContent>
+                      </Card>
+
+                      {/* 运维 */}
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="text-sm text-muted-foreground mb-1">运维</div>
+                          <div className="font-medium">{project.opsUsers.join('、') || '-'}</div>
+                        </CardContent>
+                      </Card>
+
+                      {/* 测试 */}
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="text-sm text-muted-foreground mb-1">测试</div>
+                          <div className="font-medium">{project.testUsers.join('、') || '-'}</div>
+                        </CardContent>
+                      </Card>
+
+                      {/* 法务 */}
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="text-sm text-muted-foreground mb-1">法务</div>
+                          <div className="font-medium">{project.legalUsers.join('、') || '-'}</div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
                 </TabsContent>
 
                 {/* ── Leads Tab ───────────────────────────────── */}

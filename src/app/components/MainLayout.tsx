@@ -75,10 +75,13 @@ const menuItems: MenuItem[] = [
     icon: <HeadphonesIcon className="h-4 w-4" />,
     label: '线索管理',
     children: [
-      { key: '/leads/public', label: '公海线索' },
+      { key: '/leads/all', label: '全部线索' },
+      { key: '/leads/assigned', label: '已分配线索' },
+      { key: '/leads/public-pool', label: '公海线索' },
       { key: '/leads/my', label: '我的线索' },
       { key: '/leads/trash', label: '垃圾线索' },
-      { key: '/leads/governance', label: '线索治理' },
+      { key: '/leads/follow-records', label: '跟进线索记录' },
+      { key: '/leads/high-tech', label: '高新企业线索' },
     ],
   },
   {

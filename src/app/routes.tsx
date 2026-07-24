@@ -67,6 +67,9 @@ import { DormitoryManagement } from "./pages/travel/dormitory/DormitoryManagemen
 import { PunchClock } from "./pages/travel/punch/PunchClock";
 import { StandardList } from "./pages/travel/standard/StandardList";
 import { TravelDashboard } from "./pages/travel/dashboard/TravelDashboard";
+import { LeadList as NewLeadList } from "./pages/leads/LeadList";
+import { FollowRecordList } from "./pages/leads/FollowRecordList";
+import { LeadDetail as NewLeadDetail } from "./pages/leads/LeadDetail";
 
 export const router = createBrowserRouter([
   {
@@ -79,7 +82,6 @@ export const router = createBrowserRouter([
       { path: "leads/my", Component: MyLeads },
       { path: "leads/trash", Component: TrashLeads },
       { path: "leads/governance", Component: LeadGovernance },
-      { path: "leads/:id", Component: LeadDetail },
       { path: "lead-cost/dashboard", Component: LeadCostDashboard },
       { path: "lead-cost/daily", Component: LeadCostDaily },
       { path: "lead-cost/recharge", Component: LeadCostRecharge },
@@ -123,6 +125,14 @@ export const router = createBrowserRouter([
       { path: "travel/punch", Component: PunchClock },
       { path: "travel/standards", Component: StandardList },
       { path: "travel/dashboard", Component: TravelDashboard },
+      { path: "leads/all", Component: NewLeadList },
+      { path: "leads/assigned", Component: NewLeadList },
+      { path: "leads/public-pool", Component: NewLeadList },
+      { path: "leads/my", Component: NewLeadList },
+      { path: "leads/trash", Component: NewLeadList },
+      { path: "leads/follow-records", Component: FollowRecordList },
+      { path: "leads/high-tech", Component: NewLeadList },
+      { path: "leads/:id", Component: NewLeadDetail },
       { path: "employees", Component: EmployeeList },
       { path: "employees/attendance", Component: AttendanceManagement },
       { path: "employees/performance", Component: PerformanceManagement },

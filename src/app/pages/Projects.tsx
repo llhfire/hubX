@@ -8,6 +8,7 @@ import {
   Plus,
   Search,
   Trash2,
+  CheckCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '../components/ui/badge';
@@ -30,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -90,6 +92,7 @@ const defaultFormValues: ProjectFormValues = {
 
 function statusBadge(status: ProjectStatus) {
   const variantMap: Record<ProjectStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    未确认: 'outline',
     未开始: 'outline',
     进行中: 'default',
     已完成: 'secondary',
@@ -146,6 +149,7 @@ export function Projects() {
   const [followModalVisible, setFollowModalVisible] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [followingProject, setFollowingProject] = useState<Project | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'confirmed'>('all');
 
   // Project form state
   const [projectForm, setProjectForm] = useState<ProjectFormValues>(defaultFormValues);
@@ -158,15 +162,52 @@ export function Projects() {
     attachmentName: '',
   });
 
+  // 待确认项目数量
+  const pendingProjectsCount = useMemo(() => {
+    return projects.filter(p => p.status === '未确认').length;
+  }, [projects]);
+
   const filteredProjects = useMemo(() => {
     return projects.filter((project) => {
+      // Tab 筛选
+      if (activeTab === 'pending' && project.status !== '未确认') return false;
+      if (activeTab === 'confirmed' && project.status === '未确认') return false;
+
       const keywordMatched = !keyword || project.name.includes(keyword);
       const ownerMatched = !ownerFilter || project.owner === ownerFilter;
       const priorityMatched = !priorityFilter || project.priority === priorityFilter;
       const statusMatched = !statusFilter || project.status === statusFilter;
       return keywordMatched && ownerMatched && priorityMatched && statusMatched;
     });
-  }, [keyword, ownerFilter, priorityFilter, projects, statusFilter]);
+  }, [keyword, ownerFilter, priorityFilter, projects, statusFilter, activeTab]);
+
+  // 确认项目
+  const handleConfirmProject = (project: Project) => {
+    setEditingProject(project);
+    setProjectForm({
+      name: project.name,
+      latestProgress: project.latestProgress,
+      priority: project.priority,
+      entity: project.entity,
+      status: '未开始', // 确认后变为未开始
+      businessLine: project.businessLine,
+      salesUsers: project.salesUsers,
+      owner: project.owner || '',
+      assistants: project.assistants,
+      productUsers: project.productUsers,
+      uiUsers: project.uiUsers,
+      frontendUsers: project.frontendUsers,
+      backendUsers: project.backendUsers,
+      opsUsers: project.opsUsers,
+      testUsers: project.testUsers,
+      legalUsers: project.legalUsers,
+      progress: project.progress,
+      startDate: project.startDate,
+      expectedEndDate: project.expectedEndDate,
+      remark: project.remark,
+    });
+    setProjectModalVisible(true);
+  };
 
   const openCreateModal = () => {
     setEditingProject(null);
@@ -327,13 +368,28 @@ export function Projects() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm text-muted-foreground">待确认</p>
+                <div className="text-3xl font-semibold mt-1 text-orange-600">
+                  {pendingProjectsCount}
+                </div>
+              </div>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-orange-500/10">
+                <CheckCircle className="size-5 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm text-muted-foreground">进行中</p>
                 <div className="text-3xl font-semibold mt-1">
                   {projects.filter((p) => p.status === '进行中').length}
                 </div>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-orange-500/10">
-                <Send className="size-5 text-orange-600" />
+              <div className="flex size-10 items-center justify-center rounded-lg bg-green-500/10">
+                <Send className="size-5 text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -347,21 +403,6 @@ export function Projects() {
                   {projects.filter((p) => p.status === '已完成' || p.status === '验收中').length}
                 </div>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-green-500/10">
-                <Eye className="size-5 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">延期/搁置</p>
-                <div className="text-3xl font-semibold mt-1">
-                  {projects.filter((p) => p.status === '延迟' || p.status === '搁置').length}
-                </div>
-              </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-red-500/10">
                 <Trash2 className="size-5 text-red-600" />
               </div>
@@ -369,6 +410,22 @@ export function Projects() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'pending' | 'confirmed')}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">全部项目</TabsTrigger>
+          <TabsTrigger value="pending">
+            待确认
+            {pendingProjectsCount > 0 && (
+              <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                {pendingProjectsCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="confirmed">已确认项目</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <Card>
         <CardContent className="pt-6">
@@ -435,20 +492,20 @@ export function Projects() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[140px]">编号</TableHead>
-                  <TableHead className="w-[220px]">项目名称</TableHead>
-                  <TableHead className="w-[100px]">负责人</TableHead>
-                  <TableHead className="w-[140px]">销售</TableHead>
-                  <TableHead className="w-[120px]">对接主体</TableHead>
-                  <TableHead className="w-[260px]">最新进展</TableHead>
-                  <TableHead className="w-[100px]">业务线</TableHead>
-                  <TableHead className="w-[90px]">优先级</TableHead>
-                  <TableHead className="w-[110px]">状态</TableHead>
-                  <TableHead className="w-[120px]">开始日期</TableHead>
-                  <TableHead className="w-[130px]">预计结束日期</TableHead>
-                  <TableHead className="w-[150px]">总进度</TableHead>
-                  <TableHead className="w-[150px]">添加时间</TableHead>
-                  <TableHead className="w-[220px]">操作</TableHead>
+                  <TableHead className="whitespace-nowrap">编号</TableHead>
+                  <TableHead className="whitespace-nowrap">项目名称</TableHead>
+                  <TableHead className="whitespace-nowrap">负责人</TableHead>
+                  <TableHead className="whitespace-nowrap">销售</TableHead>
+                  <TableHead className="whitespace-nowrap">对接主体</TableHead>
+                  <TableHead className="whitespace-nowrap">最新进展</TableHead>
+                  <TableHead className="whitespace-nowrap">业务线</TableHead>
+                  <TableHead className="whitespace-nowrap">优先级</TableHead>
+                  <TableHead className="whitespace-nowrap">状态</TableHead>
+                  <TableHead className="whitespace-nowrap">开始日期</TableHead>
+                  <TableHead className="whitespace-nowrap">预计结束日期</TableHead>
+                  <TableHead className="whitespace-nowrap">总进度</TableHead>
+                  <TableHead className="whitespace-nowrap">添加时间</TableHead>
+                  <TableHead className="whitespace-nowrap sticky right-0 bg-background">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -461,8 +518,8 @@ export function Projects() {
                 ) : (
                   filteredProjects.map((record) => (
                     <TableRow key={record.id}>
-                      <TableCell>{record.projectNo}</TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">{record.projectNo}</TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <Button
                           variant="link"
                           className="p-0 h-auto"
@@ -471,70 +528,93 @@ export function Projects() {
                           {record.name}
                         </Button>
                       </TableCell>
-                      <TableCell>{record.owner}</TableCell>
-                      <TableCell>{record.salesUsers.join('、') || '-'}</TableCell>
-                      <TableCell>{record.entity || '-'}</TableCell>
-                      <TableCell>{record.latestProgress}</TableCell>
-                      <TableCell>{record.businessLine}</TableCell>
-                      <TableCell>{priorityTag(record.priority)}</TableCell>
-                      <TableCell>{statusBadge(record.status)}</TableCell>
-                      <TableCell>{record.startDate || '-'}</TableCell>
-                      <TableCell>{record.expectedEndDate || '-'}</TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">{record.owner}</TableCell>
+                      <TableCell className="whitespace-nowrap">{record.salesUsers.join('、') || '-'}</TableCell>
+                      <TableCell className="whitespace-nowrap">{record.entity || '-'}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{record.latestProgress}</TableCell>
+                      <TableCell className="whitespace-nowrap">{record.businessLine}</TableCell>
+                      <TableCell className="whitespace-nowrap">{priorityTag(record.priority)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{statusBadge(record.status)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{record.startDate || '-'}</TableCell>
+                      <TableCell className="whitespace-nowrap">{record.expectedEndDate || '-'}</TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <Progress value={record.progress} className="w-20" />
                           <span className="text-xs text-muted-foreground">{record.progress}%</span>
                         </div>
                       </TableCell>
-                      <TableCell>{record.createdAt}</TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">{record.createdAt}</TableCell>
+                      <TableCell className="whitespace-nowrap sticky right-0 bg-background">
                         <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/projects/${record.id}`)}
-                          >
-                            <Eye className="size-4" />
-                            详情
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditModal(record)}
-                          >
-                            <Pencil className="size-4" />
-                            编辑
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openFollowModal(record)}
-                          >
-                            <Send className="size-4" />
-                            跟进
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => {
-                              const hasDailyReports = initialDailyReports.some(
-                                (report) => report.projectId === record.id
-                              );
-                              if (
-                                window.confirm(
-                                  hasDailyReports
-                                    ? '该项目已有关联日报，确认删除项目吗？'
-                                    : '确认删除该项目吗？'
-                                )
-                              ) {
-                                removeProject(record);
-                              }
-                            }}
-                          >
-                            <Trash2 className="size-4" />
-                            删除
-                          </Button>
+                          {record.status === '未确认' ? (
+                            <>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleConfirmProject(record)}
+                              >
+                                <CheckCircle className="size-4 mr-1" />
+                                确认项目
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate(`/projects/${record.id}`)}
+                              >
+                                <Eye className="size-4" />
+                                查看
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate(`/projects/${record.id}`)}
+                              >
+                                <Eye className="size-4" />
+                                详情
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditModal(record)}
+                              >
+                                <Pencil className="size-4" />
+                                编辑
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openFollowModal(record)}
+                              >
+                                <Send className="size-4" />
+                                跟进
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => {
+                                  const hasDailyReports = initialDailyReports.some(
+                                    (report) => report.projectId === record.id
+                                  );
+                                  if (
+                                    window.confirm(
+                                      hasDailyReports
+                                        ? '该项目已有关联日报，确认删除项目吗？'
+                                        : '确认删除该项目吗？'
+                                    )
+                                  ) {
+                                    removeProject(record);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="size-4" />
+                                删除
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

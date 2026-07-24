@@ -1,5 +1,5 @@
 export type ProjectPriority = '高' | '中' | '低';
-export type ProjectStatus = '未开始' | '进行中' | '已完成' | '验收中' | '搁置' | '延迟' | '催款中';
+export type ProjectStatus = '未确认' | '未开始' | '进行中' | '已完成' | '验收中' | '搁置' | '延迟' | '催款中';
 export type BusinessLine = '外包' | '自研' | '自运营';
 
 export interface ProjectAttachment {
@@ -33,6 +33,7 @@ export interface Project {
   remark: string;
   attachments: ProjectAttachment[];
   contractId?: string;
+  leadId?: string; // 关联的 Lead ID
   createdAt: string;
 }
 
@@ -93,7 +94,7 @@ export interface ProjectMemberHours {
 }
 
 export const projectPriorities: ProjectPriority[] = ['高', '中', '低'];
-export const projectStatuses: ProjectStatus[] = ['未开始', '进行中', '已完成', '验收中', '搁置', '延迟', '催款中'];
+export const projectStatuses: ProjectStatus[] = ['未确认', '未开始', '进行中', '已完成', '验收中', '搁置', '延迟', '催款中'];
 export const businessLines: BusinessLine[] = ['外包', '自研', '自运营'];
 
 export const companyEntities = ['中科软艺', '软艺信息', '巴蜀文攻'];
@@ -110,6 +111,34 @@ export const roleEmployees = {
 };
 
 export const initialProjects: Project[] = [
+  {
+    id: '0',
+    projectNo: 'PRJ202605000',
+    name: 'C公司ERP系统开发（待确认）',
+    latestProgress: '合同已拟归档，等待交付部门确认。',
+    priority: '高',
+    entity: '中科软艺',
+    status: '未确认',
+    businessLine: '外包',
+    salesUsers: ['张三'],
+    owner: '',
+    assistants: [],
+    productUsers: [],
+    uiUsers: [],
+    frontendUsers: [],
+    backendUsers: [],
+    opsUsers: [],
+    testUsers: [],
+    legalUsers: [],
+    progress: 0,
+    startDate: '',
+    expectedEndDate: '',
+    remark: '合同未回，需要先创建项目安排人员。',
+    attachments: [],
+    contractId: '5',
+    leadId: 'lead-3',
+    createdAt: '2026-05-10 10:00',
+  },
   {
     id: '1',
     projectNo: 'PRJ202605001',
@@ -135,6 +164,7 @@ export const initialProjects: Project[] = [
     remark: '客户重点关注销售跟进、客户管理和项目成本统计。',
     attachments: [{ id: 'att-1', name: '项目需求初稿.pdf', size: '1.2MB' }],
     contractId: '4',
+    leadId: 'lead-1',
     createdAt: '2026-05-01 09:30',
   },
   {
