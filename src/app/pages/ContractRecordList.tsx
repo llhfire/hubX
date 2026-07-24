@@ -1,14 +1,38 @@
 import { useState } from 'react';
-import { Card, Table, Button, Input, Select, DatePicker, Space, Modal, Descriptions, Tag } from '@arco-design/web-react';
-import { IconSearch, IconPlus } from '@arco-design/web-react/icon';
+import { Button } from '../components/ui/button';
+import { Card, CardHeader, CardTitle, CardAction, CardContent } from '../components/ui/card';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
+import { Input } from '../components/ui/input';
+import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '../components/ui/select';
+import { Search, Plus } from 'lucide-react';
 
-const { RangePicker } = DatePicker;
+const statusBadgeVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  switch (status) {
+    case '已完成':
+      return 'default';
+    case '执行中':
+      return 'secondary';
+    case '已终止':
+      return 'destructive';
+    default:
+      return 'outline';
+  }
+};
 
 export function ContractRecordList() {
   const [searchForm, setSearchForm] = useState({
     keyword: '',
     status: '',
-    dateRange: [],
+    startDate: '',
+    endDate: '',
   });
   const [detailVisible, setDetailVisible] = useState(false);
   const [selectedContract, setSelectedContract] = useState<any>(null);
@@ -68,90 +92,6 @@ export function ContractRecordList() {
     },
   ];
 
-  const columns = [
-    {
-      title: '合同编号',
-      dataIndex: 'contractNo',
-      width: 140,
-    },
-    {
-      title: '合同名称',
-      dataIndex: 'contractName',
-      width: 200,
-    },
-    {
-      title: '线索名称',
-      dataIndex: 'leadName',
-      width: 200,
-    },
-    {
-      title: '客户主体',
-      dataIndex: 'customerEntity',
-      width: 200,
-    },
-    {
-      title: '对接主体',
-      dataIndex: 'ourEntity',
-      width: 150,
-    },
-    {
-      title: '合同金额',
-      dataIndex: 'amount',
-      width: 120,
-      render: (value: number) => `¥${value.toLocaleString()}`,
-    },
-    {
-      title: '签订日期',
-      dataIndex: 'signDate',
-      width: 120,
-    },
-    {
-      title: '开始日期',
-      dataIndex: 'startDate',
-      width: 120,
-    },
-    {
-      title: '结束日期',
-      dataIndex: 'endDate',
-      width: 120,
-    },
-    {
-      title: '负责人',
-      dataIndex: 'owner',
-      width: 100,
-    },
-    {
-      title: '部门',
-      dataIndex: 'department',
-      width: 120,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 100,
-      render: (status: string) => {
-        const statusMap: Record<string, { color: string; text: string }> = {
-          '执行中': { color: 'blue', text: '执行中' },
-          '已完成': { color: 'green', text: '已完成' },
-          '已终止': { color: 'red', text: '已终止' },
-        };
-        const config = statusMap[status] || { color: 'gray', text: status };
-        return <Tag color={config.color}>{config.text}</Tag>;
-      },
-    },
-    {
-      title: '操作',
-      dataIndex: 'op',
-      width: 100,
-      fixed: 'right' as const,
-      render: (_: any, record: any) => (
-        <Button type="text" size="small" onClick={() => handleViewDetail(record)}>
-          查看详情
-        </Button>
-      ),
-    },
-  ];
-
   const handleSearch = () => {
     console.log('搜索条件：', searchForm);
   };
@@ -160,7 +100,8 @@ export function ContractRecordList() {
     setSearchForm({
       keyword: '',
       status: '',
-      dateRange: [],
+      startDate: '',
+      endDate: '',
     });
   };
 
@@ -171,112 +112,211 @@ export function ContractRecordList() {
 
   return (
     <div>
-      <Card style={{ marginBottom: 16 }}>
-        <Space size="medium" wrap>
-          <Input
-            key="search-input"
-            style={{ width: 200 }}
-            placeholder="搜索合同编号/名称"
-            value={searchForm.keyword}
-            onChange={(value) => setSearchForm({ ...searchForm, keyword: value })}
-            allowClear
-          />
-          <Select
-            key="status-select"
-            style={{ width: 150 }}
-            placeholder="选择状态"
-            value={searchForm.status}
-            onChange={(value) => setSearchForm({ ...searchForm, status: value })}
-            allowClear
-            options={[
-              { label: '执行中', value: '执行中' },
-              { label: '已完成', value: '已完成' },
-              { label: '已终止', value: '已终止' },
-            ]}
-          />
-          <RangePicker
-            key="date-range"
-            style={{ width: 280 }}
-            placeholder={['开始日期', '结束日期']}
-            value={searchForm.dateRange}
-            onChange={(value) => setSearchForm({ ...searchForm, dateRange: value })}
-          />
-          <Button key="search-btn" type="primary" icon={<IconSearch />} onClick={handleSearch}>
-            搜索
-          </Button>
-          <Button key="reset-btn" onClick={handleReset}>
-            重置
-          </Button>
-        </Space>
-      </Card>
-
-      <Card
-        title="合同记录列表"
-        extra={
-          <Button type="primary" icon={<IconPlus />}>
-            新增合同
-          </Button>
-        }
-      >
-        <Table
-          columns={columns}
-          data={mockData}
-          rowKey="id"
-          scroll={{ x: 1700 }}
-          pagination={{
-            total: mockData.length,
-            pageSize: 10,
-            showTotal: true,
-            sizeCanChange: true,
-          }}
-        />
-      </Card>
-
-      <Modal
-        title="合同详情"
-        visible={detailVisible}
-        onCancel={() => setDetailVisible(false)}
-        footer={null}
-        style={{ width: 900 }}
-      >
-        {selectedContract && (
-          <div>
-            <Descriptions
-              column={2}
-              data={[
-                { label: '合同编号', value: selectedContract.contractNo },
-                { label: '合同名称', value: selectedContract.contractName },
-                { label: '线索名称', value: selectedContract.leadName },
-                { label: '客户主体', value: selectedContract.customerEntity },
-                { label: '对接主体', value: selectedContract.ourEntity },
-                { label: '合同金额', value: `¥${selectedContract.amount.toLocaleString()}` },
-                { label: '签订日期', value: selectedContract.signDate },
-                { label: '开始日期', value: selectedContract.startDate },
-                { label: '结束日期', value: selectedContract.endDate },
-                { label: '负责人', value: selectedContract.owner },
-                { label: '部门', value: selectedContract.department },
-                { label: '付款条款', value: selectedContract.paymentTerms },
-                {
-                  label: '状态',
-                  value: (
-                    <Tag color={selectedContract.status === '执行中' ? 'blue' : selectedContract.status === '已完成' ? 'green' : 'red'}>
-                      {selectedContract.status}
-                    </Tag>
-                  ),
-                },
-              ]}
-              style={{ marginBottom: 24 }}
+      <Card className="mb-4">
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              className="w-[200px]"
+              placeholder="搜索合同编号/名称"
+              value={searchForm.keyword}
+              onChange={(e) => setSearchForm({ ...searchForm, keyword: e.target.value })}
             />
+            <Select
+              value={searchForm.status}
+              onValueChange={(value) => setSearchForm({ ...searchForm, status: value === '__all__' ? '' : value })}
+            >
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="选择状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">全部</SelectItem>
+                <SelectItem value="执行中">执行中</SelectItem>
+                <SelectItem value="已完成">已完成</SelectItem>
+                <SelectItem value="已终止">已终止</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                className="w-[150px]"
+                value={searchForm.startDate}
+                onChange={(e) => setSearchForm({ ...searchForm, startDate: e.target.value })}
+              />
+              <span className="text-muted-foreground text-sm">至</span>
+              <Input
+                type="date"
+                className="w-[150px]"
+                value={searchForm.endDate}
+                onChange={(e) => setSearchForm({ ...searchForm, endDate: e.target.value })}
+              />
+            </div>
+            <Button onClick={handleSearch}>
+              <Search className="size-4" />
+              搜索
+            </Button>
+            <Button variant="outline" onClick={handleReset}>
+              重置
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>合同范围</div>
-              <div style={{ padding: 12, background: 'var(--color-fill-2)', borderRadius: 4 }}>
-                {selectedContract.scope}
-              </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>合同记录列表</CardTitle>
+          <CardAction>
+            <Button>
+              <Plus className="size-4" />
+              新增合同
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[140px]">合同编号</TableHead>
+                  <TableHead className="min-w-[200px]">合同名称</TableHead>
+                  <TableHead className="min-w-[200px]">线索名称</TableHead>
+                  <TableHead className="min-w-[200px]">客户主体</TableHead>
+                  <TableHead className="min-w-[150px]">对接主体</TableHead>
+                  <TableHead className="min-w-[120px]">合同金额</TableHead>
+                  <TableHead className="min-w-[120px]">签订日期</TableHead>
+                  <TableHead className="min-w-[120px]">开始日期</TableHead>
+                  <TableHead className="min-w-[120px]">结束日期</TableHead>
+                  <TableHead className="min-w-[100px]">负责人</TableHead>
+                  <TableHead className="min-w-[120px]">部门</TableHead>
+                  <TableHead className="min-w-[100px]">状态</TableHead>
+                  <TableHead className="min-w-[100px] sticky right-0 bg-background">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mockData.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell>{record.contractNo}</TableCell>
+                    <TableCell>{record.contractName}</TableCell>
+                    <TableCell>{record.leadName}</TableCell>
+                    <TableCell>{record.customerEntity}</TableCell>
+                    <TableCell>{record.ourEntity}</TableCell>
+                    <TableCell>{`¥${record.amount.toLocaleString()}`}</TableCell>
+                    <TableCell>{record.signDate}</TableCell>
+                    <TableCell>{record.startDate}</TableCell>
+                    <TableCell>{record.endDate}</TableCell>
+                    <TableCell>{record.owner}</TableCell>
+                    <TableCell>{record.department}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusBadgeVariant(record.status)}>
+                        {record.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="sticky right-0 bg-background">
+                      <Button variant="ghost" size="sm" onClick={() => handleViewDetail(record)}>
+                        查看详情
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {/* 分页 */}
+          <div className="flex items-center justify-between pt-4">
+            <span className="text-muted-foreground text-sm">
+              共 {mockData.length} 条
+            </span>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" disabled>
+                上一页
+              </Button>
+              <Button variant="default" size="sm">
+                1
+              </Button>
+              <Button variant="outline" size="sm" disabled>
+                下一页
+              </Button>
             </div>
           </div>
-        )}
-      </Modal>
+        </CardContent>
+      </Card>
+
+      {/* 详情 Dialog */}
+      <Dialog open={detailVisible} onOpenChange={setDetailVisible}>
+        <DialogContent className="max-w-[900px]">
+          <DialogHeader>
+            <DialogTitle>合同详情</DialogTitle>
+          </DialogHeader>
+          {selectedContract && (
+            <div className="space-y-6">
+              {/* 基本信息 */}
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">合同编号：</span>
+                  <span className="text-sm font-medium">{selectedContract.contractNo}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">合同名称：</span>
+                  <span className="text-sm font-medium">{selectedContract.contractName}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">线索名称：</span>
+                  <span className="text-sm font-medium">{selectedContract.leadName}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">客户主体：</span>
+                  <span className="text-sm font-medium">{selectedContract.customerEntity}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">对接主体：</span>
+                  <span className="text-sm font-medium">{selectedContract.ourEntity}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">合同金额：</span>
+                  <span className="text-sm font-medium">{`¥${selectedContract.amount.toLocaleString()}`}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">签订日期：</span>
+                  <span className="text-sm font-medium">{selectedContract.signDate}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">开始日期：</span>
+                  <span className="text-sm font-medium">{selectedContract.startDate}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">结束日期：</span>
+                  <span className="text-sm font-medium">{selectedContract.endDate}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">负责人：</span>
+                  <span className="text-sm font-medium">{selectedContract.owner}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">部门：</span>
+                  <span className="text-sm font-medium">{selectedContract.department}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">付款条款：</span>
+                  <span className="text-sm font-medium">{selectedContract.paymentTerms}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground text-sm shrink-0">状态：</span>
+                  <Badge variant={statusBadgeVariant(selectedContract.status)}>
+                    {selectedContract.status}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* 合同范围 */}
+              <div>
+                <span className="font-semibold text-sm">合同范围</span>
+                <div className="mt-2 p-3 rounded-md border bg-muted/30 text-sm">
+                  {selectedContract.scope}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

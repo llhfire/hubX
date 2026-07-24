@@ -24,7 +24,7 @@ import { DailyReportList } from "./pages/DailyReportList";
 import { DailyReportView } from "./pages/DailyReportView";
 import { QuotationList } from "./pages/QuotationList";
 import { BusinessTripList } from "./pages/BusinessTripList";
-import { ReimbursementList } from "./pages/ReimbursementList";
+import { ReimbursementList as OldReimbursementList } from "./pages/ReimbursementList";
 import { PaymentInvoiceList } from "./pages/PaymentInvoiceList";
 import { ContractRecordList } from "./pages/ContractRecordList";
 import { ProjectLogView } from "./pages/ProjectLogView";
@@ -58,6 +58,15 @@ import { FullChainROI } from "./pages/roi/FullChainROI";
 import { AIDriven } from "./pages/ai/AIDriven";
 import { WorkItemsPage } from "./pages/issues/WorkItemsPage";
 import { ProjectDailyReportsPage } from "./pages/project-daily-reports/ProjectDailyReportsPage";
+import { TripList } from "./pages/travel/trip/TripList";
+import { TripForm } from "./pages/travel/trip/TripForm";
+import { TripDetail } from "./pages/travel/trip/TripDetail";
+import { ReimbursementList } from "./pages/travel/reimbursement/ReimbursementList";
+import { LoanList } from "./pages/travel/loan/LoanList";
+import { DormitoryManagement } from "./pages/travel/dormitory/DormitoryManagement";
+import { PunchClock } from "./pages/travel/punch/PunchClock";
+import { StandardList } from "./pages/travel/standard/StandardList";
+import { TravelDashboard } from "./pages/travel/dashboard/TravelDashboard";
 
 export const router = createBrowserRouter([
   {
@@ -94,7 +103,7 @@ export const router = createBrowserRouter([
       { path: "dailyreport/projectlog", Component: ProjectLogView },
       { path: "quotation", Component: QuotationList },
       { path: "businesstrip", Component: BusinessTripList },
-      { path: "reimbursement", Component: ReimbursementList },
+      { path: "reimbursement", Component: OldReimbursementList },
       { path: "paymentinvoice", Component: PaymentInvoiceList },
       { path: "contractrecord", Component: ContractRecordList },
       { path: "reports", Component: Reports },
@@ -105,6 +114,15 @@ export const router = createBrowserRouter([
       { path: "meetings", Component: MeetingManagement },
       { path: "roi", Component: FullChainROI },
       { path: "ai", Component: AIDriven },
+      { path: "travel/trips", Component: TripList },
+      { path: "travel/trips/new", Component: TripForm },
+      { path: "travel/trips/:id", Component: TripDetail },
+      { path: "travel/reimbursements", Component: ReimbursementList },
+      { path: "travel/loans", Component: LoanList },
+      { path: "travel/dormitory", Component: DormitoryManagement },
+      { path: "travel/punch", Component: PunchClock },
+      { path: "travel/standards", Component: StandardList },
+      { path: "travel/dashboard", Component: TravelDashboard },
       { path: "employees", Component: EmployeeList },
       { path: "employees/attendance", Component: AttendanceManagement },
       { path: "employees/performance", Component: PerformanceManagement },

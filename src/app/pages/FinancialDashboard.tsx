@@ -1,34 +1,34 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  Card,
-  Table,
-  Button,
-  Select,
-  Space,
-  Typography,
-  Tag,
-  Modal,
-  Form,
-  Input,
-  InputNumber,
-  DatePicker,
-  Tabs,
-  Grid,
-  Divider,
-  Message,
-  Popconfirm,
-} from '@arco-design/web-react';
-import { contractCostPermissions } from './contract-cost/contractCostData';
+import { toast } from 'sonner';
 import {
   PieChart, Pie, Cell, Tooltip as RechartTooltip, Legend,
   LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
 } from 'recharts';
-import { IconPlus, IconEdit, IconDelete, IconExport } from '@arco-design/web-react/icon';
+import { Plus, Pencil, Trash2, Download } from 'lucide-react';
 
-const { Title, Text } = Typography;
-const { TabPane } = Tabs;
-const { Row, Col } = Grid;
+import { Button } from '../components/ui/button';
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter,
+} from '../components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardAction } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '../components/ui/dialog';
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from '../components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../components/ui/alert-dialog';
+
+import { contractCostPermissions } from './contract-cost/contractCostData';
 
 // ─── Mock data ───────────────────────────────────────────────────────────────
 
@@ -82,6 +82,19 @@ function SummaryCard({ label, value, sub, color }: { label: string; value: strin
   );
 }
 
+// ─── Default form data ────────────────────────────────────────────────────────
+
+const defaultFormData = {
+  type: '',
+  period: '',
+  date: '',
+  amount: '',
+  status: '',
+  allocation: '',
+  approvalNo: '',
+  enteredBy: '张三',
+};
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function FinancialDashboard() {
@@ -92,7 +105,7 @@ export function FinancialDashboard() {
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [periodFilter, setPeriodFilter] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState(defaultFormData);
 
   // Derived contract stats
   const totalContract = contractData.reduce((s, r) => s + r.total, 0);
@@ -118,118 +131,90 @@ export function FinancialDashboard() {
 
   const openCreate = () => {
     setEditingEntry(null);
-    form.resetFields();
-    form.setFieldsValue({ enteredBy: '张三', date: new Date() });
+    setFormData({ ...defaultFormData, enteredBy: '张三', date: new Date().toISOString().slice(0, 10) });
     setEntryVisible(true);
   };
 
   const openEdit = (record: any) => {
     setEditingEntry(record);
-    form.setFieldsValue(record);
+    setFormData({
+      type: record.type || '',
+      period: record.period || '',
+      date: record.date || '',
+      amount: String(record.amount || ''),
+      status: record.status || '',
+      allocation: record.allocation || '',
+      approvalNo: record.approvalNo || '',
+      enteredBy: record.enteredBy || '',
+    });
     setEntryVisible(true);
   };
 
   const handleSave = () => {
-    form.validate().then((values) => {
-      if (editingEntry) {
-        setOpList((prev) => prev.map((e) => e.key === editingEntry.key ? { ...e, ...values } : e));
-        Message.success('已更新');
-      } else {
-        setOpList((prev) => [...prev, { ...values, key: String(Date.now()) }]);
-        Message.success('录入成功');
-      }
-      setEntryVisible(false);
-    });
+    // Validate required fields
+    if (!formData.type) {
+      toast.error('请选择成本类型');
+      return;
+    }
+    if (!formData.period) {
+      toast.error('请输入归属周期');
+      return;
+    }
+    if (!formData.date) {
+      toast.error('请选择发生日期');
+      return;
+    }
+    if (!formData.amount) {
+      toast.error('请输入金额');
+      return;
+    }
+    if (!formData.status) {
+      toast.error('请选择状态');
+      return;
+    }
+
+    const values = {
+      type: formData.type,
+      period: formData.period,
+      date: formData.date,
+      amount: Number(formData.amount),
+      status: formData.status,
+      allocation: formData.allocation,
+      approvalNo: formData.approvalNo,
+      enteredBy: formData.enteredBy,
+    };
+
+    if (editingEntry) {
+      setOpList((prev) => prev.map((e) => e.key === editingEntry.key ? { ...e, ...values } : e));
+      toast.success('已更新');
+    } else {
+      setOpList((prev) => [...prev, { ...values, key: String(Date.now()) }]);
+      toast.success('录入成功');
+    }
+    setEntryVisible(false);
   };
 
   const handleDelete = (key: string) => {
     setOpList((prev) => prev.filter((e) => e.key !== key));
-    Message.success('已删除');
+    toast.success('已删除');
   };
-
-  // Contract table columns
-  const contractColumns = [
-    { title: '合同名称', dataIndex: 'name', width: 220, render: (v: string, record: any) => contractCostPermissions.contractCostView
-      ? <a style={{ color: 'var(--primary)', cursor: 'pointer', padding: '2px 4px', borderRadius: 4 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'} onClick={() => navigate(`/finance/contract-cost/${record.key}`)}>{v}</a>
-      : <span>{v}</span> },
-    { title: '客户', dataIndex: 'customer', width: 200 },
-    { title: '合同总额', dataIndex: 'total', width: 110, render: (v: number) => `¥${(v / 10000).toFixed(0)}万` },
-    { title: '回款金额', dataIndex: 'received', width: 110, render: (v: number) => `¥${(v / 10000).toFixed(0)}万` },
-    {
-      title: '成本总额',
-      width: 110,
-      render: (_: any, r: any) => {
-        const cost = r.costRD + r.costBiz + r.costOutsource + r.costOther;
-        return `¥${(cost / 10000).toFixed(0)}万`;
-      },
-    },
-    {
-      title: '利润',
-      width: 120,
-      render: (_: any, r: any) => {
-        const cost = r.costRD + r.costBiz + r.costOutsource + r.costOther;
-        const profit = r.total - cost;
-        const ratio = cost / r.total;
-        const isWarning = ratio >= 0.8;
-        return (
-          <span style={{ color: isWarning ? '#ff7d00' : '#00b42a', fontWeight: 600 }}>
-            ¥{(profit / 10000).toFixed(0)}万
-            {isWarning && <span style={{ fontSize: 11, marginLeft: 4 }}>⚠</span>}
-          </span>
-        );
-      },
-    },
-    { title: '科研成本', dataIndex: 'costRD', width: 100, render: (v: number) => `¥${(v / 10000).toFixed(0)}万` },
-    { title: '商务成本', dataIndex: 'costBiz', width: 100, render: (v: number) => `¥${(v / 10000).toFixed(0)}万` },
-    { title: '外包成本', dataIndex: 'costOutsource', width: 100, render: (v: number) => `¥${(v / 10000).toFixed(0)}万` },
-    { title: '其他成本', dataIndex: 'costOther', width: 100, render: (v: number) => `¥${(v / 10000).toFixed(0)}万` },
-    { title: '合同起始', dataIndex: 'start', width: 110 },
-    { title: '合同截止', dataIndex: 'end', width: 110 },
-  ];
-
-  // Op expense columns
-  const opColumns = [
-    { title: '发生日期', dataIndex: 'date', width: 110 },
-    { title: '成本类型', dataIndex: 'type', width: 110, render: (v: string) => <Tag color="cyan">{v}</Tag> },
-    { title: '金额', dataIndex: 'amount', width: 100, render: (v: number) => `¥${v.toLocaleString()}` },
-    { title: '归属周期', dataIndex: 'period', width: 100 },
-    { title: '分摊对象', dataIndex: 'allocation', width: 100 },
-    { title: '关联审批单号', dataIndex: 'approvalNo', width: 140 },
-    {
-      title: '付款状态',
-      dataIndex: 'status',
-      width: 100,
-      render: (v: string) => (
-        <Tag color={v === '已支付' ? 'green' : v === '未支付' ? 'orange' : 'purple'}>{v}</Tag>
-      ),
-    },
-    { title: '录入人', dataIndex: 'enteredBy', width: 80 },
-    {
-      title: '操作',
-      width: 110,
-      fixed: 'right' as const,
-      render: (_: any, record: any) => (
-        <Space>
-          <Button type="text" size="small" icon={<IconEdit />} onClick={() => openEdit(record)} />
-          <Popconfirm title="确认删除？" onOk={() => handleDelete(record.key)}>
-            <Button type="text" size="small" icon={<IconDelete />} status="danger" />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
 
   const periods = [...new Set(opList.map((e) => e.period))].sort().reverse();
 
   return (
     <div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
-        <Title heading={4} style={{ margin: 0 }}>财务统计</Title>
+      <div className="flex items-center justify-between mb-5">
+        <h4 className="text-lg font-semibold m-0">财务统计</h4>
       </div>
 
-      <Tabs defaultActiveTab="contract" type="card-gutter">
+      <Tabs defaultValue="contract">
+        <TabsList>
+          <TabsTrigger value="contract">合同统计</TabsTrigger>
+          <TabsTrigger value="operation">运营成本</TabsTrigger>
+        </TabsList>
+
         {/* ── 合同统计 ── */}
-        <TabPane key="contract" title="合同统计">
+        <TabsContent value="contract">
           {/* Summary cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             <SummaryCard label="合同总额" value={`¥${(totalContract / 10000).toFixed(0)}万`} color="#165dff" />
@@ -238,181 +223,319 @@ export function FinancialDashboard() {
             <SummaryCard label="成本总额" value={`¥${(totalCost / 10000).toFixed(0)}万`} sub={`利润率 ${((totalContract - totalCost) / totalContract * 100).toFixed(1)}%`} color="#7816ff" />
           </div>
 
-          <Card
-            title="合同费用明细"
-            extra={<Button icon={<IconExport />} size="small">导出报表</Button>}
-          >
-            <Table
-              columns={contractColumns}
-              data={contractData}
-              pagination={false}
-              scroll={{ x: 1600 }}
-              summary={() => (
-                <Table.Summary>
-                  <Table.Summary.Row>
-                    <Table.Summary.Cell style={{ fontWeight: 600 }}>合计</Table.Summary.Cell>
-                    <Table.Summary.Cell />
-                    <Table.Summary.Cell style={{ fontWeight: 600 }}>
+          <Card>
+            <CardHeader>
+              <CardTitle>合同费用明细</CardTitle>
+              <CardAction>
+                <Button variant="outline" size="sm"><Download className="size-4" />导出报表</Button>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead style={{ minWidth: 220 }}>合同名称</TableHead>
+                    <TableHead style={{ minWidth: 200 }}>客户</TableHead>
+                    <TableHead style={{ minWidth: 110 }}>合同总额</TableHead>
+                    <TableHead style={{ minWidth: 110 }}>回款金额</TableHead>
+                    <TableHead style={{ minWidth: 110 }}>成本总额</TableHead>
+                    <TableHead style={{ minWidth: 120 }}>利润</TableHead>
+                    <TableHead style={{ minWidth: 100 }}>科研成本</TableHead>
+                    <TableHead style={{ minWidth: 100 }}>商务成本</TableHead>
+                    <TableHead style={{ minWidth: 100 }}>外包成本</TableHead>
+                    <TableHead style={{ minWidth: 100 }}>其他成本</TableHead>
+                    <TableHead style={{ minWidth: 110 }}>合同起始</TableHead>
+                    <TableHead style={{ minWidth: 110 }}>合同截止</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contractData.map((r) => {
+                    const cost = r.costRD + r.costBiz + r.costOutsource + r.costOther;
+                    const profit = r.total - cost;
+                    const ratio = cost / r.total;
+                    const isWarning = ratio >= 0.8;
+                    return (
+                      <TableRow key={r.key}>
+                        <TableCell>
+                          {contractCostPermissions.contractCostView ? (
+                            <a
+                              className="text-primary cursor-pointer px-1 py-0.5 rounded hover:bg-[var(--color-fill-1)]"
+                              onClick={() => navigate(`/finance/contract-cost/${r.key}`)}
+                            >
+                              {r.name}
+                            </a>
+                          ) : (
+                            <span>{r.name}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{r.customer}</TableCell>
+                        <TableCell>¥{(r.total / 10000).toFixed(0)}万</TableCell>
+                        <TableCell>¥{(r.received / 10000).toFixed(0)}万</TableCell>
+                        <TableCell>¥{(cost / 10000).toFixed(0)}万</TableCell>
+                        <TableCell>
+                          <span style={{ color: isWarning ? '#ff7d00' : '#00b42a', fontWeight: 600 }}>
+                            ¥{(profit / 10000).toFixed(0)}万
+                            {isWarning && <span style={{ fontSize: 11, marginLeft: 4 }}>⚠</span>}
+                          </span>
+                        </TableCell>
+                        <TableCell>¥{(r.costRD / 10000).toFixed(0)}万</TableCell>
+                        <TableCell>¥{(r.costBiz / 10000).toFixed(0)}万</TableCell>
+                        <TableCell>¥{(r.costOutsource / 10000).toFixed(0)}万</TableCell>
+                        <TableCell>¥{(r.costOther / 10000).toFixed(0)}万</TableCell>
+                        <TableCell>{r.start}</TableCell>
+                        <TableCell>{r.end}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell className="font-semibold">合计</TableCell>
+                    <TableCell />
+                    <TableCell className="font-semibold">
                       ¥{(contractData.reduce((s, r) => s + r.total, 0) / 10000).toFixed(0)}万
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell style={{ fontWeight: 600 }}>
+                    </TableCell>
+                    <TableCell className="font-semibold">
                       ¥{(contractData.reduce((s, r) => s + r.received, 0) / 10000).toFixed(0)}万
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell style={{ fontWeight: 600 }}>
+                    </TableCell>
+                    <TableCell className="font-semibold">
                       ¥{(contractData.reduce((s, r) => s + r.costRD + r.costBiz + r.costOutsource + r.costOther, 0) / 10000).toFixed(0)}万
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell style={{ fontWeight: 600, color: '#00b42a' }}>
+                    </TableCell>
+                    <TableCell className="font-semibold text-green-600">
                       ¥{((contractData.reduce((s, r) => s + r.total, 0) - contractData.reduce((s, r) => s + r.costRD + r.costBiz + r.costOutsource + r.costOther, 0)) / 10000).toFixed(0)}万
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell>
+                    </TableCell>
+                    <TableCell>
                       ¥{(contractData.reduce((s, r) => s + r.costRD, 0) / 10000).toFixed(0)}万
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell>
+                    </TableCell>
+                    <TableCell>
                       ¥{(contractData.reduce((s, r) => s + r.costBiz, 0) / 10000).toFixed(0)}万
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell>
+                    </TableCell>
+                    <TableCell>
                       ¥{(contractData.reduce((s, r) => s + r.costOutsource, 0) / 10000).toFixed(0)}万
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell>
+                    </TableCell>
+                    <TableCell>
                       ¥{(contractData.reduce((s, r) => s + r.costOther, 0) / 10000).toFixed(0)}万
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell /><Table.Summary.Cell />
-                  </Table.Summary.Row>
-                </Table.Summary>
-              )}
-            />
+                    </TableCell>
+                    <TableCell /><TableCell />
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </CardContent>
           </Card>
-        </TabPane>
+        </TabsContent>
 
         {/* ── 运营成本 ── */}
-        <TabPane key="operation" title="运营成本">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, marginBottom: 16 }}>
+        <TabsContent value="operation">
+          <div className="grid grid-cols-[1fr_2fr] gap-4 mb-4">
             {/* Pie chart */}
-            <Card title="支出分布">
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                    {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                  </Pie>
-                  <RechartTooltip formatter={(v: number) => `¥${v.toLocaleString()}`} />
-                </PieChart>
-              </ResponsiveContainer>
+            <Card>
+              <CardHeader>
+                <CardTitle>支出分布</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                      {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    </Pie>
+                    <RechartTooltip formatter={(v: number) => `¥${v.toLocaleString()}`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
             </Card>
 
             {/* Line chart */}
-            <Card title="月度支出趋势">
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={trendData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-2)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v / 1000}k`} />
-                  <RechartTooltip formatter={(v: number) => `¥${v.toLocaleString()}`} />
-                  <Legend />
-                  {['房租物业', '水电网络', '行政杂费', '设备维护'].map((key, i) => (
-                    <Line key={key} type="monotone" dataKey={key} stroke={PIE_COLORS[i]} strokeWidth={2} dot={false} />
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
+            <Card>
+              <CardHeader>
+                <CardTitle>月度支出趋势</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={trendData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-2)" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v / 1000}k`} />
+                    <RechartTooltip formatter={(v: number) => `¥${v.toLocaleString()}`} />
+                    <Legend />
+                    {['房租物业', '水电网络', '行政杂费', '设备维护'].map((key, i) => (
+                      <Line key={key} type="monotone" dataKey={key} stroke={PIE_COLORS[i]} strokeWidth={2} dot={false} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
             </Card>
           </div>
 
           {/* Op expense list */}
-          <Card
-            title="运营费用明细"
-            extra={
-              <Space>
-                <Select
-                  placeholder="筛选周期"
-                  style={{ width: 120 }}
-                  value={periodFilter || undefined}
-                  onChange={setPeriodFilter}
-                  allowClear
-                >
-                  {periods.map((p) => <Select.Option key={p} value={p}>{p}</Select.Option>)}
-                </Select>
-                <Select
-                  placeholder="费用类型"
-                  style={{ width: 120 }}
-                  value={typeFilter || undefined}
-                  onChange={setTypeFilter}
-                  allowClear
-                >
-                  {EXPENSE_TYPES.map((t) => <Select.Option key={t} value={t}>{t}</Select.Option>)}
-                </Select>
-                <Button type="primary" icon={<IconPlus />} size="small" onClick={openCreate}>
-                  录入费用
-                </Button>
-              </Space>
-            }
-          >
-            <Table
-              columns={opColumns}
-              data={filteredOp}
-              pagination={false}
-              scroll={{ x: 1200 }}
-              summary={() => (
-                <Table.Summary>
-                  <Table.Summary.Row>
-                    <Table.Summary.Cell colSpan={2} style={{ textAlign: 'right', fontWeight: 600 }}>
-                      合计
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell style={{ fontWeight: 600, color: 'rgb(var(--primary-6))' }}>
+          <Card>
+            <CardHeader>
+              <CardTitle>运营费用明细</CardTitle>
+              <CardAction>
+                <div className="flex items-center gap-2">
+                  <Select value={periodFilter || undefined} onValueChange={(v) => setPeriodFilter(v === '__all__' ? '' : v)}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="筛选周期" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">全部</SelectItem>
+                      {periods.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={typeFilter || undefined} onValueChange={(v) => setTypeFilter(v === '__all__' ? '' : v)}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="费用类型" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">全部</SelectItem>
+                      {EXPENSE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" onClick={openCreate}>
+                    <Plus className="size-4" />录入费用
+                  </Button>
+                </div>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead style={{ minWidth: 110 }}>发生日期</TableHead>
+                    <TableHead style={{ minWidth: 110 }}>成本类型</TableHead>
+                    <TableHead style={{ minWidth: 100 }}>金额</TableHead>
+                    <TableHead style={{ minWidth: 100 }}>归属周期</TableHead>
+                    <TableHead style={{ minWidth: 100 }}>分摊对象</TableHead>
+                    <TableHead style={{ minWidth: 140 }}>关联审批单号</TableHead>
+                    <TableHead style={{ minWidth: 100 }}>付款状态</TableHead>
+                    <TableHead style={{ minWidth: 80 }}>录入人</TableHead>
+                    <TableHead style={{ minWidth: 110 }} className="sticky right-0 bg-background">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredOp.map((record) => (
+                    <TableRow key={record.key}>
+                      <TableCell>{record.date}</TableCell>
+                      <TableCell><Badge className="bg-cyan-500 text-white">{record.type}</Badge></TableCell>
+                      <TableCell>¥{record.amount.toLocaleString()}</TableCell>
+                      <TableCell>{record.period}</TableCell>
+                      <TableCell>{record.allocation}</TableCell>
+                      <TableCell>{record.approvalNo}</TableCell>
+                      <TableCell>
+                        <Badge className={
+                          record.status === '已支付' ? 'bg-green-500 text-white'
+                            : record.status === '未支付' ? 'bg-orange-500 text-white'
+                            : 'bg-purple-500 text-white'
+                        }>
+                          {record.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{record.enteredBy}</TableCell>
+                      <TableCell className="sticky right-0 bg-background">
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(record)}>
+                            <Pencil className="size-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>确认删除？</AlertDialogTitle>
+                                <AlertDialogDescription>此操作不可撤销，确定要删除这条费用记录吗？</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(record.key)}>确认</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-right font-semibold">合计</TableCell>
+                    <TableCell className="font-semibold text-primary">
                       ¥{filteredTotal.toLocaleString()}
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell colSpan={6} />
-                  </Table.Summary.Row>
-                </Table.Summary>
-              )}
-            />
+                    </TableCell>
+                    <TableCell colSpan={6} />
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </CardContent>
           </Card>
-        </TabPane>
+        </TabsContent>
       </Tabs>
 
-      {/* Entry Modal */}
-      <Modal
-        title={editingEntry ? '编辑费用记录' : '录入运营费用'}
-        visible={entryVisible}
-        maskClosable={false}
-        style={{ width: 600 }}
-        onCancel={() => setEntryVisible(false)}
-        onOk={handleSave}
-        okText="保存"
-      >
-        <Form form={form} layout="vertical" autoComplete="off">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-            <Form.Item label="成本类型" field="type" rules={[{ required: true, message: '请选择成本类型' }]}>
-              <Select placeholder="请选择">
-                {EXPENSE_TYPES.map((t) => <Select.Option key={t} value={t}>{t}</Select.Option>)}
-              </Select>
-            </Form.Item>
-            <Form.Item label="归属周期" field="period" rules={[{ required: true, message: '请输入归属周期' }]}>
-              <Input placeholder="如：2026-05" />
-            </Form.Item>
-            <Form.Item label="发生日期" field="date" rules={[{ required: true, message: '请选择发生日期' }]}>
-              <DatePicker style={{ width: '100%' }} />
-            </Form.Item>
-            <Form.Item label="金额（元）" field="amount" rules={[{ required: true, message: '请输入金额' }]}>
-              <InputNumber min={0} style={{ width: '100%' }} placeholder="请输入金额" />
-            </Form.Item>
-            <Form.Item label="付款状态" field="status" rules={[{ required: true, message: '请选择状态' }]}>
-              <Select placeholder="请选择">
-                {STATUS_OPTIONS.map((s) => <Select.Option key={s} value={s}>{s}</Select.Option>)}
-              </Select>
-            </Form.Item>
-            <Form.Item label="分摊对象" field="allocation">
-              <Select placeholder="请选择" allowClear>
-                {ALLOCATION_OPTIONS.map((a) => <Select.Option key={a} value={a}>{a}</Select.Option>)}
-              </Select>
-            </Form.Item>
-            <Form.Item label="关联审批单号" field="approvalNo">
-              <Input placeholder="如：AP2026050001" />
-            </Form.Item>
-            <Form.Item label="录入人" field="enteredBy">
-              <Input disabled />
-            </Form.Item>
-          </div>
-        </Form>
-      </Modal>
+      {/* Entry Dialog */}
+      <Dialog open={entryVisible} onOpenChange={setEntryVisible}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{editingEntry ? '编辑费用记录' : '录入运营费用'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <div>
+                <Label>成本类型</Label>
+                <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
+                  <SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger>
+                  <SelectContent>
+                    {EXPENSE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>归属周期</Label>
+                <Input placeholder="如：2026-05" value={formData.period} onChange={(e) => setFormData({ ...formData, period: e.target.value })} />
+              </div>
+              <div>
+                <Label>发生日期</Label>
+                <Input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+              </div>
+              <div>
+                <Label>金额（元）</Label>
+                <Input type="number" min={0} placeholder="请输入金额" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} />
+              </div>
+              <div>
+                <Label>付款状态</Label>
+                <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+                  <SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>分摊对象</Label>
+                <Select value={formData.allocation || undefined} onValueChange={(v) => setFormData({ ...formData, allocation: v === '__none__' ? '' : v })}>
+                  <SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">无</SelectItem>
+                    {ALLOCATION_OPTIONS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>关联审批单号</Label>
+                <Input placeholder="如：AP2026050001" value={formData.approvalNo} onChange={(e) => setFormData({ ...formData, approvalNo: e.target.value })} />
+              </div>
+              <div>
+                <Label>录入人</Label>
+                <Input disabled value={formData.enteredBy} onChange={(e) => setFormData({ ...formData, enteredBy: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="outline" onClick={() => setEntryVisible(false)}>取消</Button>
+              <Button type="submit">保存</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,22 +1,30 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { Card, CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Checkbox } from '../components/ui/checkbox';
 import {
-  Card,
-  Input,
   Select,
-  DatePicker,
-  Button,
-  Avatar,
-  Tag,
-  Space,
-  Typography,
-  Collapse,
-  Badge,
-} from '@arco-design/web-react';
-import { IconSearch, IconRefresh, IconExport, IconFile, IconDown, IconRight } from '@arco-design/web-react/icon';
-
-const { RangePicker } = DatePicker;
-const { Text } = Typography;
-const CollapseItem = Collapse.Item;
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '../components/ui/select';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '../components/ui/popover';
+import {
+  Search,
+  RefreshCw,
+  Download,
+  FileText,
+  ChevronDown,
+  ChevronRight,
+  Check,
+} from 'lucide-react';
 
 type ActionType = '申请' | '通过' | '驳回' | '新增' | '修改' | '上传' | '删除';
 type BizModule = '出差' | '报销' | '报价' | '合同' | '项目';
@@ -84,6 +92,41 @@ const bizModuleColorMap: Record<BizModule, string> = {
   合同: 'arcoblue',
   项目: 'green',
 };
+
+function getBadgeClassName(color: string): string {
+  switch (color) {
+    case 'arcoblue':
+      return 'bg-blue-500 text-white border-transparent';
+    case 'green':
+      return 'bg-green-500 text-white border-transparent';
+    case 'red':
+      return ''; // use variant="destructive"
+    case 'purple':
+      return 'bg-purple-500 text-white border-transparent';
+    case 'orange':
+      return 'bg-orange-500 text-white border-transparent';
+    case 'cyan':
+      return 'bg-cyan-500 text-white border-transparent';
+    case 'gray':
+      return ''; // use variant="secondary"
+    default:
+      return '';
+  }
+}
+
+function getBadgeVariant(color: string): 'default' | 'destructive' | 'secondary' | 'outline' {
+  if (color === 'red') return 'destructive';
+  if (color === 'gray') return 'secondary';
+  return 'default';
+}
+
+function ColorBadge({ color, children }: { color: string; children: React.ReactNode }) {
+  const className = getBadgeClassName(color);
+  if (className) {
+    return <Badge className={className}>{children}</Badge>;
+  }
+  return <Badge variant={getBadgeVariant(color)}>{children}</Badge>;
+}
 
 const mockLogs: LogEntry[] = [
   {
@@ -210,27 +253,101 @@ function getAvatarColor(name: string) {
 
 function DiffRow({ change }: { change: FieldChange }) {
   return (
-    <div className="flex items-center gap-3" style={{ padding: '4px 0', fontSize: 13 }}>
-      <span style={{ color: 'var(--color-text-3)', width: 90, flexShrink: 0 }}>{change.field}</span>
-      <span style={{
-        padding: '1px 8px',
-        background: '#fff1f0',
-        color: '#cf1322',
-        borderRadius: 4,
-        textDecoration: change.before !== '—' ? 'line-through' : 'none',
-        fontFamily: 'monospace',
-      }}>{change.before}</span>
+    <div className="flex items-center gap-3 py-1 text-[13px]">
+      <span className="text-muted-foreground w-[90px] shrink-0">{change.field}</span>
+      <span
+        className="px-2 py-px rounded font-mono"
+        style={{
+          background: '#fff1f0',
+          color: '#cf1322',
+          textDecoration: change.before !== '—' ? 'line-through' : 'none',
+        }}
+      >
+        {change.before}
+      </span>
       {change.before !== '—' && (
         <>
-          <span style={{ color: '#aaa' }}>→</span>
-          <span style={{
-            padding: '1px 8px',
-            background: '#f6ffed',
-            color: '#389e0d',
-            borderRadius: 4,
-            fontFamily: 'monospace',
-          }}>{change.after}</span>
+          <span className="text-muted-foreground">→</span>
+          <span
+            className="px-2 py-px rounded font-mono"
+            style={{ background: '#f6ffed', color: '#389e0d' }}
+          >
+            {change.after}
+          </span>
         </>
+      )}
+    </div>
+  );
+}
+
+/** Multi-select dropdown using Popover + Checkbox */
+function MultiSelect({
+  placeholder,
+  options,
+  value,
+  onChange,
+  width,
+}: {
+  placeholder: string;
+  options: { value: string; label: string }[];
+  value: string[];
+  onChange: (val: string[]) => void;
+  width?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggle = (val: string) => {
+    onChange(
+      value.includes(val)
+        ? value.filter((v) => v !== val)
+        : [...value, val]
+    );
+  };
+
+  return (
+    <div ref={ref} className="relative" style={{ width: width ?? 200 }}>
+      <button
+        type="button"
+        className="border-input bg-background hover:bg-accent flex h-9 w-full items-center justify-between rounded-md border px-3 text-sm"
+        onClick={() => setOpen(!open)}
+      >
+        <span className={value.length === 0 ? 'text-muted-foreground' : ''}>
+          {value.length === 0
+            ? placeholder
+            : value.length === 1
+              ? options.find((o) => o.value === value[0])?.label ?? value[0]
+              : `已选 ${value.length} 项`}
+        </span>
+        <ChevronDown className="size-4 opacity-50" />
+      </button>
+      {open && (
+        <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-full rounded-md border shadow-md">
+          <div className="max-h-60 overflow-y-auto p-1">
+            {options.map((opt) => (
+              <label
+                key={opt.value}
+                className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm"
+              >
+                <Checkbox
+                  checked={value.includes(opt.value)}
+                  onCheckedChange={() => toggle(opt.value)}
+                />
+                <span>{opt.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -241,7 +358,8 @@ export function ProjectLogView() {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [selectedActionTypes, setSelectedActionTypes] = useState<string[]>([]);
   const [keyword, setKeyword] = useState('');
-  const [dateRange, setDateRange] = useState<any[]>([]);
+  const [dateStart, setDateStart] = useState('');
+  const [dateEnd, setDateEnd] = useState('');
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
 
   const filtered = mockLogs.filter((log) => {
@@ -263,190 +381,202 @@ export function ProjectLogView() {
     setSelectedMembers([]);
     setSelectedActionTypes([]);
     setKeyword('');
-    setDateRange([]);
+    setDateStart('');
+    setDateEnd('');
   };
 
   return (
     <div>
       {/* Filter Bar */}
-      <Card style={{ marginBottom: 16 }}>
-        <div className="flex flex-wrap gap-3 items-center">
-          <Input
-            style={{ width: 220 }}
-            placeholder="搜索日志内容"
-            prefix={<IconSearch />}
-            value={keyword}
-            onChange={setKeyword}
-            allowClear
-          />
-          <Select
-            style={{ width: 180 }}
-            placeholder="选择项目"
-            value={selectedProject}
-            onChange={setSelectedProject}
-            options={allProjects}
-          />
-          <Select
-            mode="multiple"
-            style={{ width: 200 }}
-            placeholder="操作人员（多选）"
-            value={selectedMembers}
-            onChange={setSelectedMembers}
-            allowClear
-            options={allMembers}
-          />
-          <Select
-            mode="multiple"
-            style={{ width: 220 }}
-            placeholder="操作类型（多选）"
-            value={selectedActionTypes}
-            onChange={setSelectedActionTypes}
-            allowClear
-            options={actionTypeOptions.map((t) => ({ value: t, label: t }))}
-          />
-          <RangePicker
-            style={{ width: 260 }}
-            placeholder={['开始日期', '结束日期']}
-            value={dateRange}
-            onChange={setDateRange}
-          />
-          <Button onClick={handleReset}>重置</Button>
-          <div style={{ marginLeft: 'auto' }}>
-            <Space>
-              <Button icon={<IconRefresh />} onClick={() => {}}>刷新</Button>
-              <Button icon={<IconExport />}>导出日志</Button>
-            </Space>
+      <Card className="mb-4">
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+              <Input
+                className="w-[220px] pl-9"
+                placeholder="搜索日志内容"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+              />
+            </div>
+            <Select value={selectedProject} onValueChange={setSelectedProject}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="选择项目" />
+              </SelectTrigger>
+              <SelectContent>
+                {allProjects.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <MultiSelect
+              placeholder="操作人员（多选）"
+              options={allMembers}
+              value={selectedMembers}
+              onChange={setSelectedMembers}
+              width={200}
+            />
+            <MultiSelect
+              placeholder="操作类型（多选）"
+              options={actionTypeOptions.map((t) => ({ value: t, label: t }))}
+              value={selectedActionTypes}
+              onChange={setSelectedActionTypes}
+              width={220}
+            />
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                className="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                value={dateStart}
+                onChange={(e) => setDateStart(e.target.value)}
+              />
+              <span className="text-muted-foreground text-sm">-</span>
+              <input
+                type="date"
+                className="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                value={dateEnd}
+                onChange={(e) => setDateEnd(e.target.value)}
+              />
+            </div>
+            <Button variant="outline" onClick={handleReset}>
+              重置
+            </Button>
+            <div className="ml-auto flex gap-2">
+              <Button variant="outline" onClick={() => {}}>
+                <RefreshCw className="size-4" />
+                刷新
+              </Button>
+              <Button variant="outline">
+                <Download className="size-4" />
+                导出日志
+              </Button>
+            </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
 
       {/* Log Timeline */}
-      <div style={{ position: 'relative' }}>
+      <div className="relative">
         {/* Vertical timeline line */}
-        <div style={{
-          position: 'absolute',
-          left: 20,
-          top: 0,
-          bottom: 0,
-          width: 2,
-          background: 'var(--color-border-2)',
-          zIndex: 0,
-        }} />
+        <div
+          className="absolute left-5 top-0 bottom-0 w-0.5 bg-border"
+          style={{ zIndex: 0 }}
+        />
 
-        <div className="flex flex-col gap-3" style={{ paddingLeft: 52 }}>
+        <div className="flex flex-col gap-3 pl-[52px]">
           {filtered.length === 0 && (
             <Card>
-              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-3)' }}>
+              <CardContent className="py-10 text-center text-muted-foreground">
                 暂无日志记录
-              </div>
+              </CardContent>
             </Card>
           )}
 
           {filtered.map((log) => {
             const expanded = expandedKeys.includes(log.id);
             return (
-              <div key={log.id} style={{ position: 'relative' }}>
-                {/* Timeline dot */}
-                <div style={{
-                  position: 'absolute',
-                  left: -44,
-                  top: 16,
-                  zIndex: 1,
-                }}>
-                  <Avatar
-                    size={28}
-                    style={{ background: getAvatarColor(log.userName), fontSize: 12, fontWeight: 600 }}
+              <div key={log.id} className="relative">
+                {/* Timeline avatar dot */}
+                <div className="absolute -left-[44px] top-4 z-[1]">
+                  <div
+                    className="flex items-center justify-center rounded-full text-xs font-semibold text-white"
+                    style={{
+                      backgroundColor: getAvatarColor(log.userName),
+                      width: 28,
+                      height: 28,
+                    }}
                   >
                     {log.userName.slice(0, 1)}
-                  </Avatar>
+                  </div>
                 </div>
 
                 <Card
+                  className="cursor-pointer transition-[border-color]"
                   style={{
-                    cursor: 'pointer',
-                    border: expanded ? '1px solid rgb(var(--primary-6))' : '1px solid var(--color-border-2)',
-                    transition: 'border-color 0.2s',
+                    borderColor: expanded ? 'hsl(var(--primary))' : undefined,
                   }}
-                  bodyStyle={{ padding: 0 }}
                 >
                   {/* Header row */}
                   <div
-                    className="flex items-center gap-3"
-                    style={{ padding: '12px 16px' }}
+                    className="flex items-center gap-3 px-4 py-3"
                     onClick={() => toggleExpand(log.id)}
                   >
-                    <span style={{ color: 'var(--color-text-3)', fontSize: 12, minWidth: 120 }}>
+                    <span className="text-muted-foreground min-w-[120px] text-xs">
                       {log.createdAt}
                     </span>
-                    <span style={{ fontWeight: 500, fontSize: 13, color: 'var(--color-text-1)', flex: 1 }}>
-                      <span style={{ color: getAvatarColor(log.userName), marginRight: 4 }}>{log.userName}</span>
+                    <span className="flex-1 text-[13px] font-medium text-foreground">
+                      <span className="mr-1" style={{ color: getAvatarColor(log.userName) }}>
+                        {log.userName}
+                      </span>
                       {log.summary}
                     </span>
-                    <Space size={6}>
-                      <Tag color={bizModuleColorMap[log.bizModule]} size="small">{log.bizModule}</Tag>
-                      <Tag color={actionColorMap[log.actionType]} size="small">{log.actionType}</Tag>
-                    </Space>
-                    <span style={{ color: 'var(--color-text-3)', fontSize: 12 }}>
-                      {expanded ? <IconDown /> : <IconRight />}
+                    <div className="flex gap-1.5">
+                      <ColorBadge color={bizModuleColorMap[log.bizModule]}>
+                        {log.bizModule}
+                      </ColorBadge>
+                      <ColorBadge color={actionColorMap[log.actionType]}>
+                        {log.actionType}
+                      </ColorBadge>
+                    </div>
+                    <span className="text-muted-foreground">
+                      {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
                     </span>
                   </div>
 
                   {/* Expanded detail */}
                   {expanded && (
-                    <div style={{
-                      borderTop: '1px solid var(--color-border-2)',
-                      padding: '14px 16px',
-                      background: 'var(--color-fill-1)',
-                    }}>
-                      <div className="flex gap-6 flex-wrap">
+                    <div className="border-t bg-muted/50 px-4 py-3.5">
+                      <div className="flex flex-wrap gap-6">
                         {/* Left: context */}
-                        <div style={{ flex: 1, minWidth: 280 }}>
+                        <div className="min-w-[280px] flex-1">
                           {/* Business no */}
-                          <div style={{ marginBottom: 12 }}>
-                            <span style={{ color: 'var(--color-text-3)', fontSize: 12 }}>业务单号：</span>
-                            <a style={{ fontSize: 13, color: 'rgb(var(--primary-6))' }}>{log.bizNo}</a>
-                            <span style={{ marginLeft: 8, color: 'var(--color-text-3)', fontSize: 12 }}>
+                          <div className="mb-3">
+                            <span className="text-muted-foreground text-xs">业务单号：</span>
+                            <a className="text-[13px] text-primary">{log.bizNo}</a>
+                            <span className="ml-2 text-muted-foreground text-xs">
                               {log.projectName}
                             </span>
                           </div>
 
                           {/* Comment */}
                           {log.comment && (
-                            <div style={{
-                              padding: '8px 12px',
-                              background: '#fffbe6',
-                              border: '1px solid #ffe58f',
-                              borderRadius: 6,
-                              fontSize: 13,
-                              color: '#614700',
-                              marginBottom: 12,
-                            }}>
-                              <span style={{ fontWeight: 500, marginRight: 6 }}>批注：</span>
+                            <div
+                              className="mb-3 rounded-md border px-3 py-2 text-[13px]"
+                              style={{
+                                background: '#fffbe6',
+                                borderColor: '#ffe58f',
+                                color: '#614700',
+                              }}
+                            >
+                              <span className="mr-1.5 font-medium">批注：</span>
                               {log.comment}
                             </div>
                           )}
 
                           {/* Daily report content */}
                           {(log.workHours !== undefined || log.workContent) && (
-                            <div style={{
-                              padding: '10px 12px',
-                              background: '#e6f7ff',
-                              border: '1px solid #91d5ff',
-                              borderRadius: 6,
-                              marginBottom: 12,
-                            }}>
-                              <div style={{ fontSize: 12, fontWeight: 500, color: '#003a8c', marginBottom: 8 }}>
+                            <div
+                              className="mb-3 rounded-md border px-3 py-2.5"
+                              style={{
+                                background: '#e6f7ff',
+                                borderColor: '#91d5ff',
+                              }}
+                            >
+                              <div className="mb-2 text-xs font-medium" style={{ color: '#003a8c' }}>
                                 📊 日报内容
                               </div>
                               {log.workHours !== undefined && (
-                                <div style={{ fontSize: 13, color: '#002766', marginBottom: 6 }}>
-                                  <span style={{ fontWeight: 500 }}>工作时长：</span>
-                                  <span style={{ color: 'rgb(var(--primary-6))', fontWeight: 600 }}>{log.workHours}</span> 小时
+                                <div className="mb-1.5 text-[13px]" style={{ color: '#002766' }}>
+                                  <span className="font-medium">工作时长：</span>
+                                  <span className="font-semibold text-primary">{log.workHours}</span> 小时
                                 </div>
                               )}
                               {log.workContent && (
-                                <div style={{ fontSize: 13, color: '#002766' }}>
-                                  <span style={{ fontWeight: 500 }}>工作内容：</span>
+                                <div className="text-[13px]" style={{ color: '#002766' }}>
+                                  <span className="font-medium">工作内容：</span>
                                   <span>{log.workContent}</span>
                                 </div>
                               )}
@@ -456,14 +586,11 @@ export function ProjectLogView() {
                           {/* Field changes */}
                           {log.changes.length > 0 && (
                             <div>
-                              <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 6 }}>字段变更</div>
-                              <div style={{
-                                border: '1px solid var(--color-border-2)',
-                                borderRadius: 6,
-                                padding: '6px 10px',
-                                background: '#fff',
-                              }}>
-                                {log.changes.map((c, i) => <DiffRow key={i} change={c} />)}
+                              <div className="text-muted-foreground mb-1.5 text-xs">字段变更</div>
+                              <div className="rounded-md border bg-white px-2.5 py-1.5">
+                                {log.changes.map((c, i) => (
+                                  <DiffRow key={i} change={c} />
+                                ))}
                               </div>
                             </div>
                           )}
@@ -471,30 +598,26 @@ export function ProjectLogView() {
 
                         {/* Right: attachments */}
                         {log.attachments.length > 0 && (
-                          <div style={{ minWidth: 200 }}>
-                            <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 6 }}>附件</div>
+                          <div className="min-w-[200px]">
+                            <div className="text-muted-foreground mb-1.5 text-xs">附件</div>
                             <div className="flex flex-col gap-2">
                               {log.attachments.map((att, i) => (
-                                <div key={i} className="flex items-center gap-2" style={{
-                                  padding: '6px 10px',
-                                  border: '1px solid var(--color-border-2)',
-                                  borderRadius: 6,
-                                  background: '#fff',
-                                }}>
-                                  <IconFile style={{ color: 'rgb(var(--primary-6))', fontSize: 16 }} />
+                                <div
+                                  key={i}
+                                  className="flex items-center gap-2 rounded-md border bg-white px-2.5 py-1.5"
+                                >
+                                  <FileText className="size-4 text-primary" />
                                   <div>
                                     <div>
-                                      <a style={{
-                                        fontSize: 13,
-                                        color: 'var(--primary)',
-                                        padding: '2px 4px',
-                                        borderRadius: 4,
-                                      }}
-                                      onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'}
-                                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                      >{att.name}</a>
+                                      <a
+                                        className="rounded px-1 py-0.5 text-[13px] text-primary hover:bg-muted cursor-pointer"
+                                      >
+                                        {att.name}
+                                      </a>
                                     </div>
-                                    <div style={{ fontSize: 11, color: 'var(--color-text-3)' }}>{att.size}</div>
+                                    <div className="text-muted-foreground text-[11px]">
+                                      {att.size}
+                                    </div>
                                   </div>
                                 </div>
                               ))}

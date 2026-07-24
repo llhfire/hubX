@@ -1,28 +1,41 @@
 import { useState, useMemo } from 'react';
+import { Card, CardContent } from '../../components/ui/card';
 import {
-  Card,
-  Grid,
-  Statistic,
   Table,
-  Button,
-  Space,
-  Tag,
-  Select,
-  DatePicker,
-  Modal,
-  Form,
-  Input,
-  Radio,
-  Message,
-  Typography,
-} from '@arco-design/web-react';
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 import {
-  IconPlus,
-  IconCheck,
-  IconCalendar,
-  IconClockCircle,
-  IconExclamationCircle,
-} from '@arco-design/web-react/icon';
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
+import { Textarea } from '../../components/ui/textarea';
+import { toast } from 'sonner';
+import {
+  Plus,
+  Check,
+  CalendarDays,
+  Clock,
+  AlertCircle,
+} from 'lucide-react';
 import { useEmployee } from './EmployeeContext';
 import {
   AttendanceRecord,
@@ -32,43 +45,57 @@ import {
   ALL_EMPLOYMENT_STATUSES,
 } from './mockData';
 
-const Row = Grid.Row;
-const Col = Grid.Col;
-const FormItem = Form.Item;
-const { MonthPicker } = DatePicker;
-
 const LEAVE_TYPE_COLORS: Record<LeaveType, string> = {
-  '年假': '#165dff',
-  '事假': '#ff7d00',
-  '病假': '#f53f3f',
-  '调休': '#0fc6c2',
-  '婚宴': '#eb2f96',
-  '产宴': '#eb2f96',
-  '丧宴': '#86909c',
-  '加班': '#00b42a',
+  '年假': 'bg-blue-500',
+  '事假': 'bg-orange-500',
+  '病假': 'bg-red-500',
+  '调休': 'bg-teal-500',
+  '婚宴': 'bg-pink-500',
+  '产宴': 'bg-pink-500',
+  '丧宴': 'bg-gray-500',
+  '加班': 'bg-green-500',
 };
 
 const ATTENDANCE_STATUS_COLORS: Record<AttendanceStatus, string> = {
-  '已批准': '#00b42a',
-  '待审批': '#ff7d00',
-  '已拒绝': '#f53f3f',
-  '已撤销': '#86909c',
+  '已批准': 'bg-green-500',
+  '待审批': 'bg-orange-500',
+  '已拒绝': 'bg-red-500',
+  '已撤销': 'bg-gray-500',
 };
 
-function getStatusColor(s: AttendanceStatus) {
-  return ATTENDANCE_STATUS_COLORS[s] || '#86909c';
+function getStatusBadgeClass(s: AttendanceStatus) {
+  return ATTENDANCE_STATUS_COLORS[s] || 'bg-gray-500';
+}
+
+function StatCard({ title, value, suffix, icon }: { title: string; value: number; suffix: string; icon: React.ReactNode }) {
+  return (
+    <Card>
+      <CardContent className="py-4">
+        <div className="text-sm text-muted-foreground">{title}</div>
+        <div className="flex items-center gap-2 mt-1">
+          {icon}
+          <span className="text-2xl font-bold">{value}</span>
+          <span className="text-sm text-muted-foreground">{suffix}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function AttendanceManagement() {
   const { attendance, employees, addAttendance, approveAttendance, rejectAttendance } = useEmployee();
 
-  const [filterType, setFilterType] = useState<LeaveType | ''>('');
-  const [filterStatus, setFilterStatus] = useState<AttendanceStatus | ''>('');
+  const [filterType, setFilterType] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
   const [filterMonth, setFilterMonth] = useState(new Date().toISOString().slice(0, 7));
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [form] = Form.useForm();
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formEmployeeId, setFormEmployeeId] = useState('');
+  const [formType, setFormType] = useState<LeaveType>('年假');
+  const [formStartDate, setFormStartDate] = useState('');
+  const [formEndDate, setFormEndDate] = useState('');
+  const [formDays, setFormDays] = useState('');
+  const [formReason, setFormReason] = useState('');
 
   // 筛选
   const filteredRecords = useMemo(() => {
@@ -94,219 +121,246 @@ export function AttendanceManagement() {
   }, [attendance]);
 
   const handleAdd = () => {
-    form.resetFields();
-    setSelectedEmployeeId('');
-    setModalVisible(true);
+    setFormEmployeeId('');
+    setFormType('年假');
+    setFormStartDate('');
+    setFormEndDate('');
+    setFormDays('');
+    setFormReason('');
+    setDialogOpen(true);
   };
 
   const handleSubmit = () => {
-    form.validate().then(values => {
-      addAttendance({
-        employeeId: values.employeeId,
-        employeeName: employees.find(e => e.id === values.employeeId)?.name || '',
-        type: values.type,
-        startDate: values.dateRange[0],
-        endDate: values.dateRange[1],
-        days: values.days,
-        reason: values.reason,
-        status: '待审批',
-        createdAt: new Date().toISOString().slice(0, 10),
-      });
-      Message.success('申请已提交，等待审批');
-      setModalVisible(false);
+    if (!formEmployeeId) {
+      toast.error('请选择申请人');
+      return;
+    }
+    if (!formStartDate || !formEndDate) {
+      toast.error('请选择日期范围');
+      return;
+    }
+    if (!formDays || !/^\d+(\.5)?$/.test(formDays)) {
+      toast.error('请输入正确的天数');
+      return;
+    }
+    if (!formReason) {
+      toast.error('请输入事由');
+      return;
+    }
+    addAttendance({
+      employeeId: formEmployeeId,
+      employeeName: employees.find(e => e.id === formEmployeeId)?.name || '',
+      type: formType,
+      startDate: formStartDate,
+      endDate: formEndDate,
+      days: parseFloat(formDays),
+      reason: formReason,
+      status: '待审批',
+      createdAt: new Date().toISOString().slice(0, 10),
     });
+    toast.success('申请已提交，等待审批');
+    setDialogOpen(false);
   };
 
   const handleApprove = (id: string) => {
     approveAttendance(id, '当前管理员');
-    Message.success('已批准');
+    toast.success('已批准');
   };
 
   const handleReject = (id: string) => {
     rejectAttendance(id, '当前管理员');
-    Message.success('已拒绝');
+    toast.success('已拒绝');
   };
 
-  const columns = [
-    { title: '申请人', dataIndex: 'employeeName', width: 80 },
-    {
-      title: '类型',
-      dataIndex: 'type',
-      width: 70,
-      render: (t: LeaveType) => (
-        <Tag color={LEAVE_TYPE_COLORS[t]}>{t}</Tag>
-      ),
-    },
-    { title: '开始日期', dataIndex: 'startDate', width: 110 },
-    { title: '结束日期', dataIndex: 'endDate', width: 110 },
-    { title: '天数', dataIndex: 'days', width: 60, render: (d: number) => `${d}天` },
-    { title: '事由', dataIndex: 'reason', ellipsis: true },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 80,
-      render: (s: AttendanceStatus) => (
-        <Tag color={getStatusColor(s)}>{s}</Tag>
-      ),
-    },
-    {
-      title: '操作',
-      width: 130,
-      render: (_: unknown, record: AttendanceRecord) => {
-        if (record.status !== '待审批') return <span style={{ color: 'var(--color-text-3)' }}>—</span>;
-        return (
-          <Space>
-            <Button type="text" size="small" style={{ color: '#00b42a' }} onClick={() => handleApprove(record.id)}>
-              批准
-            </Button>
-            <Button type="text" size="small" status="danger" onClick={() => handleReject(record.id)}>
-              拒绝
-            </Button>
-          </Space>
-        );
-      },
-    },
-  ];
-
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <div className="flex flex-col gap-4 w-full">
       {/* 摘要栏 */}
-      <Row gutter={16}>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title={<span style={{ color: 'var(--color-text-2)' }}>本月请假天数</span>}
-              value={stats.totalLeaveDays}
-              prefix={<IconCalendar style={{ color: '#ff7d00' }} />}
-              suffix="天"
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title={<span style={{ color: 'var(--color-text-2)' }}>本月加班时长</span>}
-              value={stats.totalOvertimeHours}
-              prefix={<IconClockCircle style={{ color: '#00b42a' }} />}
-              suffix="小时"
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title={<span style={{ color: 'var(--color-text-2)' }}>待审批申请</span>}
-              value={stats.pendingCount}
-              prefix={<IconExclamationCircle style={{ color: '#ff7d00' }} />}
-              suffix="条"
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title={<span style={{ color: 'var(--color-text-2)' }}>本月有考勤记录</span>}
-              value={stats.attendedCount}
-              prefix={<IconCheck style={{ color: 'rgb(var(--primary-6))' }} />}
-              suffix="人"
-            />
-          </Card>
-        </Col>
-      </Row>
+      <div className="grid grid-cols-4 gap-4">
+        <StatCard
+          title="本月请假天数"
+          value={stats.totalLeaveDays}
+          suffix="天"
+          icon={<CalendarDays className="text-orange-500" />}
+        />
+        <StatCard
+          title="本月加班时长"
+          value={stats.totalOvertimeHours}
+          suffix="小时"
+          icon={<Clock className="text-green-500" />}
+        />
+        <StatCard
+          title="待审批申请"
+          value={stats.pendingCount}
+          suffix="条"
+          icon={<AlertCircle className="text-orange-500" />}
+        />
+        <StatCard
+          title="本月有考勤记录"
+          value={stats.attendedCount}
+          suffix="人"
+          icon={<Check className="text-primary" />}
+        />
+      </div>
 
       {/* 筛选 + 列表 */}
-      <Card bordered={false}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16, alignItems: 'center' }}>
-          <MonthPicker
-            style={{ width: 150 }}
-            placeholder="选择月份"
-            value={filterMonth}
-            onChange={(_, dateStr) => setFilterMonth(dateStr as string)}
-          />
-          <Select
-            style={{ width: 120 }}
-            placeholder="全部类型"
-            allowClear
-            value={filterType}
-            onChange={v => setFilterType(v as LeaveType | '')}
-          >
-            {ALL_LEAVE_TYPES.map(t => (
-              <Select.Option key={t} value={t}>{t}</Select.Option>
-            ))}
-          </Select>
-          <Select
-            style={{ width: 120 }}
-            placeholder="全部状态"
-            allowClear
-            value={filterStatus}
-            onChange={v => setFilterStatus(v as AttendanceStatus | '')}
-          >
-            {(['已批准', '待审批', '已拒绝', '已撤销'] as AttendanceStatus[]).map(s => (
-              <Select.Option key={s} value={s}>{s}</Select.Option>
-            ))}
-          </Select>
-          <div style={{ marginLeft: 'auto' }}>
-            <Button type="primary" icon={<IconPlus />} onClick={handleAdd}>
-              新增申请
-            </Button>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-3 mb-4 items-center">
+            <Input
+              type="month"
+              className="w-[150px]"
+              value={filterMonth}
+              onChange={e => setFilterMonth(e.target.value)}
+            />
+            <Select value={filterType || '__all__'} onValueChange={v => setFilterType(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="全部类型" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">全部类型</SelectItem>
+                {ALL_LEAVE_TYPES.map(t => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus || '__all__'} onValueChange={v => setFilterStatus(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="全部状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">全部状态</SelectItem>
+                {(['已批准', '待审批', '已拒绝', '已撤销'] as AttendanceStatus[]).map(s => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="ml-auto">
+              <Button onClick={handleAdd}>
+                <Plus className="mr-1 size-4" />
+                新增申请
+              </Button>
+            </div>
           </div>
-        </div>
-        <Table
-          columns={columns as any}
-          data={filteredRecords}
-          rowKey="id"
-          pagination={{ pageSize: 10, showTotal: true }}
-        />
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>申请人</TableHead>
+                <TableHead>类型</TableHead>
+                <TableHead>开始日期</TableHead>
+                <TableHead>结束日期</TableHead>
+                <TableHead>天数</TableHead>
+                <TableHead>事由</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead>操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRecords.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    暂无数据
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredRecords.map(record => (
+                  <TableRow key={record.id}>
+                    <TableCell>{record.employeeName}</TableCell>
+                    <TableCell>
+                      <Badge className={LEAVE_TYPE_COLORS[record.type]}>{record.type}</Badge>
+                    </TableCell>
+                    <TableCell>{record.startDate}</TableCell>
+                    <TableCell>{record.endDate}</TableCell>
+                    <TableCell>{record.days}天</TableCell>
+                    <TableCell className="max-w-[200px] truncate">{record.reason}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadgeClass(record.status)}>{record.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {record.status !== '待审批' ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" className="text-green-600" onClick={() => handleApprove(record.id)}>
+                            批准
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleReject(record.id)}>
+                            拒绝
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
       </Card>
 
       {/* 新增申请弹窗 */}
-      <Modal
-        title={<Space><IconPlus /><span>新增请假/加班申请</span></Space>}
-        visible={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-      >
-        <Form form={form} layout="vertical">
-          <FormItem label="申请人" field="employeeId" rules={[{ required: true, message: '请选择申请人' }]}>
-            <Select placeholder="请选择申请人" onChange={setSelectedEmployeeId}>
-              {employees
-                .filter(e => e.employmentStatus !== '已离职')
-                .map(e => (
-                  <Select.Option key={e.id} value={e.id}>
-                    {e.name}（{e.department}/{e.position}）
-                  </Select.Option>
-                ))}
-            </Select>
-          </FormItem>
-          <FormItem label="类型" field="type" rules={[{ required: true, message: '请选择类型' }]}>
-            <Radio.Group>
-              <Space wrap>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="size-4" />
+              新增请假/加班申请
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>申请人</Label>
+              <Select value={formEmployeeId} onValueChange={setFormEmployeeId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择申请人" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees
+                    .filter(e => e.employmentStatus !== '已离职')
+                    .map(e => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.name}（{e.department}/{e.position}）
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>类型</Label>
+              <RadioGroup value={formType} onValueChange={v => setFormType(v as LeaveType)} className="flex flex-wrap gap-4">
                 {ALL_LEAVE_TYPES.map(t => (
-                  <Radio key={t} value={t}>{t}</Radio>
+                  <div key={t} className="flex items-center gap-2">
+                    <RadioGroupItem value={t} id={`type-${t}`} />
+                    <Label htmlFor={`type-${t}`}>{t}</Label>
+                  </div>
                 ))}
-              </Space>
-            </Radio.Group>
-          </FormItem>
-          <FormItem label="日期范围" field="dateRange" rules={[{ required: true, message: '请选择日期范围' }]}>
-            <DatePicker.RangePicker style={{ width: '100%' }} />
-          </FormItem>
-          <FormItem
-            label="天数"
-            field="days"
-            rules={[
-              { required: true, message: '请输入天数' },
-              { match: /^\d+(\.5)?$/, message: '请输入数字（可带 .5）' },
-            ]}
-          >
-            <Input placeholder="如 1, 0.5, 3" suffix="天" />
-          </FormItem>
-          <FormItem label="事由" field="reason" rules={[{ required: true, message: '请输入事由' }]}>
-            <Input.TextArea placeholder="请输入请假/加班事由" autoSize={{ minRows: 3, maxRows: 6 }} />
-          </FormItem>
-        </Form>
-      </Modal>
-    </Space>
+              </RadioGroup>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>开始日期</Label>
+                <Input type="date" value={formStartDate} onChange={e => setFormStartDate(e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label>结束日期</Label>
+                <Input type="date" value={formEndDate} onChange={e => setFormEndDate(e.target.value)} />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>天数</Label>
+              <Input placeholder="如 1, 0.5, 3" value={formDays} onChange={e => setFormDays(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>事由</Label>
+              <Textarea placeholder="请输入请假/加班事由" rows={4} value={formReason} onChange={e => setFormReason(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>取消</Button>
+            <Button onClick={handleSubmit}>提交</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

@@ -1,19 +1,16 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
 import {
-  Button,
-  Card,
-  Empty,
-  Modal,
-  Space,
-  Tag,
-  Typography,
-  Upload,
-  Message,
-} from '@arco-design/web-react';
-import { IconDelete, IconEye, IconUpload } from '@arco-design/web-react/icon';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../../../components/ui/dialog';
+import { toast } from 'sonner';
+import { Upload, Eye } from 'lucide-react';
 import type { ScanArchiveEntry, ScanFile } from '../types';
-
-const Text = Typography.Text;
 
 interface Props {
   entries: ScanArchiveEntry[];
@@ -41,24 +38,23 @@ export function ScanFileList({
   onSetPrimary,
 }: Props) {
   const [previewFile, setPreviewFile] = useState<ScanFile | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleBeforeUpload = (file: File): boolean => {
-    // 单文件 ≤ 20MB；mimeType 仅允许 PDF/图片
     if (file.size > MAX_FILE_SIZE) {
-      Message.error(`${file.name} 超过 20MB 上限`);
+      toast.error(`${file.name} 超过 20MB 上限`);
       return false;
     }
     const isAllowed =
       file.type === 'application/pdf' ||
       file.type.startsWith('image/');
     if (!isAllowed) {
-      Message.error(`${file.name} 不是 PDF/图片，已忽略`);
+      toast.error(`${file.name} 不是 PDF/图片，已忽略`);
       return false;
     }
     return true;
   };
 
-  // 把 Arco Upload 的多文件批量转成 ScanFile 数组并触发回调
   const handleUploadFiles = (files: File[]) => {
     const validFiles = files.filter((f) => handleBeforeUpload(f));
     if (validFiles.length === 0) return;
@@ -72,43 +68,53 @@ export function ScanFileList({
       uploadedBy: '李四',
     }));
     onUpload(scanFiles);
-    Message.success(
+    toast.success(
       uploadIntent === 'first'
         ? `已收到客户回寄件，合同状态已切换至「已归档」`
         : `已补充扫描件`,
     );
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    handleUploadFiles(Array.from(files));
+    // 重置 input 以便再次选择同一文件
+    e.target.value = '';
+  };
+
   return (
     <div>
       {uploadEnabled && (
-        <Card style={{ marginBottom: 16 }} bordered={false}>
-          <Upload
-            multiple
-            drag
-            accept=".pdf,image/*"
-            showUploadList={false}
-            customRequest={({ file }) => {
-              // Arco 的 customRequest 一次处理一个文件；这里收集成数组后立即上传
-              handleUploadFiles([file as File]);
-            }}
-          >
-            <div style={{ padding: 24 }}>
-              <IconUpload style={{ fontSize: 32, color: 'var(--color-text-3)' }} />
-              <div style={{ marginTop: 8, color: 'var(--color-text-2)' }}>
+        <Card className="mb-4">
+          <CardContent className="pt-4">
+            <div
+              className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="size-8 mx-auto text-muted-foreground" />
+              <div className="mt-2 text-muted-foreground text-sm">
                 {uploadIntent === 'first'
                   ? '点击或拖拽上传客户回寄盖章件（PDF / 图片，单文件 ≤ 20MB）'
                   : '补充上传扫描件（PDF / 图片，单文件 ≤ 20MB）'}
               </div>
             </div>
-          </Upload>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </CardContent>
         </Card>
       )}
 
       {entries.length === 0 ? (
-        <Empty description="尚无扫描件" />
+        <div className="text-center text-muted-foreground py-8">尚无扫描件</div>
       ) : (
-        <Space direction="vertical" style={{ width: '100%' }} size="small">
+        <div className="flex flex-col gap-2">
           {entries.map((entry) => (
             <ScanEntryCard
               key={entry.id}
@@ -117,18 +123,17 @@ export function ScanFileList({
               onPreview={(f) => setPreviewFile(f)}
             />
           ))}
-        </Space>
+        </div>
       )}
 
-      <Modal
-        title={previewFile?.fileName ?? '预览'}
-        visible={!!previewFile}
-        onCancel={() => setPreviewFile(null)}
-        footer={null}
-        style={{ width: 800 }}
-      >
-        {previewFile && <FilePreview file={previewFile} />}
-      </Modal>
+      <Dialog open={!!previewFile} onOpenChange={(open) => { if (!open) setPreviewFile(null); }}>
+        <DialogContent className="max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>{previewFile?.fileName ?? '预览'}</DialogTitle>
+          </DialogHeader>
+          {previewFile && <FilePreview file={previewFile} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -143,57 +148,45 @@ function ScanEntryCard({
   onPreview: (f: ScanFile) => void;
 }) {
   return (
-    <Card
-      bodyStyle={{ padding: 12 }}
-      style={{
-        border: entry.isPrimary ? '1px solid rgb(var(--primary-6))' : undefined,
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Space>
-          <Text bold>归档 {entry.uploadedAt}</Text>
-          {entry.isPrimary && <Tag color="arcoblue">当前主件</Tag>}
-          <Tag>对应版本：{entry.linkedVersionNo}</Tag>
-        </Space>
-        {!entry.isPrimary && (
-          <Button size="mini" onClick={onSetPrimary}>
-            设为主件
-          </Button>
-        )}
-      </div>
-      <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>
-        上传人：{entry.uploadedBy}
-        {entry.note ? ` · ${entry.note}` : ''}
-      </div>
-      {entry.files.map((f) => (
-        <div
-          key={f.id}
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '6px 8px',
-            background: 'var(--color-fill-2)',
-            borderRadius: 4,
-            marginBottom: 4,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-            <span>📄 {f.fileName}</span>
-            <span style={{ color: 'var(--color-text-3)' }}>{formatSize(f.fileSize)}</span>
+    <Card className={entry.isPrimary ? 'border-primary' : ''}>
+      <CardContent className="pt-3 pb-3">
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold">归档 {entry.uploadedAt}</span>
+            {entry.isPrimary && <Badge>当前主件</Badge>}
+            <Badge variant="outline">对应版本：{entry.linkedVersionNo}</Badge>
           </div>
-          <Space size="mini">
+          {!entry.isPrimary && (
+            <Button size="sm" variant="outline" onClick={onSetPrimary}>
+              设为主件
+            </Button>
+          )}
+        </div>
+        <div className="text-xs text-muted-foreground mb-2">
+          上传人：{entry.uploadedBy}
+          {entry.note ? ` · ${entry.note}` : ''}
+        </div>
+        {entry.files.map((f) => (
+          <div
+            key={f.id}
+            className="flex justify-between items-center p-1.5 bg-muted rounded mb-1"
+          >
+            <div className="flex items-center gap-2 text-[13px]">
+              <span>{f.fileName}</span>
+              <span className="text-muted-foreground">{formatSize(f.fileSize)}</span>
+            </div>
             <Button
-              type="text"
-              size="mini"
-              icon={<IconEye />}
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2"
               onClick={() => onPreview(f)}
             >
+              <Eye className="size-3" />
               预览
             </Button>
-          </Space>
-        </div>
-      ))}
+          </div>
+        ))}
+      </CardContent>
     </Card>
   );
 }
@@ -201,15 +194,11 @@ function ScanEntryCard({
 function FilePreview({ file }: { file: ScanFile }) {
   if (!file.blobUrl) {
     return (
-      <Empty
-        description={
-          <>
-            演示数据，无可用预览。
-            <br />
-            真实环境中扫描件会从 OSS / 文件服务读取。
-          </>
-        }
-      />
+      <div className="text-center text-muted-foreground py-8">
+        演示数据，无可用预览。
+        <br />
+        真实环境中扫描件会从 OSS / 文件服务读取。
+      </div>
     );
   }
   if (file.mimeType.startsWith('image/')) {
@@ -221,7 +210,6 @@ function FilePreview({ file }: { file: ScanFile }) {
       />
     );
   }
-  // PDF 走 iframe
   return (
     <iframe
       title={file.fileName}

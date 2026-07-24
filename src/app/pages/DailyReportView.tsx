@@ -1,17 +1,113 @@
 import { useState } from 'react';
-import { Card, Tree, Badge, Collapse, Descriptions, Table, DatePicker, Button, Tag } from '@arco-design/web-react';
+import { ChevronRight, ChevronDown } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../components/ui/collapsible';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
 import { DailyReportDetail } from './daily-report/DailyReportDetail';
 import { DailyReport, DailyReportComment } from './daily-report/types';
 
-const CollapseItem = Collapse.Item;
+interface TreeNode {
+  title: string;
+  key: string;
+  total?: number;
+  reported?: number | boolean;
+  unreported?: number;
+  isLeaf?: boolean;
+  children?: TreeNode[];
+}
+
+function OrgTreeNode({
+  node,
+  expandedKeys,
+  onToggle,
+  onSelect,
+  selectedEmployee,
+}: {
+  node: TreeNode;
+  expandedKeys: string[];
+  onToggle: (key: string) => void;
+  onSelect: (key: string) => void;
+  selectedEmployee: string;
+}) {
+  const isExpanded = expandedKeys.includes(node.key);
+  const hasChildren = node.children && node.children.length > 0;
+
+  const handleClick = () => {
+    if (hasChildren) {
+      onToggle(node.key);
+    }
+    if (node.isLeaf) {
+      onSelect(node.key);
+    }
+  };
+
+  return (
+    <div>
+      <div
+        className={`flex items-center gap-1 cursor-pointer rounded-md px-2 py-1 text-sm hover:bg-accent ${
+          selectedEmployee === node.key ? 'bg-accent font-medium' : ''
+        }`}
+        onClick={handleClick}
+      >
+        {hasChildren && (
+          <span className="shrink-0">
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </span>
+        )}
+        {!hasChildren && <span className="w-4 shrink-0" />}
+        <span>{node.title}</span>
+        {node.isLeaf ? (
+          node.reported ? (
+            <span className="ml-2 inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-green-500" />
+              已汇报
+            </span>
+          ) : (
+            <span className="ml-2 inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-gray-400" />
+              未汇报
+            </span>
+          )
+        ) : (
+          <span className="ml-2 text-xs text-muted-foreground">
+            ({node.reported}/{node.total})
+          </span>
+        )}
+      </div>
+      {hasChildren && isExpanded && (
+        <div className="pl-6">
+          {node.children!.map((child) => (
+            <OrgTreeNode
+              key={child.key}
+              node={child}
+              expandedKeys={expandedKeys}
+              onToggle={onToggle}
+              onSelect={onSelect}
+              selectedEmployee={selectedEmployee}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function DailyReportView() {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split('T')[0]
+  );
   const [expandedKeys, setExpandedKeys] = useState<string[]>(['dept-1']);
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
   const [detailVisible, setDetailVisible] = useState(false);
   const [selectedReport, setSelectedReport] = useState<DailyReport | null>(null);
   const [comments, setComments] = useState<DailyReportComment[]>([]);
+  const [openItems, setOpenItems] = useState<Record<string, boolean>>({ '0': true });
 
   const handleAddComment = (reportId: string, content: string, mentionedUsers: string[]) => {
     const newComment: DailyReportComment = {
@@ -32,8 +128,24 @@ export function DailyReportView() {
     setDetailVisible(true);
   };
 
+  const handleToggleExpand = (key: string) => {
+    setExpandedKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  const handleSelectEmployee = (key: string) => {
+    if (key.startsWith('emp-')) {
+      setSelectedEmployee(key);
+    }
+  };
+
+  const toggleCollapseItem = (key: string) => {
+    setOpenItems((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   // 模拟组织架构数据
-  const orgData = [
+  const orgData: TreeNode[] = [
     {
       title: '销售部',
       key: 'dept-1',
@@ -191,157 +303,164 @@ export function DailyReportView() {
     ],
   };
 
-  const renderTreeTitle = (node: any) => {
-    if (node.isLeaf) {
-      return (
-        <span>
-          {node.title}
-          {node.reported ? (
-            <Badge status="success" text="已汇报" style={{ marginLeft: 8 }} />
-          ) : (
-            <Badge status="default" text="未汇报" style={{ marginLeft: 8 }} />
-          )}
-        </span>
-      );
-    }
-    return (
-      <span>
-        {node.title}
-        <span style={{ marginLeft: 8, color: 'var(--color-text-3)', fontSize: 12 }}>
-          ({node.reported}/{node.total})
-        </span>
-      </span>
-    );
-  };
-
-  const handleSelect = (selectedKeys: string[]) => {
-    const key = selectedKeys[0];
-    if (key && key.startsWith('emp-')) {
-      setSelectedEmployee(key);
-    }
-  };
-
   return (
-    <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 112px)' }}>
-      <Card
-        style={{ width: 320, flexShrink: 0 }}
-        title="组织架构"
-        extra={
-          <DatePicker
+    <div className="flex gap-4" style={{ height: 'calc(100vh - 112px)' }}>
+      <Card className="w-80 shrink-0 flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle>组织架构</CardTitle>
+          <input
+            type="date"
             value={selectedDate}
-            onChange={setSelectedDate}
-            style={{ width: 140 }}
-            format="YYYY-MM-DD"
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="h-8 w-36 rounded-md border border-input bg-background px-2 text-sm"
           />
-        }
-      >
-        <Tree
-          treeData={orgData}
-          expandedKeys={expandedKeys}
-          onExpand={setExpandedKeys}
-          onSelect={handleSelect}
-          renderTitle={renderTreeTitle}
-        />
+        </CardHeader>
+        <CardContent className="flex-1 overflow-auto">
+          {orgData.map((node) => (
+            <OrgTreeNode
+              key={node.key}
+              node={node}
+              expandedKeys={expandedKeys}
+              onToggle={handleToggleExpand}
+              onSelect={handleSelectEmployee}
+              selectedEmployee={selectedEmployee}
+            />
+          ))}
+        </CardContent>
       </Card>
 
-      <Card
-        style={{ flex: 1, overflow: 'auto' }}
-        title={selectedEmployee ? `员工日报历史` : '选择员工查看日报'}
-      >
-        {selectedEmployee && employeeReports[selectedEmployee] ? (
-          <Collapse defaultActiveKey={['0']}>
-            {employeeReports[selectedEmployee].map((report, index) => {
-              const isGeneral = report.templateType === 'general';
-              const projectTasks = isGeneral && (report.content as any)['project-tasks'] || [];
-              const totalHours = projectTasks.reduce((sum: number, t: any) => sum + (t.hours || 0), 0);
+      <Card className="flex-1 overflow-auto">
+        <CardHeader>
+          <CardTitle>
+            {selectedEmployee ? '员工日报历史' : '选择员工查看日报'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {selectedEmployee && employeeReports[selectedEmployee] ? (
+            <div className="space-y-2">
+              {employeeReports[selectedEmployee].map((report, index) => {
+                const isGeneral = report.templateType === 'general';
+                const projectTasks =
+                  (isGeneral && (report.content as any)['project-tasks']) || [];
+                const totalHours = projectTasks.reduce(
+                  (sum: number, t: any) => sum + (t.hours || 0),
+                  0
+                );
+                const itemKey = index.toString();
 
-              return (
-              <CollapseItem
-                key={index.toString()}
-                header={
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>{report.reportDate} <Tag size="small" color={isGeneral ? 'arcoblue' : 'green'}>{isGeneral ? '通用' : '销售'}</Tag></span>
-                    <span style={{ fontSize: 12, color: 'var(--color-text-3)' }}>
-                      {isGeneral ? `项目数: ${projectTasks.length} | 总用时: ${totalHours}小时` : '销售日报'}
-                    </span>
-                  </div>
-                }
-              >
-                <div>
-                  {isGeneral ? (
-                    <>
-                      <div style={{ marginBottom: 16 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 8 }}>今日项目用时</div>
-                        <Table
-                          columns={[
-                            { title: '项目名称', dataIndex: 'projectName' },
-                            { title: '任务形式', dataIndex: 'taskForm' },
-                            { title: '用时（小时）', dataIndex: 'hours', width: 120 },
-                          ]}
-                          data={projectTasks}
-                          pagination={false}
-                          size="small"
-                        />
-                      </div>
-
-                      <div style={{ marginBottom: 12 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 8 }}>今日工作总结</div>
-                        <div style={{ padding: 12, background: 'var(--color-fill-2)', borderRadius: 4 }}>
-                          {(report.content as any)['today-summary']}
-                        </div>
-                      </div>
-
+                return (
+                  <Collapsible
+                    key={itemKey}
+                    open={openItems[itemKey] ?? false}
+                    onOpenChange={() => toggleCollapseItem(itemKey)}
+                  >
+                    <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-4 py-3 text-sm hover:bg-accent">
+                      <span className="flex items-center gap-2">
+                        <span>{report.reportDate}</span>
+                        <Badge
+                          className={`text-xs ${
+                            isGeneral ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'
+                          }`}
+                        >
+                          {isGeneral ? '通用' : '销售'}
+                        </Badge>
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {isGeneral
+                          ? `项目数: ${projectTasks.length} | 总用时: ${totalHours}小时`
+                          : '销售日报'}
+                      </span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="border border-t-0 rounded-b-md px-4 py-4">
                       <div>
-                        <div style={{ fontWeight: 600, marginBottom: 8 }}>明日工作预期</div>
-                        <div style={{ padding: 12, background: 'var(--color-fill-2)', borderRadius: 4 }}>
-                          {(report.content as any)['tomorrow-plan']}
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ marginBottom: 12 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 8 }}>线索跟进</div>
-                        <div style={{ padding: 12, background: 'var(--color-fill-2)', borderRadius: 4 }}>
-                          {(report.content as any)['lead-tracking']?.length || 0} 条跟进记录
-                        </div>
-                      </div>
+                        {isGeneral ? (
+                          <>
+                            <div className="mb-4">
+                              <div className="font-semibold mb-2">今日项目用时</div>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>项目名称</TableHead>
+                                    <TableHead>任务形式</TableHead>
+                                    <TableHead className="w-[120px]">用时（小时）</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {projectTasks.map((task: any) => (
+                                    <TableRow key={task.id}>
+                                      <TableCell>{task.projectName}</TableCell>
+                                      <TableCell>{task.taskForm}</TableCell>
+                                      <TableCell>{task.hours}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
 
-                      <div style={{ marginBottom: 12 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 8 }}>需协助事项</div>
-                        <div style={{ padding: 12, background: 'var(--color-fill-2)', borderRadius: 4 }}>
-                          {(report.content as any)['assistance-needed'] || '无'}
+                            <div className="mb-3">
+                              <div className="font-semibold mb-2">今日工作总结</div>
+                              <div className="rounded-md bg-muted p-3">
+                                {(report.content as any)['today-summary']}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="font-semibold mb-2">明日工作预期</div>
+                              <div className="rounded-md bg-muted p-3">
+                                {(report.content as any)['tomorrow-plan']}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="mb-3">
+                              <div className="font-semibold mb-2">线索跟进</div>
+                              <div className="rounded-md bg-muted p-3">
+                                {(report.content as any)['lead-tracking']?.length || 0} 条跟进记录
+                              </div>
+                            </div>
+
+                            <div className="mb-3">
+                              <div className="font-semibold mb-2">需协助事项</div>
+                              <div className="rounded-md bg-muted p-3">
+                                {(report.content as any)['assistance-needed'] || '无'}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="font-semibold mb-2">明日工作计划</div>
+                              <div className="rounded-md bg-muted p-3">
+                                {(report.content as any)['tomorrow-plan'] || '无'}
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        <div className="mt-4 text-right">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleViewDetail(report)}
+                          >
+                            查看详情 & 评论
+                          </Button>
                         </div>
                       </div>
-
-                      <div>
-                        <div style={{ fontWeight: 600, marginBottom: 8 }}>明日工作计划</div>
-                        <div style={{ padding: 12, background: 'var(--color-fill-2)', borderRadius: 4 }}>
-                          {(report.content as any)['tomorrow-plan'] || '无'}
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  <div style={{ marginTop: 16, textAlign: 'right' }}>
-                    <Button type="primary" size="small" onClick={() => handleViewDetail(report)}>
-                      查看详情 & 评论
-                    </Button>
-                  </div>
-                </div>
-              </CollapseItem>
-              );
-            })}
-          </Collapse>
-        ) : selectedEmployee ? (
-          <div style={{ textAlign: 'center', color: 'var(--color-text-3)', padding: 40 }}>
-            该员工暂无日报记录
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', color: 'var(--color-text-3)', padding: 40 }}>
-            请从左侧选择员工查看日报历史
-          </div>
-        )}
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+            </div>
+          ) : selectedEmployee ? (
+            <div className="p-10 text-center text-muted-foreground">
+              该员工暂无日报记录
+            </div>
+          ) : (
+            <div className="p-10 text-center text-muted-foreground">
+              请从左侧选择员工查看日报历史
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       <DailyReportDetail

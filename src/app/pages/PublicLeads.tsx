@@ -1,23 +1,50 @@
 import { useState, useRef, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router';
 import {
-  Card,
-  Table,
-  Button,
-  Input,
-  Select,
-  Badge,
-  Modal,
-  Form,
-  Message,
-  Space,
-  Typography,
-  Tag,
-  Grid,
-  Tooltip,
+  Search,
+  Plus,
+  Eye,
+  UserPlus,
+  Trash2,
   Upload,
-} from '@arco-design/web-react';
-import { IconSearch, IconPlus, IconEye, IconUserAdd, IconDelete, IconUpload } from '@arco-design/web-react/icon';
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
+import { Textarea } from '../components/ui/textarea';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../components/ui/tooltip';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { CompanyEntityInfoModal } from './company-entity/CompanyEntityInfoModal';
@@ -27,10 +54,7 @@ import {
   type CompanyEntityRecord,
 } from './company-entity/companyEntityData';
 
-const FormItem = Form.Item;
-const Title = Typography.Title;
-
-// Custom wrapper for ReactQuill to work with Arco Design Form
+// Custom wrapper for ReactQuill
 function RichTextEditor({ value = '', onChange, ...props }: any) {
   const quillRef = useRef<ReactQuill>(null);
 
@@ -46,18 +70,78 @@ function RichTextEditor({ value = '', onChange, ...props }: any) {
   );
 }
 
+function StatusTag({ status }: { status: string }) {
+  const colorMap: Record<string, string> = {
+    '未联系': 'gray',
+    '未接通': 'orangered',
+    '初步沟通': 'blue',
+    '需求调研': 'cyan',
+    '方案报价': 'purple',
+    '合同洽谈': 'orange',
+    '已签单': 'green',
+    '已终止': 'red',
+  };
+  const color = colorMap[status] || 'default';
+
+  if (color === 'gray') {
+    return <Badge variant="secondary">{status}</Badge>;
+  }
+  if (color === 'red') {
+    return <Badge variant="destructive">{status}</Badge>;
+  }
+
+  const classNameMap: Record<string, string> = {
+    orangered: 'bg-orange-500 hover:bg-orange-600',
+    blue: 'bg-blue-500 hover:bg-blue-600',
+    cyan: 'bg-cyan-500 hover:bg-cyan-600',
+    purple: 'bg-purple-500 hover:bg-purple-600',
+    orange: 'bg-orange-500 hover:bg-orange-600',
+    green: 'bg-green-500 hover:bg-green-600',
+  };
+
+  return <Badge className={classNameMap[color] || ''}>{status}</Badge>;
+}
+
 export function PublicLeads() {
   const navigate = useNavigate();
+
+  // Dialog visibility
   const [visible, setVisible] = useState(false);
   const [trashVisible, setTrashVisible] = useState(false);
   const [customTagVisible, setCustomTagVisible] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [availableTags, setAvailableTags] = useState(['APP', '小程序', '管理系统', '官网', '电商系统', 'CMS', 'OA系统']);
-  const [form] = Form.useForm();
-  const [trashForm] = Form.useForm();
-  const [customTagForm] = Form.useForm();
   const [companyModalVisible, setCompanyModalVisible] = useState(false);
   const [selectedCompanyEntity, setSelectedCompanyEntity] = useState<CompanyEntityRecord | null>(null);
+
+  // Tags
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState(['APP', '小程序', '管理系统', '官网', '电商系统', 'CMS', 'OA系统']);
+
+  // Form data
+  const [createData, setCreateData] = useState({
+    name: '',
+    contact: '',
+    phone: '',
+    wechat: '',
+    source: '',
+    keyword: '',
+    customerId: '',
+    level: '',
+    entity: '',
+    status: '',
+    requirement: '',
+  });
+  const [trashData, setTrashData] = useState({ reason: '' });
+  const [customTagData, setCustomTagData] = useState({ tagName: '' });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // File upload ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalRecords = 50;
+  const pageSize = 10;
+  const totalPages = Math.ceil(totalRecords / pageSize);
 
   const customerList = [
     { id: '1', name: '北京科技有限公司', contact: '张经理', phone: '13800138000' },
@@ -141,13 +225,13 @@ export function PublicLeads() {
 
   const handleOpenCompanyEntity = (entityName: string) => {
     if (!companyEntityPermissions.view) {
-      Message.warning('暂无权限查看公司主体详情');
+      toast.warning('暂无权限查看公司主体详情');
       return;
     }
 
     const companyEntity = findCompanyEntityByName(entityName);
     if (!companyEntity) {
-      Message.warning('未找到公司主体信息');
+      toast.warning('未找到公司主体信息');
       return;
     }
 
@@ -155,487 +239,737 @@ export function PublicLeads() {
     setCompanyModalVisible(true);
   };
 
-  // --- Column definitions with visual hierarchy ---
-  const columns = [
-    {
-      title: '线索ID',
-      dataIndex: 'id',
-      width: 100,
-      render: (text: string) => (
-        <span style={{ fontSize: 12, color: 'hsl(220 8% 55%)', fontFamily: 'monospace' }}>{text}</span>
-      ),
-    },
-    {
-      title: '对接主体',
-      dataIndex: 'entity',
-      width: 120,
-      render: (entity: string) => (
-        <Button type="text" size="mini" onClick={() => handleOpenCompanyEntity(entity)}>
-          {entity}
-        </Button>
-      ),
-    },
-    {
-      title: '线索名称',
-      dataIndex: 'name',
-      width: 200,
-      render: (text: string) => (
-        <span style={{ fontWeight: 500, color: 'hsl(220 20% 10%)' }}>{text}</span>
-      ),
-    },
-    {
-      title: '来源',
-      dataIndex: 'source',
-      width: 120,
-      render: (source: string) => <Badge status="default" text={source} />,
-    },
-    {
-      title: '推广关键词',
-      dataIndex: 'keyword',
-      width: 120,
-      render: (text: string) => (
-        <span style={{ color: 'hsl(220 10% 45%)' }}>{text}</span>
-      ),
-    },
-    {
-      title: '联系人',
-      dataIndex: 'contact',
-      width: 100,
-      render: (text: string) => (
-        <span style={{ color: 'hsl(220 10% 35%)' }}>{text}</span>
-      ),
-    },
-    {
-      title: '手机号',
-      dataIndex: 'phone',
-      width: 120,
-      render: (text: string) => (
-        <span style={{ color: 'hsl(220 8% 55%)', fontSize: 13 }}>{text}</span>
-      ),
-    },
-    {
-      title: '意向等级',
-      dataIndex: 'level',
-      width: 100,
-      render: (level: string) => {
-        const statusMap = {
-          高: 'error',
-          中: 'warning',
-          低: 'default',
-        };
-        return <Badge status={statusMap[level as keyof typeof statusMap]} text={level} />;
-      },
-    },
-    {
-      title: '意向标签',
-      dataIndex: 'tags',
-      width: 150,
-      render: (tags: string[]) => (
-        <Space size={4}>
-          {tags.map((tag, index) => (
-            <Tag key={index} color="arcoblue" style={{ fontSize: 12 }}>
-              {tag}
-            </Tag>
-          ))}
-        </Space>
-      ),
-    },
-    {
-      title: '客户状态',
-      dataIndex: 'status',
-      width: 120,
-      render: (status: string) => {
-        const colorMap: Record<string, string> = {
-          '未联系': 'gray',
-          '未接通': 'orangered',
-          '初步沟通': 'blue',
-          '需求调研': 'cyan',
-          '方案报价': 'purple',
-          '合同洽谈': 'orange',
-          '已签单': 'green',
-          '已终止': 'red',
-        };
-        return <Tag color={colorMap[status] || 'default'}>{status}</Tag>;
-      },
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createTime',
-      width: 160,
-      render: (text: string) => (
-        <span style={{ color: 'hsl(220 8% 55%)', fontSize: 13 }}>{text}</span>
-      ),
-    },
-    {
-      title: '操作',
-      width: 180,
-      fixed: 'right' as const,
-      render: (_, record: any) => (
-        <Space size={0}>
-          <Tooltip key={`tooltip-view-${record.key}`} content="查看详情">
-            <Button
-              type="text"
-              icon={<IconEye />}
-              size="small"
-              onClick={() => navigate(`/leads/${record.key}`, { state: { from: 'public' } })}
-            />
-          </Tooltip>
-          <Tooltip key={`tooltip-claim-${record.key}`} content="认领线索">
-            <Button
-              type="text"
-              icon={<IconUserAdd />}
-              size="small"
-              onClick={() => {
-                Message.success('线索认领成功');
-              }}
-            />
-          </Tooltip>
-          <Tooltip key={`tooltip-trash-${record.key}`} content="丢弃垃圾线索">
-            <Button
-              type="text"
-              icon={<IconDelete />}
-              size="small"
-              style={{ color: 'hsl(0 60% 55%)' }}
-              onClick={() => setTrashVisible(true)}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
-
   const handleCreateLead = () => {
-    form.setFieldValue('tags', selectedTags);
-    form.validate()
-      .then((values) => {
-        console.log(values);
-        Message.success('线索创建成功');
-        setVisible(false);
-        form.resetFields();
-        setSelectedTags([]);
-      })
-      .catch((err) => {
-        console.log('表单验证失败:', err);
-      });
+    const newErrors: Record<string, string> = {};
+    if (!createData.name) newErrors.name = '请输入线索名称';
+    if (!createData.contact) newErrors.contact = '请输入联系人';
+    if (!createData.phone) newErrors.phone = '请输入联系电话';
+    if (!createData.source) newErrors.source = '请选择线索来源';
+    if (!createData.level) newErrors.level = '请选择意向等级';
+    if (!createData.entity) newErrors.entity = '请选择对接主体';
+    if (!createData.status) newErrors.status = '请选择客户状态';
+
+    setFormErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    console.log({ ...createData, tags: selectedTags });
+    toast.success('线索创建成功');
+    setVisible(false);
+    setCreateData({
+      name: '',
+      contact: '',
+      phone: '',
+      wechat: '',
+      source: '',
+      keyword: '',
+      customerId: '',
+      level: '',
+      entity: '',
+      status: '',
+      requirement: '',
+    });
+    setSelectedTags([]);
+    setFormErrors({});
   };
 
   const handleTrashLead = () => {
-    trashForm.validate()
-      .then((values) => {
-        console.log(values);
-        Message.success('垃圾线索已丢弃');
-        setTrashVisible(false);
-        trashForm.resetFields();
-      })
-      .catch((err) => {
-        console.log('表单验证失败:', err);
-      });
+    const newErrors: Record<string, string> = {};
+    if (!trashData.reason) newErrors.reason = '请填写丢弃原因';
+
+    setFormErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    console.log(trashData);
+    toast.success('垃圾线索已丢弃');
+    setTrashVisible(false);
+    setTrashData({ reason: '' });
+    setFormErrors({});
   };
 
   const handleTagClick = (tag: string) => {
     if (selectedTags.includes(tag)) {
-      setSelectedTags(selectedTags.filter(t => t !== tag));
+      setSelectedTags(selectedTags.filter((t) => t !== tag));
     } else {
       setSelectedTags([...selectedTags, tag]);
     }
   };
 
   const handleAddCustomTag = () => {
-    customTagForm.validate().then((values) => {
-      const newTag = values.tagName.trim();
-      if (newTag && !availableTags.includes(newTag)) {
-        setAvailableTags([...availableTags, newTag]);
-        setSelectedTags([...selectedTags, newTag]);
-        Message.success('标签添加成功');
-      } else if (availableTags.includes(newTag)) {
-        Message.warning('标签已存在');
-      }
-      setCustomTagVisible(false);
-      customTagForm.resetFields();
-    });
+    const newErrors: Record<string, string> = {};
+    if (!customTagData.tagName.trim()) newErrors.tagName = '请输入标签名称';
+
+    setFormErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    const newTag = customTagData.tagName.trim();
+    if (!availableTags.includes(newTag)) {
+      setAvailableTags([...availableTags, newTag]);
+      setSelectedTags([...selectedTags, newTag]);
+      toast.success('标签添加成功');
+    } else {
+      toast.warning('标签已存在');
+    }
+    setCustomTagVisible(false);
+    setCustomTagData({ tagName: '' });
+    setFormErrors({});
+  };
+
+  const updateCreateData = (field: string, value: string) => {
+    setCreateData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
-    <div>
-      {/* Page label — subtle, not giant heading */}
-      <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 500, color: 'hsl(220 8% 55%)', letterSpacing: '0.025em', textTransform: 'uppercase' }}>
-          公海线索池
-        </div>
-        <Button type="primary" icon={<IconPlus />} onClick={() => setVisible(true)}>
-          新建线索
-        </Button>
-      </div>
-
-      <Card
-        style={{
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-xs)',
-          border: '1px solid hsl(220 12% 88%)',
-        }}
-      >
-        {/* Search & Filter Bar */}
-        <div className="flex gap-3" style={{ marginBottom: 16 }}>
-          <Input
-            style={{ width: 240 }}
-            placeholder="搜索线索名称、联系人"
-            prefix={<IconSearch />}
-          />
-          <Select placeholder="线索来源" style={{ width: 160 }} allowClear>
-            <Select.Option key="source-baidu" value="baidu">百度推广</Select.Option>
-            <Select.Option key="source-douyin" value="douyin">抖音</Select.Option>
-            <Select.Option key="source-xiaohongshu" value="xiaohongshu">小红书</Select.Option>
-            <Select.Option key="source-wechat" value="wechat">微信推广</Select.Option>
-          </Select>
-          <Select placeholder="意向等级" style={{ width: 160 }} allowClear>
-            <Select.Option key="level-high" value="high">高</Select.Option>
-            <Select.Option key="level-medium" value="medium">中</Select.Option>
-            <Select.Option key="level-low" value="low">低</Select.Option>
-          </Select>
-          <Button type="primary">搜索</Button>
+    <TooltipProvider>
+      <div>
+        {/* Page label */}
+        <div className="flex items-center justify-between mb-5">
+          <div
+            className="text-xs font-medium tracking-widest uppercase"
+            style={{ color: 'hsl(220 8% 55%)' }}
+          >
+            公海线索池
+          </div>
+          <Button onClick={() => setVisible(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            新建线索
+          </Button>
         </div>
 
-        <Table
-          columns={columns}
-          data={publicLeads}
-          scroll={{ x: 1400 }}
-          pagination={{
-            total: 50,
-            pageSize: 10,
-            showTotal: true,
-            showJumper: true,
-          }}
-        />
-      </Card>
+        <Card>
+          <CardContent className="pt-6">
+            {/* Search & Filter Bar */}
+            <div className="flex gap-3 mb-4">
+              <div className="relative w-[240px]">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input className="pl-8" placeholder="搜索线索名称、联系人" />
+              </div>
+              <Select>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="线索来源" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="baidu">百度推广</SelectItem>
+                  <SelectItem value="douyin">抖音</SelectItem>
+                  <SelectItem value="xiaohongshu">小红书</SelectItem>
+                  <SelectItem value="wechat">微信推广</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="意向等级" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high">高</SelectItem>
+                  <SelectItem value="medium">中</SelectItem>
+                  <SelectItem value="low">低</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button>搜索</Button>
+            </div>
 
-      {/* ---- Create Lead Modal ---- */}
-      <Modal
-        title="新建线索"
-        visible={visible}
-        onOk={handleCreateLead}
-        onCancel={() => {
-          setVisible(false);
-          form.resetFields();
-          setSelectedTags([]);
-        }}
-        style={{ width: 800 }}
-      >
-        <Form form={form} layout="vertical">
-          <Grid.Row gutter={16}>
-            <Grid.Col span={24}>
-              <FormItem label="线索名称" field="name" rules={[{ required: true, message: '请输入线索名称' }]}>
-                <Input placeholder="请输入线索名称" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <Grid.Row gutter={16}>
-            <Grid.Col span={8}>
-              <FormItem label="联系人" field="contact" rules={[{ required: true, message: '请输入联系人' }]}>
-                <Input placeholder="请输入联系人姓名" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <FormItem label="联系电话" field="phone" rules={[{ required: true, message: '请输入联系电话' }]}>
-                <Input placeholder="请输入手机号" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <FormItem label="联系人微信" field="wechat">
-                <Input placeholder="请输入微信号" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <Grid.Row gutter={16}>
-            <Grid.Col span={8}>
-              <FormItem label="线索来源" field="source" rules={[{ required: true, message: '请选择线索来源' }]}>
-                <Select placeholder="请选择">
-                  <Select.Option key="baidu" value="baidu">百度推广</Select.Option>
-                  <Select.Option key="douyin" value="douyin">抖音</Select.Option>
-                  <Select.Option key="xiaohongshu" value="xiaohongshu">小红书</Select.Option>
-                  <Select.Option key="wechat" value="wechat">微信推广</Select.Option>
-                  <Select.Option key="other" value="other">其他</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <FormItem label="推广关键词" field="keyword">
-                <Input placeholder="请输入推广关键词" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <FormItem label="客户主体" field="customerId">
-                <Select
-                  placeholder="请输入客户名称搜索"
-                  showSearch
-                  allowClear
-                  filterOption={(inputValue, option) => {
-                    const customer = customerList.find(c => c.id === option.props?.value);
-                    if (!customer) return false;
-                    const searchText = `${customer.name} ${customer.contact} ${customer.phone}`.toLowerCase();
-                    return searchText.indexOf(inputValue.toLowerCase()) >= 0;
-                  }}
-                >
-                  {customerList.map((customer) => (
-                    <Select.Option key={customer.id} value={customer.id}>
-                      {customer.name} - {customer.contact} - {customer.phone}
-                    </Select.Option>
+            <div className="rounded-md border overflow-x-auto">
+              <Table style={{ minWidth: 1400 }}>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead style={{ width: 100 }}>线索ID</TableHead>
+                    <TableHead style={{ width: 120 }}>对接主体</TableHead>
+                    <TableHead style={{ width: 200 }}>线索名称</TableHead>
+                    <TableHead style={{ width: 120 }}>来源</TableHead>
+                    <TableHead style={{ width: 120 }}>推广关键词</TableHead>
+                    <TableHead style={{ width: 100 }}>联系人</TableHead>
+                    <TableHead style={{ width: 120 }}>手机号</TableHead>
+                    <TableHead style={{ width: 100 }}>意向等级</TableHead>
+                    <TableHead style={{ width: 150 }}>意向标签</TableHead>
+                    <TableHead style={{ width: 120 }}>客户状态</TableHead>
+                    <TableHead style={{ width: 160 }}>创建时间</TableHead>
+                    <TableHead style={{ width: 180 }} className="sticky right-0 bg-background">
+                      操作
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {publicLeads.map((record) => (
+                    <TableRow key={record.key}>
+                      <TableCell>
+                        <span
+                          className="text-xs font-mono"
+                          style={{ color: 'hsl(220 8% 55%)' }}
+                        >
+                          {record.id}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => handleOpenCompanyEntity(record.entity)}
+                        >
+                          {record.entity}
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium" style={{ color: 'hsl(220 20% 10%)' }}>
+                          {record.name}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-gray-400" />
+                          <span>{record.source}</span>
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span style={{ color: 'hsl(220 10% 45%)' }}>{record.keyword}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span style={{ color: 'hsl(220 10% 35%)' }}>{record.contact}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-[13px]" style={{ color: 'hsl(220 8% 55%)' }}>
+                          {record.phone}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const levelStatusMap: Record<string, string> = {
+                            '高': 'error',
+                            '中': 'warning',
+                            '低': 'default',
+                          };
+                          return (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span
+                                className={`h-2 w-2 rounded-full ${
+                                  levelStatusMap[record.level] === 'error'
+                                    ? 'bg-red-500'
+                                    : levelStatusMap[record.level] === 'warning'
+                                    ? 'bg-orange-500'
+                                    : 'bg-gray-400'
+                                }`}
+                              />
+                              <span>{record.level}</span>
+                            </span>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {record.tags.map((tag, index) => (
+                            <Badge key={index} variant="default" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <StatusTag status={record.status} />
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-[13px]" style={{ color: 'hsl(220 8% 55%)' }}>
+                          {record.createTime}
+                        </span>
+                      </TableCell>
+                      <TableCell className="sticky right-0 bg-background">
+                        <div className="flex items-center gap-0">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  navigate(`/leads/${record.key}`, {
+                                    state: { from: 'public' },
+                                  })
+                                }
+                              >
+                                <Eye className="mr-1 h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>查看详情</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  toast.success('线索认领成功');
+                                }}
+                              >
+                                <UserPlus className="mr-1 h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>认领线索</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setTrashVisible(true)}
+                              >
+                                <Trash2 className="mr-1 h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>丢弃垃圾线索</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </Select>
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
+                </TableBody>
+              </Table>
+            </div>
 
-          <Grid.Row gutter={16}>
-            <Grid.Col span={8}>
-              <FormItem label="意向等级" field="level" rules={[{ required: true, message: '请选择意向等级' }]}>
-                <Select placeholder="请选择">
-                  <Select.Option key="high" value="high">高</Select.Option>
-                  <Select.Option key="medium" value="medium">中</Select.Option>
-                  <Select.Option key="low" value="low">低</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <FormItem label="对接主体" field="entity" rules={[{ required: true, message: '请选择对接主体' }]}>
-                <Select placeholder="请选择">
-                  <Select.Option key="zkry" value="中科软艺">中科软艺</Select.Option>
-                  <Select.Option key="ryxx" value="软艺信息">软艺信息</Select.Option>
-                  <Select.Option key="zkjt" value="中科集团">中科集团</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <FormItem label="客户状态" field="status" rules={[{ required: true, message: '请选择客户状态' }]}>
-                <Select placeholder="请选择">
-                  <Select.Option key="status-1" value="未联系">未联系</Select.Option>
-                  <Select.Option key="status-2" value="未接通">未接通</Select.Option>
-                  <Select.Option key="status-3" value="初步沟通">初步沟通</Select.Option>
-                  <Select.Option key="status-4" value="需求调研">需求调研</Select.Option>
-                  <Select.Option key="status-5" value="方案报价">方案报价</Select.Option>
-                  <Select.Option key="status-6" value="合同洽谈">合同洽谈</Select.Option>
-                  <Select.Option key="status-7" value="已签单">已签单</Select.Option>
-                  <Select.Option key="status-8" value="已终止">已终止</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
+            {/* Pagination */}
+            <div className="flex items-center justify-between py-4">
+              <div className="text-sm text-muted-foreground">
+                共 {totalRecords} 条记录，第 {currentPage}/{totalPages} 页
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(
+                  (page) => (
+                    <Button
+                      key={page}
+                      variant={page === currentPage ? 'default' : 'outline'}
+                      size="sm"
+                      className="w-8"
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </Button>
+                  ),
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Grid.Row gutter={16}>
-            <Grid.Col span={24}>
-              <FormItem label="意向标签" field="tags">
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {/* Create Lead Dialog */}
+        <Dialog
+          open={visible}
+          onOpenChange={(open) => {
+            if (!open) {
+              setVisible(false);
+              setCreateData({
+                name: '',
+                contact: '',
+                phone: '',
+                wechat: '',
+                source: '',
+                keyword: '',
+                customerId: '',
+                level: '',
+                entity: '',
+                status: '',
+                requirement: '',
+              });
+              setSelectedTags([]);
+              setFormErrors({});
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[800px]">
+            <DialogHeader>
+              <DialogTitle>新建线索</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
+              {/* Row 1: Name (full width) */}
+              <div className="space-y-2">
+                <Label>
+                  线索名称 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  placeholder="请输入线索名称"
+                  value={createData.name}
+                  onChange={(e) => updateCreateData('name', e.target.value)}
+                />
+                {formErrors.name && (
+                  <p className="text-sm text-destructive">{formErrors.name}</p>
+                )}
+              </div>
+
+              {/* Row 2: Contact, Phone, WeChat */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>
+                    联系人 <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    placeholder="请输入联系人姓名"
+                    value={createData.contact}
+                    onChange={(e) => updateCreateData('contact', e.target.value)}
+                  />
+                  {formErrors.contact && (
+                    <p className="text-sm text-destructive">{formErrors.contact}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>
+                    联系电话 <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    placeholder="请输入手机号"
+                    value={createData.phone}
+                    onChange={(e) => updateCreateData('phone', e.target.value)}
+                  />
+                  {formErrors.phone && (
+                    <p className="text-sm text-destructive">{formErrors.phone}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>联系人微信</Label>
+                  <Input
+                    placeholder="请输入微信号"
+                    value={createData.wechat}
+                    onChange={(e) => updateCreateData('wechat', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Source, Keyword, Customer */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>
+                    线索来源 <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={createData.source}
+                    onValueChange={(value) => updateCreateData('source', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="请选择" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="baidu">百度推广</SelectItem>
+                      <SelectItem value="douyin">抖音</SelectItem>
+                      <SelectItem value="xiaohongshu">小红书</SelectItem>
+                      <SelectItem value="wechat">微信推广</SelectItem>
+                      <SelectItem value="other">其他</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formErrors.source && (
+                    <p className="text-sm text-destructive">{formErrors.source}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>推广关键词</Label>
+                  <Input
+                    placeholder="请输入推广关键词"
+                    value={createData.keyword}
+                    onChange={(e) => updateCreateData('keyword', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>客户主体</Label>
+                  <Select
+                    value={createData.customerId}
+                    onValueChange={(value) => updateCreateData('customerId', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="请输入客户名称搜索" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customerList.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name} - {customer.contact} - {customer.phone}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Row 4: Level, Entity, Status */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>
+                    意向等级 <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={createData.level}
+                    onValueChange={(value) => updateCreateData('level', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="请选择" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high">高</SelectItem>
+                      <SelectItem value="medium">中</SelectItem>
+                      <SelectItem value="low">低</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formErrors.level && (
+                    <p className="text-sm text-destructive">{formErrors.level}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>
+                    对接主体 <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={createData.entity}
+                    onValueChange={(value) => updateCreateData('entity', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="请选择" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="中科软艺">中科软艺</SelectItem>
+                      <SelectItem value="软艺信息">软艺信息</SelectItem>
+                      <SelectItem value="中科集团">中科集团</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formErrors.entity && (
+                    <p className="text-sm text-destructive">{formErrors.entity}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>
+                    客户状态 <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={createData.status}
+                    onValueChange={(value) => updateCreateData('status', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="请选择" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="未联系">未联系</SelectItem>
+                      <SelectItem value="未接通">未接通</SelectItem>
+                      <SelectItem value="初步沟通">初步沟通</SelectItem>
+                      <SelectItem value="需求调研">需求调研</SelectItem>
+                      <SelectItem value="方案报价">方案报价</SelectItem>
+                      <SelectItem value="合同洽谈">合同洽谈</SelectItem>
+                      <SelectItem value="已签单">已签单</SelectItem>
+                      <SelectItem value="已终止">已终止</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formErrors.status && (
+                    <p className="text-sm text-destructive">{formErrors.status}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 5: Tags */}
+              <div className="space-y-2">
+                <Label>意向标签</Label>
+                <div className="flex flex-wrap gap-2">
                   {availableTags.map((tag) => (
-                    <Tag
+                    <span
                       key={tag}
-                      checkable
-                      checked={selectedTags.includes(tag)}
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium cursor-pointer transition-colors ${
+                        selectedTags.includes(tag)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      }`}
                       onClick={() => handleTagClick(tag)}
-                      style={{ cursor: 'pointer' }}
                     >
                       {tag}
-                    </Tag>
+                    </span>
                   ))}
                   <Button
-                    size="small"
-                    type="dashed"
-                    icon={<IconPlus />}
+                    size="sm"
+                    variant="outline"
+                    className="border-dashed h-7"
                     onClick={() => setCustomTagVisible(true)}
                   >
+                    <Plus className="mr-1 h-3 w-3" />
                     新增标签
                   </Button>
                 </div>
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
+              </div>
 
-          <Grid.Row gutter={16}>
-            <Grid.Col span={24}>
-              <FormItem label="客户需求梗概" field="requirement">
-                <Input.TextArea
+              {/* Row 6: Requirement & Attachments */}
+              <div className="space-y-2">
+                <Label>客户需求梗概</Label>
+                <Textarea
                   placeholder="请输入客户需求描述"
                   rows={6}
                   maxLength={1000}
-                  showWordLimit
+                  value={createData.requirement}
+                  onChange={(e) => updateCreateData('requirement', e.target.value)}
                 />
-              </FormItem>
-              <FormItem label="附件上传" field="attachments">
-                <Upload
-                  accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx"
-                  multiple
-                  drag
-                  tip="支持上传图片、PDF、Word、Excel等文件"
+              </div>
+              <div className="space-y-2">
+                <Label>附件上传</Label>
+                <div
+                  className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary"
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  <div style={{ padding: '20px 0', textAlign: 'center' }}>
-                    <IconUpload style={{ fontSize: 32, color: 'var(--color-text-3)' }} />
-                    <div style={{ marginTop: 8, color: 'var(--color-text-2)' }}>
-                      点击或拖拽文件到此处上传
-                    </div>
-                  </div>
-                </Upload>
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-        </Form>
-      </Modal>
+                  <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    点击或拖拽文件到此处上传
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx"
+                    multiple
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  支持上传图片、PDF、Word、Excel等文件
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setVisible(false);
+                  setCreateData({
+                    name: '',
+                    contact: '',
+                    phone: '',
+                    wechat: '',
+                    source: '',
+                    keyword: '',
+                    customerId: '',
+                    level: '',
+                    entity: '',
+                    status: '',
+                    requirement: '',
+                  });
+                  setSelectedTags([]);
+                  setFormErrors({});
+                }}
+              >
+                取消
+              </Button>
+              <Button onClick={handleCreateLead}>确定</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      {/* ---- Trash Lead Modal ---- */}
-      <Modal
-        title="丢弃垃圾线索"
-        visible={trashVisible}
-        onOk={handleTrashLead}
-        onCancel={() => {
-          setTrashVisible(false);
-          trashForm.resetFields();
-        }}
-        style={{ width: 480 }}
-      >
-        <Form form={trashForm} layout="vertical">
-          <FormItem
-            label="丢弃原因"
-            field="reason"
-            rules={[{ required: true, message: '请填写丢弃原因' }]}
-          >
-            <Input.TextArea
-              placeholder="请详细说明该线索为垃圾线索的原因，如：重复线索、虚假信息、无效联系方式等"
-              rows={4}
-            />
-          </FormItem>
-        </Form>
-      </Modal>
+        {/* Trash Lead Dialog */}
+        <Dialog
+          open={trashVisible}
+          onOpenChange={(open) => {
+            if (!open) {
+              setTrashVisible(false);
+              setTrashData({ reason: '' });
+              setFormErrors({});
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>丢弃垃圾线索</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>
+                  丢弃原因 <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  placeholder="请详细说明该线索为垃圾线索的原因，如：重复线索、虚假信息、无效联系方式等"
+                  rows={4}
+                  value={trashData.reason}
+                  onChange={(e) =>
+                    setTrashData((prev) => ({ ...prev, reason: e.target.value }))
+                  }
+                />
+                {formErrors.reason && (
+                  <p className="text-sm text-destructive">{formErrors.reason}</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setTrashVisible(false);
+                  setTrashData({ reason: '' });
+                  setFormErrors({});
+                }}
+              >
+                取消
+              </Button>
+              <Button onClick={handleTrashLead}>确定</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      {/* ---- Custom Tag Modal ---- */}
-      <Modal
-        title="新增标签"
-        visible={customTagVisible}
-        onOk={handleAddCustomTag}
-        onCancel={() => {
-          setCustomTagVisible(false);
-          customTagForm.resetFields();
-        }}
-        style={{ width: 400 }}
-      >
-        <Form form={customTagForm} layout="vertical">
-          <FormItem
-            label="标签名称"
-            field="tagName"
-            rules={[{ required: true, message: '请输入标签名称' }]}
-          >
-            <Input placeholder="请输入标签名称，如：物联网、区块链等" maxLength={10} />
-          </FormItem>
-        </Form>
-      </Modal>
+        {/* Custom Tag Dialog */}
+        <Dialog
+          open={customTagVisible}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCustomTagVisible(false);
+              setCustomTagData({ tagName: '' });
+              setFormErrors({});
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>新增标签</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>
+                  标签名称 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  placeholder="请输入标签名称，如：物联网、区块链等"
+                  maxLength={10}
+                  value={customTagData.tagName}
+                  onChange={(e) =>
+                    setCustomTagData((prev) => ({ ...prev, tagName: e.target.value }))
+                  }
+                />
+                {formErrors.tagName && (
+                  <p className="text-sm text-destructive">{formErrors.tagName}</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCustomTagVisible(false);
+                  setCustomTagData({ tagName: '' });
+                  setFormErrors({});
+                }}
+              >
+                取消
+              </Button>
+              <Button onClick={handleAddCustomTag}>确定</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      <CompanyEntityInfoModal
-        visible={companyModalVisible}
-        mode="view"
-        defaultTab="files"
-        record={selectedCompanyEntity}
-        permissions={companyEntityPermissions}
-        onCancel={() => setCompanyModalVisible(false)}
-        onGoManage={() => navigate('/system/company')}
-      />
-    </div>
+        <CompanyEntityInfoModal
+          visible={companyModalVisible}
+          mode="view"
+          defaultTab="files"
+          record={selectedCompanyEntity}
+          permissions={companyEntityPermissions}
+          onCancel={() => setCompanyModalVisible(false)}
+          onGoManage={() => navigate('/system/company')}
+        />
+      </div>
+    </TooltipProvider>
   );
 }

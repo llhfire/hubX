@@ -2,13 +2,11 @@
 
 import { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { Card, Typography } from '@arco-design/web-react';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import type { DeliveryPlan } from './types';
 import { PHASE_COLORS, PHASE_COLORS_LIGHT, SOP_PHASES } from './constants';
 import { calcOverallCompletion, calcPhaseCompletion } from './utils';
 import { initialDeliveryPlans } from './mockData';
-
-const { Text } = Typography;
 
 interface DeliveryProgressCardProps {
   projectId: string;
@@ -58,89 +56,66 @@ export function DeliveryProgressCard({ projectId, onClick }: DeliveryProgressCar
   }, [plan]);
 
   return (
-    <Card
-      title="交付进度"
-      style={{ cursor: 'pointer' }}
-      onClick={onClick}
-      hoverable
-    >
-      <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
-        <ResponsiveContainer width="100%" height={100}>
-          <PieChart>
-            <Pie
-              data={pieData}
-              dataKey="value"
-              cx="50%"
-              cy="50%"
-              innerRadius={32}
-              outerRadius={48}
-              startAngle={90}
-              endAngle={-270}
-              stroke="none"
-              animationBegin={0}
-              animationDuration={600}
-            >
-              {pieData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
+    <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={onClick}>
+      <CardHeader>
+        <CardTitle>交付进度</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="relative flex w-full justify-center">
+          <ResponsiveContainer width="100%" height={100}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                dataKey="value"
+                cx="50%"
+                cy="50%"
+                innerRadius={32}
+                outerRadius={48}
+                startAngle={90}
+                endAngle={-270}
+                stroke="none"
+                animationBegin={0}
+                animationDuration={600}
+              >
+                {pieData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
 
-        {/* 中心百分比 */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            pointerEvents: 'none',
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 700, lineHeight: '22px', color: 'var(--color-text-1)' }}>
-            {completionPct}%
+          {/* 中心百分比 */}
+          <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+            <div className="text-lg font-bold leading-snug text-foreground">
+              {completionPct}%
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 图例 */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '4px 12px',
-          justifyContent: 'center',
-          marginTop: 8,
-        }}
-      >
-        {SOP_PHASES.map((p) => (
-          <div key={p.phaseNo} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span
-              style={{
-                display: 'inline-block',
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: plan ? PHASE_COLORS[p.phaseNo] : 'var(--color-text-4)',
-                flexShrink: 0,
-              }}
-            />
-            <Text style={{ fontSize: 11, color: 'var(--color-text-3)', whiteSpace: 'nowrap' }}>
-              {p.phaseName}
-            </Text>
-          </div>
-        ))}
-      </div>
-
-      {/* 空状态提示 */}
-      {!plan && (
-        <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <Text style={{ fontSize: 12, color: 'var(--color-text-3)' }}>
-            点击生成交付计划
-          </Text>
+        {/* 图例 */}
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+          {SOP_PHASES.map((p) => (
+            <div key={p.phaseNo} className="flex items-center gap-1">
+              <span
+                className="inline-block h-2 w-2 shrink-0 rounded-full"
+                style={{ background: plan ? PHASE_COLORS[p.phaseNo] : 'var(--color-text-4)' }}
+              />
+              <span className="whitespace-nowrap text-[11px] text-muted-foreground">
+                {p.phaseName}
+              </span>
+            </div>
+          ))}
         </div>
-      )}
+
+        {/* 空状态提示 */}
+        {!plan && (
+          <div className="mt-2 text-center">
+            <span className="text-xs text-muted-foreground">
+              点击生成交付计划
+            </span>
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }

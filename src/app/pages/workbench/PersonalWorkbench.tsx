@@ -1,35 +1,25 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
+import { Button } from '../../components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
+import { Avatar, AvatarFallback } from '../../components/ui/avatar';
+import { Progress } from '../../components/ui/progress';
 import {
-  Card,
-  Grid,
-  Statistic,
-  Button,
-  Space,
-  Tag,
-  Progress,
-  Typography,
-  Tabs,
-  Table,
-  Avatar,
-  List,
-  Badge,
-  Tooltip,
-} from '@arco-design/web-react';
-import {
-  IconUser,
-  IconCalendar,
-  IconFile,
-  IconTrophy,
-  IconStar,
-  IconArrowRight,
-  IconCheckCircle,
-  IconClockCircle,
-  IconExclamationCircle,
-  IconEdit,
-  IconPlus,
-  IconCustomerService,
-} from '@arco-design/web-react/icon';
+  User,
+  FileText,
+  Trophy,
+  Star,
+  ArrowRight,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  Edit,
+  Plus,
+  Headphones,
+} from 'lucide-react';
 import { useEmployee } from '../employee/EmployeeContext';
 import {
   ABILITY_DIMENSION_LABELS,
@@ -39,11 +29,6 @@ import {
   formatCurrency,
   AbilityDimension,
 } from '../employee/mockData';
-
-const Row = Grid.Row;
-const Col = Grid.Col;
-const TabPane = Tabs.TabPane;
-const Title = Typography.Title;
 
 // 小型雷达图（工作台用，更紧凑）
 function MiniRadar({ scores, size = 160 }: { scores: { tech: number; biz: number; mgmt: number; tool: number; domain: number }; size?: number }) {
@@ -66,13 +51,13 @@ function MiniRadar({ scores, size = 160 }: { scores: { tech: number; biz: number
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {gridPolygons.map((pts, i) => <polygon key={i} points={pts} fill="none" stroke="var(--color-border)" strokeOpacity={0.3} />)}
-      {dims.map((_, i) => { const a = angleFor(i); return <line key={i} x1={cx} y1={cy} x2={cx + radius * Math.cos(a)} y2={cy + radius * Math.sin(a)} stroke="var(--color-border)" strokeOpacity={0.2} />; })}
-      <polygon points={dataPts} fill="rgb(var(--primary-6))" fillOpacity={0.15} stroke="rgb(var(--primary-6))" strokeWidth={1.5} />
+      {gridPolygons.map((pts, i) => <polygon key={i} points={pts} fill="none" stroke="hsl(var(--border))" strokeOpacity={0.3} />)}
+      {dims.map((_, i) => { const a = angleFor(i); return <line key={i} x1={cx} y1={cy} x2={cx + radius * Math.cos(a)} y2={cy + radius * Math.sin(a)} stroke="hsl(var(--border))" strokeOpacity={0.2} />; })}
+      <polygon points={dataPts} fill="hsl(var(--primary))" fillOpacity={0.15} stroke="hsl(var(--primary))" strokeWidth={1.5} />
       {dims.map((d, i) => {
         const a = angleFor(i);
         const r = (radius * scores[d]) / 100;
-        return <circle key={d} cx={cx + r * Math.cos(a)} cy={cy + r * Math.sin(a)} r={2.5} fill="rgb(var(--primary-6))" />;
+        return <circle key={d} cx={cx + r * Math.cos(a)} cy={cy + r * Math.sin(a)} r={2.5} fill="hsl(var(--primary))" />;
       })}
     </svg>
   );
@@ -111,6 +96,20 @@ const mockDailyReportReminder = {
   streakDays: 5,
 };
 
+// 优先级 Badge 样式
+function PriorityBadge({ priority }: { priority: 'high' | 'medium' | 'low' }) {
+  if (priority === 'high') return <Badge variant="destructive">高</Badge>;
+  if (priority === 'medium') return <Badge className="bg-orange-500 text-white hover:bg-orange-600">中</Badge>;
+  return <Badge variant="secondary">低</Badge>;
+}
+
+// 状态 Badge 样式
+function StatusBadge({ done }: { done: boolean }) {
+  return done
+    ? <Badge className="bg-green-500 text-white hover:bg-green-600">已完成</Badge>
+    : <Badge className="bg-orange-500 text-white hover:bg-orange-600">待办</Badge>;
+}
+
 export function PersonalWorkbench() {
   const navigate = useNavigate();
   const { employees, skillTrees } = useEmployee();
@@ -139,285 +138,388 @@ export function PersonalWorkbench() {
   if (!currentEmployee) return null;
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <div className="flex flex-col gap-4 w-full">
       {/* 顶部欢迎栏 */}
-      <Card bordered={false} style={{ background: 'linear-gradient(135deg, rgba(22,93,255,0.06), rgba(0,180,42,0.04))' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Avatar size={56} style={{ background: 'linear-gradient(135deg, rgb(var(--primary-6)), rgb(var(--primary-4)))', fontSize: 22, fontWeight: 700 }}>
-              {currentEmployee.name.slice(0, 1)}
-            </Avatar>
-            <div>
-              <Title heading={4} style={{ margin: 0 }}>早上好，{currentEmployee.name} 👋</Title>
-              <Typography.Text type="secondary">
-                {currentEmployee.department} · {currentEmployee.position} · {currentEmployee.level}
-                {personality?.mbti && <Tag color="#7c3aed" style={{marginLeft: 8 }}>{personality.mbti.type}</Tag>}
-              </Typography.Text>
+      <Card className="border-0" style={{ background: 'linear-gradient(135deg, rgba(22,93,255,0.06), rgba(0,180,42,0.04))' }}>
+        <CardContent className="p-6">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <Avatar className="size-14">
+                <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-blue-600 to-blue-400 text-white">
+                  {currentEmployee.name.slice(0, 1)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h2 className="text-xl font-bold m-0">早上好，{currentEmployee.name}</h2>
+                <span className="text-sm text-muted-foreground">
+                  {currentEmployee.department} · {currentEmployee.position} · {currentEmployee.level}
+                  {personality?.mbti && (
+                    <Badge className="ml-2 bg-purple-600 text-white hover:bg-purple-700">
+                      {personality.mbti.type}
+                    </Badge>
+                  )}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate('/dailyreport/list')}>
+                <Edit className="mr-2 h-4 w-4" /> 填写日报
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/leads/public')}>
+                <Plus className="mr-2 h-4 w-4" /> 新建线索
+              </Button>
             </div>
           </div>
-          <Space>
-            <Button type="primary" icon={<IconEdit />} onClick={() => navigate('/dailyreport/list')}>填写日报</Button>
-            <Button icon={<IconPlus />} onClick={() => navigate('/leads/public')}>新建线索</Button>
-          </Space>
-        </div>
+        </CardContent>
       </Card>
 
       {/* 核心指标 */}
-      <Row gutter={16}>
-        <Col span={4}>
-          <Card>
-            <Statistic title="待办任务" value={stats.pendingTasks} suffix="项" prefix={<IconExclamationCircle style={{ color: '#ff7d00' }} />} />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card>
-            <Statistic title="今日到期" value={stats.todayTasks} suffix="项" prefix={<IconClockCircle style={{ color: '#f53f3f' }} />} />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card>
-            <Statistic title="参与项目" value={stats.myProjects} suffix="个" icon={<IconFile style={{ color: 'rgb(var(--primary-6))' }} />} />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card>
-            <Statistic title="加权总分" value={cap?.weightedScore || 0} suffix="分" prefix={<IconTrophy style={{ color: '#ff7d00' }} />} />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card>
-            <Statistic title="已解锁技能" value={cap?.skills.filter(s => s.status === 'unlocked').length || 0} suffix="个" prefix={<IconStar style={{ color: '#7c3aed' }} />} />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card>
-            <Statistic
-              title="日报状态"
-              value={mockDailyReportReminder.submitted ? '已提交' : '未提交'}
-              prefix={mockDailyReportReminder.submitted
-                ? <IconCheckCircle style={{ color: '#00b42a' }} />
-                : <IconExclamationCircle style={{ color: '#f53f3f' }} />}
-            />
-          </Card>
-        </Col>
-      </Row>
+      <div className="grid grid-cols-6 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-orange-500" />
+              待办任务
+            </div>
+            <div className="text-2xl font-bold mt-1">
+              {stats.pendingTasks}
+              <span className="text-sm font-normal text-muted-foreground ml-1">项</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4 text-red-500" />
+              今日到期
+            </div>
+            <div className="text-2xl font-bold mt-1">
+              {stats.todayTasks}
+              <span className="text-sm font-normal text-muted-foreground ml-1">项</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <FileText className="h-4 w-4 text-blue-600" />
+              参与项目
+            </div>
+            <div className="text-2xl font-bold mt-1">
+              {stats.myProjects}
+              <span className="text-sm font-normal text-muted-foreground ml-1">个</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-orange-500" />
+              加权总分
+            </div>
+            <div className="text-2xl font-bold mt-1">
+              {cap?.weightedScore || 0}
+              <span className="text-sm font-normal text-muted-foreground ml-1">分</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <Star className="h-4 w-4 text-purple-600" />
+              已解锁技能
+            </div>
+            <div className="text-2xl font-bold mt-1">
+              {cap?.skills.filter(s => s.status === 'unlocked').length || 0}
+              <span className="text-sm font-normal text-muted-foreground ml-1">个</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              {mockDailyReportReminder.submitted
+                ? <CheckCircle className="h-4 w-4 text-green-500" />
+                : <AlertCircle className="h-4 w-4 text-red-500" />}
+              日报状态
+            </div>
+            <div className="text-2xl font-bold mt-1">
+              {mockDailyReportReminder.submitted ? '已提交' : '未提交'}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* 主体 Tab */}
-      <Card bordered={false}>
-        <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="overview" title={<span><IconUser /> 概览</span>} />
-          <TabPane key="tasks" title={<span><IconCheckCircle /> 任务清单</span>} />
-          <TabPane key="capability" title={<span><IconTrophy /> 能力面板</span>} />
-          <TabPane key="projects" title={<span><IconFile /> 我的项目</span>} />
-        </Tabs>
+      <Card className="border-0">
+        <CardContent className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="overview"><User className="mr-1 h-4 w-4" /> 概览</TabsTrigger>
+              <TabsTrigger value="tasks"><CheckCircle className="mr-1 h-4 w-4" /> 任务清单</TabsTrigger>
+              <TabsTrigger value="capability"><Trophy className="mr-1 h-4 w-4" /> 能力面板</TabsTrigger>
+              <TabsTrigger value="projects"><FileText className="mr-1 h-4 w-4" /> 我的项目</TabsTrigger>
+            </TabsList>
 
-        <div style={{ paddingTop: 16 }}>
-          {/* 概览 Tab */}
-          {activeTab === 'overview' && (
-            <Row gutter={16}>
-              <Col span={10}>
-                {/* 能力雷达图 */}
-                {cap && (
-                  <Card title="能力雷达图" size="small" bodyStyle={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
-                    <MiniRadar scores={cap.scores} size={220} />
-                  </Card>
-                )}
-                {/* 晋级进度 */}
-                {cap && (
-                  <Card title="晋级进度" size="small" style={{ marginTop: 12 }} bodyStyle={{ padding: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <span style={{ fontWeight: 600 }}>{currentEmployee.level}</span>
-                      <span style={{ color: 'var(--color-text-3)' }}>→ {`L${parseInt(currentEmployee.level.replace('L', '')) + 1}`}</span>
-                    </div>
-                    <Progress percent={calcPromotionProgress(cap.weightedScore, currentEmployee.level)} color={cap.promotionEligible ? '#00b42a' : 'rgb(var(--primary-6))'} size="large" />
-                    <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
-                      加权总分 {cap.weightedScore} 分
-                      {cap.promotionEligible && <Tag color="#00b42a" style={{marginLeft: 8 }} size="small">可晋级</Tag>}
-                    </Typography.Text>
-                  </Card>
-                )}
-              </Col>
-              <Col span={14}>
-                {/* 快捷入口 */}
-                <Card title="快捷入口" size="small" style={{ marginBottom: 12 }}>
-                  <Row gutter={12}>
-                    {[
-                      { icon: <IconEdit />, label: '填写日报', color: '#165dff', action: () => navigate('/dailyreport/list') },
-                      { icon: <IconPlus />, label: '新建线索', color: '#00b42a', action: () => navigate('/leads/public') },
-                      { icon: <IconFile />, label: '查看合同', color: '#ff7d00', action: () => navigate('/contracts') },
-                      { icon: <IconCustomerService />, label: '我的线索', color: '#7c3aed', action: () => navigate('/leads/my') },
-                    ].map(btn => (
-                      <Col span={6} key={btn.label}>
-                        <Button
-                          long
-                          style={{ height: 72, display: 'flex', flexDirection: 'column', gap: 4, color: btn.color, borderColor: `${btn.color}33` }}
-                          onClick={btn.action}
-                        >
-                          <span style={{ fontSize: 20 }}>{btn.icon}</span>
-                          <span style={{ fontSize: 12 }}>{btn.label}</span>
-                        </Button>
-                      </Col>
-                    ))}
-                  </Row>
-                </Card>
-
-                {/* 待办任务 */}
-                <Card
-                  title={<span>待办任务 <Badge count={stats.pendingTasks} style={{ background: 'rgb(var(--primary-6))' }} /></span>}
-                  size="small"
-                  extra={<Button type="text" size="small" onClick={() => setActiveTab('tasks')}>查看全部 <IconArrowRight /></Button>}
-                >
-                  <List
-                    dataSource={mockTasks.filter(t => !t.done).slice(0, 4)}
-                    render={(task: Task) => (
-                      <List.Item key={task.id} style={{ padding: '8px 0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                          <Space>
-                            <Tag color={task.priority === 'high' ? '#f53f3f' : task.priority === 'medium' ? '#ff7d00' : '#86909c'}>
-                              {task.priority === 'high' ? '高' : task.priority === 'medium' ? '中' : '低'}
-                            </Tag>
-                            <span style={{ fontSize: 13 }}>{task.title}</span>
-                          </Space>
-                          <Typography.Text type="secondary" style={{ fontSize: 12 }}>{task.dueDate}</Typography.Text>
-                        </div>
-                      </List.Item>
-                    )}
-                  />
-                </Card>
-              </Col>
-            </Row>
-          )}
-
-          {/* 任务清单 Tab */}
-          {activeTab === 'tasks' && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-                <Space>
-                  <Tag color="rgb(var(--primary-6))">全部 {mockTasks.length}</Tag>
-                  <Tag>待办 {mockTasks.filter(t => !t.done).length}</Tag>
-                  <Tag color="#00b42a">已完成 {mockTasks.filter(t => t.done).length}</Tag>
-                </Space>
-                <Button type="primary" icon={<IconPlus />} size="small">新建任务</Button>
-              </div>
-              <Table
-                columns={[
-                  {
-                    title: '优先级', dataIndex: 'priority', width: 70,
-                    render: (p: string) => (
-                      <Tag color={p === 'high' ? '#f53f3f' : p === 'medium' ? '#ff7d00' : '#86909c'}>
-                        {p === 'high' ? '高' : p === 'medium' ? '中' : '低'}
-                      </Tag>
-                    ),
-                    sorter: (a: Task, b: Task) => {
-                      const order = { high: 0, medium: 1, low: 2 };
-                      return order[a.priority] - order[b.priority];
-                    },
-                  },
-                  { title: '任务', dataIndex: 'title' },
-                  {
-                    title: '类型', dataIndex: 'type', width: 80,
-                    render: (t: string) => <Tag>{t === 'personal' ? '个人' : '团队'}</Tag>,
-                  },
-                  { title: '截止日期', dataIndex: 'dueDate', width: 110 },
-                  {
-                    title: '状态', dataIndex: 'done', width: 80,
-                    render: (done: boolean) => done
-                      ? <Tag color="#00b42a">已完成</Tag>
-                      : <Tag color="#ff7d00">待办</Tag>,
-                  },
-                ] as any}
-                data={mockTasks}
-                rowKey="id"
-                pagination={false}
-              />
-            </div>
-          )}
-
-          {/* 能力面板 Tab */}
-          {activeTab === 'capability' && cap && (
-            <div>
-              <Row gutter={16}>
-                <Col span={10}>
-                  <Card title="五维能力" size="small" bodyStyle={{ padding: '16px' }}>
-                    {(Object.keys(cap.scores) as AbilityDimension[]).map(dim => (
-                      <div key={dim} style={{ marginBottom: 14 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: ABILITY_DIMENSION_COLORS[dim] }}>
-                            {ABILITY_DIMENSION_LABELS[dim]}
-                          </span>
-                          <span style={{ fontSize: 13, fontWeight: 700 }}>{cap.scores[dim]}</span>
-                        </div>
-                        <Progress percent={cap.scores[dim]} color={ABILITY_DIMENSION_COLORS[dim]} />
-                      </div>
-                    ))}
-                  </Card>
-                </Col>
-                <Col span={14}>
-                  <Card title="技能掌握" size="small" bodyStyle={{ padding: '16px' }}>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                      <Tag color="#00b42a">
-                        已解锁 {cap.skills.filter(s => s.status === 'unlocked').length}
-                      </Tag>
-                      <Tag color="#c9cdd4">
-                        待解锁 {cap.skills.filter(s => s.status === 'locked').length}
-                      </Tag>
-                    </div>
-                    {nextSkill && (
-                      <Card size="small" style={{ background: 'var(--color-fill-1)', marginBottom: 12 }} bodyStyle={{ padding: '10px 14px' }}>
-                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>下一个可解锁技能</Typography.Text>
-                        <div style={{ fontWeight: 600, marginTop: 4 }}>
-                          🔓 {nextSkill.name}
-                          <Tag color={ABILITY_DIMENSION_COLORS[nextSkill.domain]} style={{marginLeft: 8 }} size="small">
-                            {ABILITY_DIMENSION_LABELS[nextSkill.domain]}
-                          </Tag>
-                        </div>
-                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>{nextSkill.description}</Typography.Text>
-                      </Card>
-                    )}
-                    <div style={{ maxHeight: 240, overflow: 'auto' }}>
-                      {cap.skills.filter(s => s.status === 'unlocked').slice(0, 8).map(s => {
-                        const node = skillTrees.find(n => n.id === s.id);
-                        return (
-                          <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--color-border)' }}>
-                            <span style={{ fontSize: 13 }}>{node?.name || s.id}</span>
-                            <Tag
-                              color={s.mastery === 'expert' ? '#7c3aed' : s.mastery === 'proficient' ? '#165dff' : '#86909c'}
-                              size="small"
-                            >
-                              {s.mastery === 'expert' ? '精通' : s.mastery === 'proficient' ? '熟练' : '入门'}
-                            </Tag>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </Card>
-                </Col>
-              </Row>
-            </div>
-          )}
-
-          {/* 我的项目 Tab */}
-          {activeTab === 'projects' && (
-            <div>
-              <Row gutter={16}>
-                {mockProjects.map(p => (
-                  <Col span={8} key={p.id}>
-                    <Card size="small">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <span style={{ fontWeight: 600 }}>{p.name}</span>
-                        <Tag color={p.status === '验收中' ? '#00b42a' : 'rgb(var(--primary-6))'}>{p.status}</Tag>
-                      </div>
-                      <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>角色：{p.role}</Typography.Text>
-                      <Progress percent={p.progress} color="rgb(var(--primary-6))" size="small" />
-                      <Typography.Text type="secondary" style={{ fontSize: 11 }}>{p.progress}% 完成</Typography.Text>
+            {/* 概览 Tab */}
+            <TabsContent value="overview">
+              <div className="grid grid-cols-[10fr_14fr] gap-4 pt-4">
+                <div className="flex flex-col gap-3">
+                  {/* 能力雷达图 */}
+                  {cap && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">能力雷达图</CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex justify-center py-4">
+                        <MiniRadar scores={cap.scores} size={220} />
+                      </CardContent>
                     </Card>
-                  </Col>
+                  )}
+
+                  {/* 晋级进度 */}
+                  {cap && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">晋级进度</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between mb-2">
+                          <span className="font-semibold">{currentEmployee.level}</span>
+                          <span className="text-muted-foreground">→ {`L${parseInt(currentEmployee.level.replace('L', '')) + 1}`}</span>
+                        </div>
+                        <Progress
+                          value={calcPromotionProgress(cap.weightedScore, currentEmployee.level)}
+                          className={cap.promotionEligible ? '[&>div]:bg-green-500' : ''}
+                        />
+                        <div className="text-xs text-muted-foreground mt-2">
+                          加权总分 {cap.weightedScore} 分
+                          {cap.promotionEligible && (
+                            <Badge className="ml-2 bg-green-500 text-white hover:bg-green-600">可晋级</Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  {/* 快捷入口 */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">快捷入口</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <div className="grid grid-cols-4 gap-3">
+                        {[
+                          { icon: <Edit className="h-5 w-5" />, label: '填写日报', color: 'text-blue-600', borderColor: 'border-blue-600/30', action: () => navigate('/dailyreport/list') },
+                          { icon: <Plus className="h-5 w-5" />, label: '新建线索', color: 'text-green-600', borderColor: 'border-green-600/30', action: () => navigate('/leads/public') },
+                          { icon: <FileText className="h-5 w-5" />, label: '查看合同', color: 'text-orange-500', borderColor: 'border-orange-500/30', action: () => navigate('/contracts') },
+                          { icon: <Headphones className="h-5 w-5" />, label: '我的线索', color: 'text-purple-600', borderColor: 'border-purple-600/30', action: () => navigate('/leads/my') },
+                        ].map(btn => (
+                          <Button
+                            key={btn.label}
+                            variant="outline"
+                            className={`h-[72px] flex flex-col gap-1 ${btn.color} ${btn.borderColor}`}
+                            onClick={btn.action}
+                          >
+                            {btn.icon}
+                            <span className="text-xs">{btn.label}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* 待办任务 */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        待办任务
+                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
+                          {stats.pendingTasks}
+                        </span>
+                      </CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setActiveTab('tasks')}>
+                        查看全部 <ArrowRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <div className="flex flex-col">
+                        {mockTasks.filter(t => !t.done).slice(0, 4).map((task: Task) => (
+                          <div
+                            key={task.id}
+                            className="flex justify-between items-center py-2 border-b border-border last:border-b-0"
+                          >
+                            <div className="flex items-center gap-2">
+                              <PriorityBadge priority={task.priority} />
+                              <span className="text-[13px]">{task.title}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">{task.dueDate}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* 任务清单 Tab */}
+            <TabsContent value="tasks">
+              <div className="pt-4">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex gap-2">
+                    <Badge>全部 {mockTasks.length}</Badge>
+                    <Badge variant="secondary">待办 {mockTasks.filter(t => !t.done).length}</Badge>
+                    <Badge className="bg-green-500 text-white hover:bg-green-600">已完成 {mockTasks.filter(t => t.done).length}</Badge>
+                  </div>
+                  <Button size="sm">
+                    <Plus className="mr-2 h-4 w-4" /> 新建任务
+                  </Button>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[70px]">优先级</TableHead>
+                      <TableHead>任务</TableHead>
+                      <TableHead className="w-[80px]">类型</TableHead>
+                      <TableHead className="w-[110px]">截止日期</TableHead>
+                      <TableHead className="w-[80px]">状态</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockTasks.map((task: Task) => (
+                      <TableRow key={task.id}>
+                        <TableCell><PriorityBadge priority={task.priority} /></TableCell>
+                        <TableCell>{task.title}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{task.type === 'personal' ? '个人' : '团队'}</Badge>
+                        </TableCell>
+                        <TableCell>{task.dueDate}</TableCell>
+                        <TableCell><StatusBadge done={task.done} /></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            {/* 能力面板 Tab */}
+            <TabsContent value="capability">
+              {cap && (
+                <div className="grid grid-cols-[10fr_14fr] gap-4 pt-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">五维能力</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      {(Object.keys(cap.scores) as AbilityDimension[]).map(dim => (
+                        <div key={dim} className="mb-3.5 last:mb-0">
+                          <div className="flex justify-between mb-1">
+                            <span className="text-[13px] font-semibold" style={{ color: ABILITY_DIMENSION_COLORS[dim] }}>
+                              {ABILITY_DIMENSION_LABELS[dim]}
+                            </span>
+                            <span className="text-[13px] font-bold">{cap.scores[dim]}</span>
+                          </div>
+                          <Progress
+                            value={cap.scores[dim]}
+                            style={{ '--progress-color': ABILITY_DIMENSION_COLORS[dim] } as React.CSSProperties}
+                          />
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">技能掌握</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <div className="flex gap-2 mb-4">
+                        <Badge className="bg-green-500 text-white hover:bg-green-600">
+                          已解锁 {cap.skills.filter(s => s.status === 'unlocked').length}
+                        </Badge>
+                        <Badge variant="secondary">
+                          待解锁 {cap.skills.filter(s => s.status === 'locked').length}
+                        </Badge>
+                      </div>
+                      {nextSkill && (
+                        <Card className="bg-muted mb-3">
+                          <CardContent className="p-3 px-3.5">
+                            <div className="text-xs text-muted-foreground">下一个可解锁技能</div>
+                            <div className="font-semibold mt-1">
+                              {nextSkill.name}
+                              <Badge
+                                className="ml-2"
+                                style={{ backgroundColor: ABILITY_DIMENSION_COLORS[nextSkill.domain], color: '#fff' }}
+                              >
+                                {ABILITY_DIMENSION_LABELS[nextSkill.domain]}
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">{nextSkill.description}</div>
+                          </CardContent>
+                        </Card>
+                      )}
+                      <div className="max-h-[240px] overflow-auto">
+                        {cap.skills.filter(s => s.status === 'unlocked').slice(0, 8).map(s => {
+                          const node = skillTrees.find(n => n.id === s.id);
+                          return (
+                            <div
+                              key={s.id}
+                              className="flex justify-between py-1.5 border-b border-border last:border-b-0"
+                            >
+                              <span className="text-[13px]">{node?.name || s.id}</span>
+                              <Badge
+                                className={
+                                  s.mastery === 'expert'
+                                    ? 'bg-purple-600 text-white hover:bg-purple-700'
+                                    : s.mastery === 'proficient'
+                                      ? ''
+                                      : 'bg-gray-400 text-white hover:bg-gray-500'
+                                }
+                                variant={s.mastery === 'proficient' ? 'default' : undefined}
+                              >
+                                {s.mastery === 'expert' ? '精通' : s.mastery === 'proficient' ? '熟练' : '入门'}
+                              </Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* 我的项目 Tab */}
+            <TabsContent value="projects">
+              <div className="grid grid-cols-3 gap-4 pt-4">
+                {mockProjects.map(p => (
+                  <Card key={p.id}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-semibold">{p.name}</span>
+                        <Badge className={p.status === '验收中' ? 'bg-green-500 text-white hover:bg-green-600' : ''}>
+                          {p.status}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground mb-2">角色：{p.role}</div>
+                      <Progress value={p.progress} />
+                      <div className="text-[11px] text-muted-foreground mt-1">{p.progress}% 完成</div>
+                    </CardContent>
+                  </Card>
                 ))}
-              </Row>
-            </div>
-          )}
-        </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
-    </Space>
+    </div>
   );
 }

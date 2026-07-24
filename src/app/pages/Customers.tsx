@@ -1,29 +1,48 @@
 import { useState } from 'react';
-import {
-  Card,
-  Table,
-  Button,
-  Input,
-  Select,
-  Badge,
-  Modal,
-  Form,
-  Message,
-  Space,
-  Typography,
-  Grid,
-} from '@arco-design/web-react';
-import { IconSearch, IconPlus, IconEye, IconEdit } from '@arco-design/web-react/icon';
+import { toast } from 'sonner';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Textarea } from '../components/ui/textarea';
+import { Eye, Pencil, Plus, Search } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
-const Title = Typography.Title;
-const Row = Grid.Row;
-const Col = Grid.Col;
+const statusColorMap: Record<string, string> = {
+  success: 'bg-green-500',
+  error: 'bg-red-500',
+  warning: 'bg-orange-500',
+  processing: 'bg-blue-500',
+  default: 'bg-gray-500',
+};
+
+function StatusDot({ status, text }: { status: string; text: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`h-2 w-2 rounded-full ${statusColorMap[status] || 'bg-gray-500'}`} />
+      <span>{text}</span>
+    </span>
+  );
+}
 
 export function Customers() {
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState({
+    name: '',
+    type: '',
+    industry: '',
+    scale: '',
+    owner: '',
+    registeredCapital: '',
+    level: 'B',
+    address: '',
+    remark: '',
+  });
 
   const customers = [
     {
@@ -103,301 +122,342 @@ export function Customers() {
     },
   ];
 
-  const levelMap = {
+  const levelMap: Record<string, string> = {
     'S级': 'error',
     'A级': 'warning',
     'B级': 'success',
     'C级': 'default',
   };
 
-  const statusMap = {
+  const statusMap: Record<string, string> = {
     合作中: 'success',
     跟进中: 'processing',
     已流失: 'default',
   };
 
-  // --- Columns with deliberate hierarchy ---
-  const columns = [
-    {
-      title: '客户名称',
-      dataIndex: 'name',
-      width: 200,
-      render: (name: string, record: any) => (
-        <a
-          onClick={() => navigate(`/customers/${record.key}`)}
-          style={{ fontWeight: 500, color: 'var(--primary)', cursor: 'pointer', padding: '2px 4px', borderRadius: 4 }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-        >
-          {name}
-        </a>
-      ),
-    },
-    {
-      title: '类型',
-      dataIndex: 'type',
-      width: 100,
-      render: (type: string) => <Badge status="default" text={type} />,
-    },
-    {
-      title: '所属行业',
-      dataIndex: 'industry',
-      width: 120,
-      render: (text: string) => (
-        <span style={{ color: 'hsl(220 10% 45%)' }}>{text}</span>
-      ),
-    },
-    {
-      title: '企业规模',
-      dataIndex: 'scale',
-      width: 120,
-      render: (text: string) => (
-        <span style={{ color: 'hsl(220 10% 45%)' }}>{text}</span>
-      ),
-    },
-    {
-      title: '主要联系人',
-      dataIndex: 'contact',
-      width: 120,
-      render: (text: string) => (
-        <span style={{ color: 'hsl(220 10% 35%)' }}>{text}</span>
-      ),
-    },
-    {
-      title: '联系电话',
-      dataIndex: 'phone',
-      width: 120,
-      render: (text: string) => (
-        <span style={{ color: 'hsl(220 8% 55%)', fontSize: 13 }}>{text}</span>
-      ),
-    },
-    {
-      title: '客户等级',
-      dataIndex: 'level',
-      width: 100,
-      render: (level: string) => (
-        <Badge status={levelMap[level as keyof typeof levelMap]} text={level} />
-      ),
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 100,
-      render: (status: string) => (
-        <Badge status={statusMap[status as keyof typeof statusMap]} text={status} />
-      ),
-    },
-    {
-      title: '合同数',
-      dataIndex: 'contractCount',
-      width: 100,
-      render: (value: number) => (
-        <span style={{ fontWeight: 500, color: 'hsl(220 15% 25%)' }}>{value}</span>
-      ),
-    },
-    {
-      title: '合同金额',
-      dataIndex: 'contractAmount',
-      width: 120,
-      render: (text: string) => (
-        <span style={{ fontWeight: 500, color: 'hsl(220 15% 25%)' }}>{text}</span>
-      ),
-    },
-    {
-      title: '待收款',
-      dataIndex: 'receivable',
-      width: 100,
-      render: (text: string) => (
-        <span style={{ color: 'hsl(30 90% 44%)', fontWeight: 500 }}>{text}</span>
-      ),
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createTime',
-      width: 120,
-      render: (text: string) => (
-        <span style={{ color: 'hsl(220 8% 55%)', fontSize: 13 }}>{text}</span>
-      ),
-    },
-    {
-      title: '操作',
-      width: 150,
-      fixed: 'right' as const,
-      render: (_, record: any) => (
-        <Space size={0}>
-          <Button
-            key={`view-${record.key}`}
-            type="text"
-            icon={<IconEye />}
-            size="small"
-            onClick={() => navigate(`/customers/${record.key}`)}
-          />
-          <Button key={`edit-${record.key}`} type="text" icon={<IconEdit />} size="small" onClick={() => setVisible(true)} />
-        </Space>
-      ),
-    },
-  ];
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      type: '',
+      industry: '',
+      scale: '',
+      owner: '',
+      registeredCapital: '',
+      level: 'B',
+      address: '',
+      remark: '',
+    });
+  };
 
   const handleCreate = () => {
-    form.validate().then((values) => {
-      console.log(values);
-      Message.success('客户创建成功');
-      setVisible(false);
-      form.resetFields();
-    });
+    if (!formData.name) {
+      toast.error('请输入客户名称');
+      return;
+    }
+    console.log(formData);
+    toast.success('客户创建成功');
+    setVisible(false);
+    resetForm();
   };
 
   return (
     <div>
-      {/* Page label — subtle */}
-      <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 500, color: 'hsl(220 8% 55%)', letterSpacing: '0.025em', textTransform: 'uppercase' }}>
+      {/* Page label */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="text-[13px] font-medium text-muted-foreground tracking-wide uppercase">
           客户管理
         </div>
-        <Button type="primary" icon={<IconPlus />} onClick={() => setVisible(true)}>
+        <Button onClick={() => setVisible(true)}>
+          <Plus className="mr-2 h-4 w-4" />
           新建客户
         </Button>
       </div>
 
-      <Card
-        style={{
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-xs)',
-          border: '1px solid hsl(220 12% 88%)',
-        }}
-      >
-        {/* Search & Filter Bar */}
-        <div className="flex gap-3" style={{ marginBottom: 16 }}>
-          <Input
-            style={{ width: 240 }}
-            placeholder="搜索客户名称、联系人"
-            prefix={<IconSearch />}
-          />
-          <Select placeholder="客户类型" style={{ width: 160 }} allowClear>
-            <Select.Option value="enterprise">企业</Select.Option>
-            <Select.Option value="institution">机构</Select.Option>
-            <Select.Option value="individual">个人</Select.Option>
-          </Select>
-          <Select placeholder="客户等级" style={{ width: 160 }} allowClear>
-            <Select.Option value="S">S级</Select.Option>
-            <Select.Option value="A">A级</Select.Option>
-            <Select.Option value="B">B级</Select.Option>
-            <Select.Option value="C">C级</Select.Option>
-          </Select>
-          <Select placeholder="客户状态" style={{ width: 160 }} allowClear>
-            <Select.Option value="active">合作中</Select.Option>
-            <Select.Option value="following">跟进中</Select.Option>
-            <Select.Option value="lost">已流失</Select.Option>
-          </Select>
-          <Button type="primary">搜索</Button>
-        </div>
+      <Card>
+        <CardContent className="pt-6">
+          {/* Search & Filter Bar */}
+          <div className="flex gap-3 mb-4">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input className="pl-8 w-[240px]" placeholder="搜索客户名称、联系人" />
+            </div>
+            <Select>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="客户类型" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="enterprise">企业</SelectItem>
+                <SelectItem value="institution">机构</SelectItem>
+                <SelectItem value="individual">个人</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="客户等级" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="S">S级</SelectItem>
+                <SelectItem value="A">A级</SelectItem>
+                <SelectItem value="B">B级</SelectItem>
+                <SelectItem value="C">C级</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="客户状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">合作中</SelectItem>
+                <SelectItem value="following">跟进中</SelectItem>
+                <SelectItem value="lost">已流失</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button>搜索</Button>
+          </div>
 
-        <Table
-          columns={columns}
-          data={customers}
-          scroll={{ x: 1800 }}
-          pagination={{
-            total: 68,
-            pageSize: 10,
-            showTotal: true,
-            showJumper: true,
-          }}
-        />
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>客户名称</TableHead>
+                  <TableHead>类型</TableHead>
+                  <TableHead>所属行业</TableHead>
+                  <TableHead>企业规模</TableHead>
+                  <TableHead>主要联系人</TableHead>
+                  <TableHead>联系电话</TableHead>
+                  <TableHead>客户等级</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead>合同数</TableHead>
+                  <TableHead>合同金额</TableHead>
+                  <TableHead>待收款</TableHead>
+                  <TableHead>创建时间</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {customers.map((record) => (
+                  <TableRow key={record.key}>
+                    <TableCell>
+                      <a
+                        onClick={() => navigate(`/customers/${record.key}`)}
+                        className="font-medium text-primary cursor-pointer px-1 py-0.5 rounded hover:bg-accent"
+                      >
+                        {record.name}
+                      </a>
+                    </TableCell>
+                    <TableCell>
+                      <StatusDot status="default" text={record.type} />
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-muted-foreground">{record.industry}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-muted-foreground">{record.scale}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-foreground/80">{record.contact}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-muted-foreground text-[13px]">{record.phone}</span>
+                    </TableCell>
+                    <TableCell>
+                      <StatusDot
+                        status={levelMap[record.level] || 'default'}
+                        text={record.level}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <StatusDot
+                        status={statusMap[record.status] || 'default'}
+                        text={record.status}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium text-foreground">{record.contractCount}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium text-foreground">{record.contractAmount}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium text-orange-600">{record.receivable}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-muted-foreground text-[13px]">{record.createTime}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/customers/${record.key}`)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setVisible(true)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="flex items-center justify-between mt-4">
+            <span className="text-sm text-muted-foreground">共 68 条记录</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled>上一页</Button>
+              <Button variant="outline" size="sm">1</Button>
+              <Button variant="outline" size="sm">2</Button>
+              <Button variant="outline" size="sm">3</Button>
+              <Button variant="outline" size="sm">...</Button>
+              <Button variant="outline" size="sm">7</Button>
+              <Button variant="outline" size="sm">下一页</Button>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
-      {/* ---- New Customer Modal ---- */}
-      <Modal
-        title="新建客户"
-        visible={visible}
-        onOk={handleCreate}
-        onCancel={() => {
+      {/* New Customer Dialog */}
+      <Dialog open={visible} onOpenChange={(open) => {
+        if (!open) {
           setVisible(false);
-          form.resetFields();
-        }}
-        style={{ width: 680 }}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            label="客户名称"
-            field="name"
-            rules={[{ required: true, message: '请输入客户名称' }]}
-          >
-            <Input placeholder="请输入客户名称" />
-          </Form.Item>
+          resetForm();
+        }
+      }}>
+        <DialogContent className="sm:max-w-[680px]">
+          <DialogHeader>
+            <DialogTitle>新建客户</DialogTitle>
+          </DialogHeader>
 
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item label="客户类型" field="type">
-                <Select placeholder="请选择">
-                  <Select.Option value="enterprise">企业</Select.Option>
-                  <Select.Option value="institution">机构</Select.Option>
-                  <Select.Option value="individual">个人</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="所属行业" field="industry">
-                <Select placeholder="请选择">
-                  <Select.Option value="internet">互联网</Select.Option>
-                  <Select.Option value="finance">金融</Select.Option>
-                  <Select.Option value="education">教育</Select.Option>
-                  <Select.Option value="retail">零售</Select.Option>
-                  <Select.Option value="ecommerce">电商</Select.Option>
-                  <Select.Option value="manufacturing">制造业</Select.Option>
-                  <Select.Option value="other">其他</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="企业规模" field="scale">
-                <Select placeholder="请选择">
-                  <Select.Option value="1-50">1-50人</Select.Option>
-                  <Select.Option value="50-100">50-100人</Select.Option>
-                  <Select.Option value="100-500">100-500人</Select.Option>
-                  <Select.Option value="500-1000">500-1000人</Select.Option>
-                  <Select.Option value="1000+">1000人以上</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>客户名称 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入客户名称"
+                value={formData.name}
+                onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+              />
+            </div>
 
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item label="负责人" field="owner">
-                <Select placeholder="请选择负责人">
-                  <Select.Option value="zhang">张三</Select.Option>
-                  <Select.Option value="li">李四</Select.Option>
-                  <Select.Option value="wang">王五</Select.Option>
-                  <Select.Option value="zhao">赵六</Select.Option>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>客户类型</Label>
+                <Select value={formData.type} onValueChange={(v) => setFormData((p) => ({ ...p, type: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="enterprise">企业</SelectItem>
+                    <SelectItem value="institution">机构</SelectItem>
+                    <SelectItem value="individual">个人</SelectItem>
+                  </SelectContent>
                 </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="注册资本" field="registeredCapital">
-                <Input placeholder="请输入注册资本，例如：1000万" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="客户等级" field="level">
-                <Select placeholder="请选择" defaultValue="B">
-                  <Select.Option value="S">S级（战略客户）</Select.Option>
-                  <Select.Option value="A">A级（重要客户）</Select.Option>
-                  <Select.Option value="B">B级（普通客户）</Select.Option>
-                  <Select.Option value="C">C级（潜在客户）</Select.Option>
+              </div>
+              <div className="space-y-2">
+                <Label>所属行业</Label>
+                <Select value={formData.industry} onValueChange={(v) => setFormData((p) => ({ ...p, industry: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="internet">互联网</SelectItem>
+                    <SelectItem value="finance">金融</SelectItem>
+                    <SelectItem value="education">教育</SelectItem>
+                    <SelectItem value="retail">零售</SelectItem>
+                    <SelectItem value="ecommerce">电商</SelectItem>
+                    <SelectItem value="manufacturing">制造业</SelectItem>
+                    <SelectItem value="other">其他</SelectItem>
+                  </SelectContent>
                 </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+              </div>
+              <div className="space-y-2">
+                <Label>企业规模</Label>
+                <Select value={formData.scale} onValueChange={(v) => setFormData((p) => ({ ...p, scale: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1-50">1-50人</SelectItem>
+                    <SelectItem value="50-100">50-100人</SelectItem>
+                    <SelectItem value="100-500">100-500人</SelectItem>
+                    <SelectItem value="500-1000">500-1000人</SelectItem>
+                    <SelectItem value="1000+">1000人以上</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-          <Form.Item label="客户地址" field="address">
-            <Input placeholder="请输入客户地址" />
-          </Form.Item>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>负责人</Label>
+                <Select value={formData.owner} onValueChange={(v) => setFormData((p) => ({ ...p, owner: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择负责人" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="zhang">张三</SelectItem>
+                    <SelectItem value="li">李四</SelectItem>
+                    <SelectItem value="wang">王五</SelectItem>
+                    <SelectItem value="zhao">赵六</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>注册资本</Label>
+                <Input
+                  placeholder="请输入注册资本，例如：1000万"
+                  value={formData.registeredCapital}
+                  onChange={(e) => setFormData((p) => ({ ...p, registeredCapital: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>客户等级</Label>
+                <Select value={formData.level} onValueChange={(v) => setFormData((p) => ({ ...p, level: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="S">S级（战略客户）</SelectItem>
+                    <SelectItem value="A">A级（重要客户）</SelectItem>
+                    <SelectItem value="B">B级（普通客户）</SelectItem>
+                    <SelectItem value="C">C级（潜在客户）</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-          <Form.Item label="备注" field="remark">
-            <Input.TextArea placeholder="请输入备注信息" rows={3} />
-          </Form.Item>
-        </Form>
-      </Modal>
+            <div className="space-y-2">
+              <Label>客户地址</Label>
+              <Input
+                placeholder="请输入客户地址"
+                value={formData.address}
+                onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>备注</Label>
+              <Textarea
+                placeholder="请输入备注信息"
+                rows={3}
+                value={formData.remark}
+                onChange={(e) => setFormData((p) => ({ ...p, remark: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setVisible(false); resetForm(); }}>取消</Button>
+            <Button onClick={handleCreate}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

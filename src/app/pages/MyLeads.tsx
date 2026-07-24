@@ -1,28 +1,52 @@
 import { useState } from 'react';
-import {
-  Card,
-  Table,
-  Button,
-  Input,
-  Select,
-  Badge,
-  Modal,
-  Form,
-  Message,
-  Space,
-  Typography,
-  Tooltip,
-  Alert,
-} from '@arco-design/web-react';
-import {
-  IconSearch,
-  IconEye,
-  IconEdit,
-  IconSwap,
-  IconDelete,
-  IconReply,
-} from '@arco-design/web-react/icon';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router';
+import {
+  Search,
+  Eye,
+  Pencil,
+  ArrowLeftRight,
+  Trash2,
+  Undo2,
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
+import { Textarea } from '../components/ui/textarea';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../components/ui/tooltip';
+import { Alert, AlertDescription } from '../components/ui/alert';
 import { CompanyEntityInfoModal } from './company-entity/CompanyEntityInfoModal';
 import {
   companyEntityPermissions,
@@ -32,7 +56,22 @@ import {
 import { useReminders } from '@/app/reminders/ReminderContext';
 import type { ReminderItem } from '@/app/reminders/types';
 
-const Title = Typography.Title;
+const statusDotColor: Record<string, string> = {
+  default: 'bg-gray-400',
+  warning: 'bg-orange-500',
+  processing: 'bg-blue-500',
+  success: 'bg-green-500',
+  error: 'bg-red-500',
+};
+
+function StatusBadge({ status, text }: { status: string; text: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`h-2 w-2 rounded-full ${statusDotColor[status] || 'bg-gray-400'}`} />
+      <span>{text}</span>
+    </span>
+  );
+}
 
 export function getLeadFollowupReminderBanner(reminders: ReminderItem[]) {
   const leadReminders = reminders.filter(
@@ -58,14 +97,25 @@ export function MyLeads() {
   const navigate = useNavigate();
   const { reminders } = useReminders();
   const leadReminderBanner = getLeadFollowupReminderBanner(reminders);
+
+  // Dialog visibility
   const [transferVisible, setTransferVisible] = useState(false);
   const [discardVisible, setDiscardVisible] = useState(false);
   const [trashVisible, setTrashVisible] = useState(false);
-  const [form] = Form.useForm();
-  const [discardForm] = Form.useForm();
-  const [trashForm] = Form.useForm();
   const [companyModalVisible, setCompanyModalVisible] = useState(false);
   const [selectedCompanyEntity, setSelectedCompanyEntity] = useState<CompanyEntityRecord | null>(null);
+
+  // Form data
+  const [transferData, setTransferData] = useState({ target: '', reason: '' });
+  const [discardData, setDiscardData] = useState({ reason: '' });
+  const [trashData, setTrashData] = useState({ reason: '' });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalRecords = 45;
+  const pageSize = 10;
+  const totalPages = Math.ceil(totalRecords / pageSize);
 
   const myLeads = [
     {
@@ -143,13 +193,13 @@ export function MyLeads() {
 
   const handleOpenCompanyEntity = (entityName: string) => {
     if (!companyEntityPermissions.view) {
-      Message.warning('暂无权限查看公司主体详情');
+      toast.warning('暂无权限查看公司主体详情');
       return;
     }
 
     const companyEntity = findCompanyEntityByName(entityName);
     if (!companyEntity) {
-      Message.warning('未找到公司主体信息');
+      toast.warning('未找到公司主体信息');
       return;
     }
 
@@ -157,265 +207,450 @@ export function MyLeads() {
     setCompanyModalVisible(true);
   };
 
-  const columns = [
-    { title: '线索ID', dataIndex: 'id', width: 100 },
-    {
-      title: '线索名称',
-      dataIndex: 'name',
-      width: 200,
-      render: (name: string, record: any) => (
-        <a
-          onClick={() => navigate(`/leads/${record.key}`, { state: { from: 'my' } })}
-          style={{ color: 'rgb(var(--primary-6))' }}
-        >
-          {name}
-        </a>
-      ),
-    },
-    {
-      title: '对接主体',
-      dataIndex: 'entity',
-      width: 120,
-      render: (entity: string) => (
-        <Button type="text" size="mini" onClick={() => handleOpenCompanyEntity(entity)}>
-          {entity}
-        </Button>
-      ),
-    },
-    { title: '关联客户', dataIndex: 'customer', width: 150 },
-    { title: '联系人', dataIndex: 'contact', width: 100 },
-    { title: '手机号', dataIndex: 'phone', width: 120 },
-    {
-      title: '客户状态',
-      dataIndex: 'status',
-      width: 120,
-      render: (status: string) => (
-        <Badge
-          status={statusMap[status as keyof typeof statusMap]}
-          text={status}
-        />
-      ),
-    },
-    {
-      title: '意向等级',
-      dataIndex: 'level',
-      width: 100,
-      render: (level: string) => (
-        <Badge status={level === '高' ? 'error' : 'warning'} text={level} />
-      ),
-    },
-    { title: '下次跟进', dataIndex: 'nextFollow', width: 150 },
-    { title: '最后跟进', dataIndex: 'lastFollow', width: 100 },
-    { title: '跟进次数', dataIndex: 'followCount', width: 100 },
-    { title: '持有天数', dataIndex: 'daysHeld', width: 100 },
-    {
-      title: '操作',
-      width: 150,
-      fixed: 'right' as const,
-      render: (_, record: any) => (
-        <Space key={`actions-${record.key}`} size="small">
-          <Tooltip key={`tooltip-view-${record.key}`} content="查看详情">
-            <Button
-              type="text"
-              icon={<IconEye />}
-              size="mini"
-              onClick={() => navigate(`/leads/${record.key}`, { state: { from: 'my' } })}
-            />
-          </Tooltip>
-          <Tooltip key={`tooltip-follow-${record.key}`} content="添加跟进">
-            <Button
-              type="text"
-              icon={<IconEdit />}
-              size="mini"
-            />
-          </Tooltip>
-          <Tooltip key={`tooltip-transfer-${record.key}`} content="转让线索">
-            <Button
-              type="text"
-              icon={<IconSwap />}
-              size="mini"
-              onClick={() => setTransferVisible(true)}
-            />
-          </Tooltip>
-          <Tooltip key={`tooltip-discard-${record.key}`} content="丢弃线索">
-            <Button
-              type="text"
-              icon={<IconReply />}
-              size="mini"
-              status="warning"
-              onClick={() => setDiscardVisible(true)}
-            />
-          </Tooltip>
-          <Tooltip key={`tooltip-trash-${record.key}`} content="标记为垃圾">
-            <Button
-              type="text"
-              icon={<IconDelete />}
-              size="mini"
-              status="danger"
-              onClick={() => setTrashVisible(true)}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
+  const handleTransferSubmit = () => {
+    const newErrors: Record<string, string> = {};
+    if (!transferData.target) newErrors.target = '请选择转让对象';
+    setFormErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    toast.success('线索转让成功');
+    setTransferVisible(false);
+    setTransferData({ target: '', reason: '' });
+    setFormErrors({});
+  };
+
+  const handleDiscardSubmit = () => {
+    const newErrors: Record<string, string> = {};
+    if (!discardData.reason) newErrors.reason = '请填写丢弃原因';
+    setFormErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    toast.success('线索已丢回公海线索');
+    setDiscardVisible(false);
+    setDiscardData({ reason: '' });
+    setFormErrors({});
+  };
+
+  const handleTrashSubmit = () => {
+    const newErrors: Record<string, string> = {};
+    if (!trashData.reason) newErrors.reason = '请填写丢弃原因';
+    setFormErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    toast.success('线索已标记为垃圾');
+    setTrashVisible(false);
+    setTrashData({ reason: '' });
+    setFormErrors({});
+  };
 
   return (
-    <div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-        <Title heading={4}>我的线索</Title>
-      </div>
-
-      {leadReminderBanner ? (
-        <Alert
-          type="warning"
-          closable={false}
-          showIcon
-          content={`当前有 ${leadReminderBanner.count} 条线索已超时未跟进，请尽快处理。`}
-          style={{ marginBottom: 16, cursor: leadReminderBanner.firstTargetPath ? 'pointer' : 'default' }}
-          onClick={() => {
-            if (leadReminderBanner.firstTargetPath) {
-              navigate(leadReminderBanner.firstTargetPath, { state: { from: 'my' } });
-            }
-          }}
-        />
-      ) : null}
-
-      <Card>
-        <div className="flex gap-4" style={{ marginBottom: 16 }}>
-          <Input
-            style={{ width: 240 }}
-            placeholder="搜索线索名称、客户"
-            prefix={<IconSearch />}
-          />
-          <Select placeholder="客户状态" style={{ width: 160 }} allowClear>
-            <Select.Option key="status-1" value="未联系">未联系</Select.Option>
-            <Select.Option key="status-2" value="未接通">未接通</Select.Option>
-            <Select.Option key="status-3" value="初步沟通">初步沟通</Select.Option>
-            <Select.Option key="status-4" value="需求调研">需求调研</Select.Option>
-            <Select.Option key="status-5" value="方案报价">方案报价</Select.Option>
-            <Select.Option key="status-6" value="合同洽谈">合同洽谈</Select.Option>
-            <Select.Option key="status-7" value="已签单">已签单</Select.Option>
-            <Select.Option key="status-8" value="已终止">已终止</Select.Option>
-          </Select>
-          <Select placeholder="意向等级" style={{ width: 160 }} allowClear>
-            <Select.Option key="level-high" value="high">高</Select.Option>
-            <Select.Option key="level-medium" value="medium">中</Select.Option>
-            <Select.Option key="level-low" value="low">低</Select.Option>
-          </Select>
-          <Button type="primary">搜索</Button>
+    <TooltipProvider>
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">我的线索</h2>
         </div>
 
-        <Table
-          columns={columns}
-          data={myLeads}
-          scroll={{ x: 1600 }}
-          pagination={{
-            total: 45,
-            pageSize: 10,
-            showTotal: true,
-            showJumper: true,
+        {leadReminderBanner ? (
+          <Alert
+            className="mb-4 cursor-pointer border-orange-200 bg-orange-50"
+            style={{ cursor: leadReminderBanner.firstTargetPath ? 'pointer' : 'default' }}
+            onClick={() => {
+              if (leadReminderBanner.firstTargetPath) {
+                navigate(leadReminderBanner.firstTargetPath, { state: { from: 'my' } });
+              }
+            }}
+          >
+            <AlertTriangle className="h-4 w-4 text-orange-500" />
+            <AlertDescription className="text-orange-800">
+              当前有 {leadReminderBanner.count} 条线索已超时未跟进，请尽快处理。
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex gap-4 mb-4">
+              <div className="relative w-[240px]">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input className="pl-8" placeholder="搜索线索名称、客户" />
+              </div>
+              <Select>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="客户状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="未联系">未联系</SelectItem>
+                  <SelectItem value="未接通">未接通</SelectItem>
+                  <SelectItem value="初步沟通">初步沟通</SelectItem>
+                  <SelectItem value="需求调研">需求调研</SelectItem>
+                  <SelectItem value="方案报价">方案报价</SelectItem>
+                  <SelectItem value="合同洽谈">合同洽谈</SelectItem>
+                  <SelectItem value="已签单">已签单</SelectItem>
+                  <SelectItem value="已终止">已终止</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="意向等级" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high">高</SelectItem>
+                  <SelectItem value="medium">中</SelectItem>
+                  <SelectItem value="low">低</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button>搜索</Button>
+            </div>
+
+            <div className="rounded-md border overflow-x-auto">
+              <Table style={{ minWidth: 1600 }}>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead style={{ width: 100 }}>线索ID</TableHead>
+                    <TableHead style={{ width: 200 }}>线索名称</TableHead>
+                    <TableHead style={{ width: 120 }}>对接主体</TableHead>
+                    <TableHead style={{ width: 150 }}>关联客户</TableHead>
+                    <TableHead style={{ width: 100 }}>联系人</TableHead>
+                    <TableHead style={{ width: 120 }}>手机号</TableHead>
+                    <TableHead style={{ width: 120 }}>客户状态</TableHead>
+                    <TableHead style={{ width: 100 }}>意向等级</TableHead>
+                    <TableHead style={{ width: 150 }}>下次跟进</TableHead>
+                    <TableHead style={{ width: 100 }}>最后跟进</TableHead>
+                    <TableHead style={{ width: 100 }}>跟进次数</TableHead>
+                    <TableHead style={{ width: 100 }}>持有天数</TableHead>
+                    <TableHead style={{ width: 150 }} className="sticky right-0 bg-background">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {myLeads.map((record) => (
+                    <TableRow key={record.key}>
+                      <TableCell>{record.id}</TableCell>
+                      <TableCell>
+                        <a
+                          onClick={() => navigate(`/leads/${record.key}`, { state: { from: 'my' } })}
+                          className="text-primary cursor-pointer hover:underline"
+                        >
+                          {record.name}
+                        </a>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => handleOpenCompanyEntity(record.entity)}
+                        >
+                          {record.entity}
+                        </Button>
+                      </TableCell>
+                      <TableCell>{record.customer}</TableCell>
+                      <TableCell>{record.contact}</TableCell>
+                      <TableCell>{record.phone}</TableCell>
+                      <TableCell>
+                        <StatusBadge
+                          status={statusMap[record.status as keyof typeof statusMap]}
+                          text={record.status}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge
+                          status={record.level === '高' ? 'error' : 'warning'}
+                          text={record.level}
+                        />
+                      </TableCell>
+                      <TableCell>{record.nextFollow}</TableCell>
+                      <TableCell>{record.lastFollow}</TableCell>
+                      <TableCell>{record.followCount}</TableCell>
+                      <TableCell>{record.daysHeld}</TableCell>
+                      <TableCell className="sticky right-0 bg-background">
+                        <div className="flex items-center gap-0">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => navigate(`/leads/${record.key}`, { state: { from: 'my' } })}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>查看详情</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>添加跟进</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setTransferVisible(true)}
+                              >
+                                <ArrowLeftRight className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>转让线索</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-orange-500 hover:text-orange-600 hover:bg-orange-50"
+                                onClick={() => setDiscardVisible(true)}
+                              >
+                                <Undo2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>丢弃线索</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setTrashVisible(true)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>标记为垃圾</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between py-4">
+              <div className="text-sm text-muted-foreground">
+                共 {totalRecords} 条记录，第 {currentPage}/{totalPages} 页
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(
+                  (page) => (
+                    <Button
+                      key={page}
+                      variant={page === currentPage ? 'default' : 'outline'}
+                      size="sm"
+                      className="w-8"
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </Button>
+                  ),
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Transfer Dialog */}
+        <Dialog
+          open={transferVisible}
+          onOpenChange={(open) => {
+            if (!open) {
+              setTransferVisible(false);
+              setTransferData({ target: '', reason: '' });
+              setFormErrors({});
+            }
           }}
+        >
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>转让线索</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>
+                  转让给 <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={transferData.target}
+                  onValueChange={(value) =>
+                    setTransferData((prev) => ({ ...prev, target: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择销售人员" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user1">李四</SelectItem>
+                    <SelectItem value="user2">王五</SelectItem>
+                    <SelectItem value="user3">赵六</SelectItem>
+                  </SelectContent>
+                </Select>
+                {formErrors.target && (
+                  <p className="text-sm text-destructive">{formErrors.target}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>转让原因</Label>
+                <Textarea
+                  placeholder="请输入转让原因（选填）"
+                  rows={4}
+                  value={transferData.reason}
+                  onChange={(e) =>
+                    setTransferData((prev) => ({ ...prev, reason: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setTransferVisible(false);
+                  setTransferData({ target: '', reason: '' });
+                  setFormErrors({});
+                }}
+              >
+                取消
+              </Button>
+              <Button onClick={handleTransferSubmit}>确定</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Discard Dialog */}
+        <Dialog
+          open={discardVisible}
+          onOpenChange={(open) => {
+            if (!open) {
+              setDiscardVisible(false);
+              setDiscardData({ reason: '' });
+              setFormErrors({});
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>丢弃线索</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>
+                  丢弃原因 <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  placeholder="请详细说明丢弃该线索的原因，以便其他人员参考"
+                  rows={4}
+                  value={discardData.reason}
+                  onChange={(e) =>
+                    setDiscardData((prev) => ({ ...prev, reason: e.target.value }))
+                  }
+                />
+                {formErrors.reason && (
+                  <p className="text-sm text-destructive">{formErrors.reason}</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDiscardVisible(false);
+                  setDiscardData({ reason: '' });
+                  setFormErrors({});
+                }}
+              >
+                取消
+              </Button>
+              <Button onClick={handleDiscardSubmit}>确定</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Trash Dialog */}
+        <Dialog
+          open={trashVisible}
+          onOpenChange={(open) => {
+            if (!open) {
+              setTrashVisible(false);
+              setTrashData({ reason: '' });
+              setFormErrors({});
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>标记为垃圾</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>
+                  丢弃原因 <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  placeholder="请详细说明将该线索标记为垃圾的原因"
+                  rows={4}
+                  value={trashData.reason}
+                  onChange={(e) =>
+                    setTrashData((prev) => ({ ...prev, reason: e.target.value }))
+                  }
+                />
+                {formErrors.reason && (
+                  <p className="text-sm text-destructive">{formErrors.reason}</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setTrashVisible(false);
+                  setTrashData({ reason: '' });
+                  setFormErrors({});
+                }}
+              >
+                取消
+              </Button>
+              <Button onClick={handleTrashSubmit}>确定</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <CompanyEntityInfoModal
+          visible={companyModalVisible}
+          mode="view"
+          defaultTab="files"
+          record={selectedCompanyEntity}
+          permissions={companyEntityPermissions}
+          onCancel={() => setCompanyModalVisible(false)}
+          onGoManage={() => navigate('/system/company')}
         />
-      </Card>
-
-      <Modal
-        title="转让线索"
-        visible={transferVisible}
-        onOk={() => {
-          form.validate().then(() => {
-            Message.success('线索转让成功');
-            setTransferVisible(false);
-            form.resetFields();
-          });
-        }}
-        onCancel={() => {
-          setTransferVisible(false);
-          form.resetFields();
-        }}
-        style={{ width: 480 }}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            label="转让给"
-            field="target"
-            rules={[{ required: true, message: '请选择转让对象' }]}
-          >
-            <Select placeholder="请选择销售人员">
-              <Select.Option key="user1" value="user1">李四</Select.Option>
-              <Select.Option key="user2" value="user2">王五</Select.Option>
-              <Select.Option key="user3" value="user3">赵六</Select.Option>
-            </Select>
-          </Form.Item>
-          <Form.Item label="转让原因" field="reason">
-            <Input.TextArea placeholder="请输入转让原因（选填）" rows={4} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="丢弃线索"
-        visible={discardVisible}
-        onOk={() => {
-          discardForm.validate().then(() => {
-            Message.success('线索已丢回公海线索');
-            setDiscardVisible(false);
-            discardForm.resetFields();
-          });
-        }}
-        onCancel={() => {
-          setDiscardVisible(false);
-          discardForm.resetFields();
-        }}
-        style={{ width: 480 }}
-      >
-        <Form form={discardForm} layout="vertical">
-          <Form.Item
-            label="丢弃原因"
-            field="reason"
-            rules={[{ required: true, message: '请填写丢弃原因' }]}
-          >
-            <Input.TextArea placeholder="请详细说明丢弃该线索的原因，以便其他人员参考" rows={4} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="标记为垃圾"
-        visible={trashVisible}
-        onOk={() => {
-          trashForm.validate().then(() => {
-            Message.success('线索已标记为垃圾');
-            setTrashVisible(false);
-            trashForm.resetFields();
-          });
-        }}
-        onCancel={() => {
-          setTrashVisible(false);
-          trashForm.resetFields();
-        }}
-        style={{ width: 480 }}
-      >
-        <Form form={trashForm} layout="vertical">
-          <Form.Item
-            label="丢弃原因"
-            field="reason"
-            rules={[{ required: true, message: '请填写丢弃原因' }]}
-          >
-            <Input.TextArea placeholder="请详细说明将该线索标记为垃圾的原因" rows={4} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <CompanyEntityInfoModal
-        visible={companyModalVisible}
-        mode="view"
-        defaultTab="files"
-        record={selectedCompanyEntity}
-        permissions={companyEntityPermissions}
-        onCancel={() => setCompanyModalVisible(false)}
-        onGoManage={() => navigate('/system/company')}
-      />
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

@@ -1,6 +1,30 @@
 import { useState } from 'react';
-import { Button, Card, Modal, Select, Space, Table, Tag, Typography, Upload } from '@arco-design/web-react';
-import { IconImport } from '@arco-design/web-react/icon';
+import { Upload } from 'lucide-react';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
 import {
   contractCostPermissions,
   getHourlyRate,
@@ -8,9 +32,6 @@ import {
   mockSalaryData,
   type MonthlySalaryRecord,
 } from './contractCostData';
-
-const Title = Typography.Title;
-const Text = Typography.Text;
 
 const MONTHS = ['2026-05', '2026-04', '2026-03', '2026-02', '2026-01'];
 
@@ -24,7 +45,9 @@ export function SalaryPage() {
   if (!salaryView) {
     return (
       <Card>
-        <Text>暂无权限查看工资表</Text>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          暂无权限查看工资表
+        </CardContent>
       </Card>
     );
   }
@@ -33,140 +56,124 @@ export function SalaryPage() {
 
   const mask = (value: string | number) => (salaryView ? value : '***');
 
-  const columns = [
-    {
-      title: '员工姓名',
-      dataIndex: 'employeeName',
-      width: 100,
-    },
-    {
-      title: '部门',
-      dataIndex: 'department',
-      width: 100,
-    },
-    {
-      title: '职位',
-      dataIndex: 'position',
-      width: 140,
-    },
-    {
-      title: '名义月工资',
-      dataIndex: 'nominalSalary',
-      width: 120,
-      render: (value: number) => mask(value.toLocaleString()),
-    },
-    {
-      title: '名义月工时',
-      dataIndex: 'nominalHours',
-      width: 110,
-    },
-    {
-      title: '名义时薪',
-      width: 110,
-      render: (_: unknown, record: MonthlySalaryRecord) =>
-        mask(getHourlyRate(record, false).toFixed(2)),
-    },
-    {
-      title: '实际月工资',
-      width: 120,
-      render: (_: unknown, record: MonthlySalaryRecord) =>
-        record.actualSalary != null ? mask(record.actualSalary.toLocaleString()) : '-',
-    },
-    {
-      title: '实际月工时',
-      width: 110,
-      render: (_: unknown, record: MonthlySalaryRecord) =>
-        record.actualHours != null ? record.actualHours : '-',
-    },
-    {
-      title: '实际时薪',
-      width: 110,
-      render: (_: unknown, record: MonthlySalaryRecord) =>
-        record.actualSalary != null && record.actualHours != null
-          ? mask(getHourlyRate(record, true).toFixed(2))
-          : '-',
-    },
-    {
-      title: '状态',
-      width: 100,
-      render: (_: unknown, record: MonthlySalaryRecord) =>
-        record.inherited ? (
-          <Tag color="orangered">沿用上月</Tag>
-        ) : (
-          <Tag color="green">已录入</Tag>
-        ),
-    },
-  ];
-
   return (
     <div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-        <Title heading={4} style={{ margin: 0 }}>工资表</Title>
-        <Space>
-          <Select
-            value={selectedMonth}
-            onChange={setSelectedMonth}
-            style={{ width: 160 }}
-          >
-            {MONTHS.map((m) => (
-              <Select.Option key={m} value={m}>
-                {m}
-              </Select.Option>
-            ))}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold m-0">工资表</h2>
+        <div className="flex items-center gap-2">
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MONTHS.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {m}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
           {salaryEdit && (
             <>
-              <Button
-                type="primary"
-                icon={<IconImport />}
-                onClick={() => setSalaryModalVisible(true)}
-              >
+              <Button onClick={() => setSalaryModalVisible(true)}>
+                <Upload className="h-4 w-4 mr-1" />
                 导入工资
               </Button>
-              <Button
-                icon={<IconImport />}
-                onClick={() => setHoursModalVisible(true)}
-              >
+              <Button variant="outline" onClick={() => setHoursModalVisible(true)}>
+                <Upload className="h-4 w-4 mr-1" />
                 导入实际工时
               </Button>
             </>
           )}
-        </Space>
+        </div>
       </div>
 
       <Card>
-        <Table
-          columns={columns}
-          data={data}
-          rowKey="employeeId"
-          pagination={false}
-          scroll={{ x: 1200 }}
-        />
+        <CardContent className="pt-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">员工姓名</TableHead>
+                <TableHead className="w-[100px]">部门</TableHead>
+                <TableHead className="w-[140px]">职位</TableHead>
+                <TableHead className="w-[120px]">名义月工资</TableHead>
+                <TableHead className="w-[110px]">名义月工时</TableHead>
+                <TableHead className="w-[110px]">名义时薪</TableHead>
+                <TableHead className="w-[120px]">实际月工资</TableHead>
+                <TableHead className="w-[110px]">实际月工时</TableHead>
+                <TableHead className="w-[110px]">实际时薪</TableHead>
+                <TableHead className="w-[100px]">状态</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((record) => (
+                <TableRow key={record.employeeId}>
+                  <TableCell>{record.employeeName}</TableCell>
+                  <TableCell>{record.department}</TableCell>
+                  <TableCell>{record.position}</TableCell>
+                  <TableCell>{mask(record.nominalSalary.toLocaleString())}</TableCell>
+                  <TableCell>{record.nominalHours}</TableCell>
+                  <TableCell>{mask(getHourlyRate(record, false).toFixed(2))}</TableCell>
+                  <TableCell>
+                    {record.actualSalary != null ? mask(record.actualSalary.toLocaleString()) : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {record.actualHours != null ? record.actualHours : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {record.actualSalary != null && record.actualHours != null
+                      ? mask(getHourlyRate(record, true).toFixed(2))
+                      : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {record.inherited ? (
+                      <Badge variant="destructive">沿用上月</Badge>
+                    ) : (
+                      <Badge variant="default" className="bg-green-500">已录入</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
       </Card>
 
       {/* 导入工资弹窗 */}
-      <Modal
-        title="导入工资"
-        visible={salaryModalVisible}
-        onCancel={() => setSalaryModalVisible(false)}
-        onOk={() => setSalaryModalVisible(false)}
-        okText="确认导入"
-        style={{ width: 520 }}
-      >
-        <Upload drag tip="点击或拖拽文件到此区域上传" accept=".xlsx,.xls,.csv" />
-      </Modal>
+      <Dialog open={salaryModalVisible} onOpenChange={setSalaryModalVisible}>
+        <DialogContent className="max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>导入工资</DialogTitle>
+          </DialogHeader>
+          <div className="border-2 border-dashed rounded-lg p-8 text-center">
+            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">点击或拖拽文件到此区域上传</p>
+            <p className="text-xs text-muted-foreground mt-1">支持 .xlsx, .xls, .csv 格式</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSalaryModalVisible(false)}>取消</Button>
+            <Button onClick={() => setSalaryModalVisible(false)}>确认导入</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 导入实际工时弹窗 */}
-      <Modal
-        title="导入实际工时"
-        visible={hoursModalVisible}
-        onCancel={() => setHoursModalVisible(false)}
-        onOk={() => setHoursModalVisible(false)}
-        okText="确认导入"
-        style={{ width: 520 }}
-      >
-        <Upload drag tip="点击或拖拽文件到此区域上传" accept=".xlsx,.xls,.csv" />
-      </Modal>
+      <Dialog open={hoursModalVisible} onOpenChange={setHoursModalVisible}>
+        <DialogContent className="max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>导入实际工时</DialogTitle>
+          </DialogHeader>
+          <div className="border-2 border-dashed rounded-lg p-8 text-center">
+            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">点击或拖拽文件到此区域上传</p>
+            <p className="text-xs text-muted-foreground mt-1">支持 .xlsx, .xls, .csv 格式</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHoursModalVisible(false)}>取消</Button>
+            <Button onClick={() => setHoursModalVisible(false)}>确认导入</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

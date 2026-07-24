@@ -1,21 +1,25 @@
 import { useState } from 'react';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import {
-  Card,
-  Tabs,
   Table,
-  Form,
-  Input,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
+import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
+import {
   Select,
-  DatePicker,
-  Button,
-  Space,
-  Tag,
-} from '@arco-design/web-react';
-import { IconSearch, IconRefresh } from '@arco-design/web-react/icon';
-
-const TabPane = Tabs.TabPane;
-const FormItem = Form.Item;
-const RangePicker = DatePicker.RangePicker;
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import { Search, RefreshCw } from 'lucide-react';
 
 // 模拟操作日志数据
 const mockOperationLogs = [
@@ -160,150 +164,249 @@ const mockLoginLogs = [
   },
 ];
 
+interface OperationSearchForm {
+  username: string;
+  module: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+}
+
+interface LoginSearchForm {
+  username: string;
+  ip: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+}
+
 export function SystemLog() {
   const [activeTab, setActiveTab] = useState('operation');
-  const [operationForm] = Form.useForm();
-  const [loginForm] = Form.useForm();
 
-  // 操作日志表格列配置
-  const operationColumns = [
-    { title: '操作人', dataIndex: 'name', width: 100 },
-    { title: '所属模块', dataIndex: 'module', width: 120 },
-    { title: '操作类型', dataIndex: 'operation', width: 120 },
-    { title: '请求方式', dataIndex: 'method', width: 200 },
-    { title: 'IP地址', dataIndex: 'ip', width: 120 },
-    { title: '操作地点', dataIndex: 'location', width: 100 },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 80,
-      render: (status: string) => (
-        <Tag color={status === '成功' ? 'green' : 'red'}>{status}</Tag>
-      ),
-    },
-    { title: '耗时', dataIndex: 'duration', width: 80 },
-    { title: '操作时间', dataIndex: 'time', width: 160 },
-  ];
+  const [operationSearch, setOperationSearch] = useState<OperationSearchForm>({
+    username: '',
+    module: '',
+    status: '',
+    startDate: '',
+    endDate: '',
+  });
 
-  // 登录日志表格列配置
-  const loginColumns = [
-    { title: '用户名', dataIndex: 'username', width: 120 },
-    { title: '姓名', dataIndex: 'name', width: 100 },
-    { title: 'IP地址', dataIndex: 'ip', width: 120 },
-    { title: '登录地点', dataIndex: 'location', width: 100 },
-    { title: '浏览器', dataIndex: 'browser', width: 120 },
-    { title: '操作系统', dataIndex: 'os', width: 120 },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 80,
-      render: (status: string) => (
-        <Tag color={status === '成功' ? 'green' : 'red'}>{status}</Tag>
-      ),
-    },
-    { title: '提示消息', dataIndex: 'message', width: 120 },
-    { title: '登录时间', dataIndex: 'time', width: 160 },
-  ];
+  const [loginSearch, setLoginSearch] = useState<LoginSearchForm>({
+    username: '',
+    ip: '',
+    status: '',
+    startDate: '',
+    endDate: '',
+  });
 
   const handleOperationSearch = () => {
-    console.log('搜索操作日志', operationForm.getFieldsValue());
+    console.log('搜索操作日志', operationSearch);
   };
 
   const handleOperationReset = () => {
-    operationForm.resetFields();
+    setOperationSearch({ username: '', module: '', status: '', startDate: '', endDate: '' });
   };
 
   const handleLoginSearch = () => {
-    console.log('搜索登录日志', loginForm.getFieldsValue());
+    console.log('搜索登录日志', loginSearch);
   };
 
   const handleLoginReset = () => {
-    loginForm.resetFields();
+    setLoginSearch({ username: '', ip: '', status: '', startDate: '', endDate: '' });
   };
 
   return (
     <div>
-      <Card bordered={false}>
-        <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="operation" title="操作日志">
-            <Form form={operationForm} layout="inline" style={{ marginBottom: 16 }}>
-              <FormItem field="username">
-                <Input placeholder="操作人" style={{ width: 150 }} />
-              </FormItem>
-              <FormItem field="module">
-                <Select placeholder="所属模块" style={{ width: 150 }} allowClear>
-                  <Select.Option value="user">用户管理</Select.Option>
-                  <Select.Option value="customer">客户管理</Select.Option>
-                  <Select.Option value="lead">线索管理</Select.Option>
-                  <Select.Option value="contract">合同管理</Select.Option>
-                  <Select.Option value="project">项目管理</Select.Option>
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="operation">操作日志</TabsTrigger>
+              <TabsTrigger value="login">登录日志</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="operation" className="mt-6">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <Input
+                  placeholder="操作人"
+                  className="w-[150px]"
+                  value={operationSearch.username}
+                  onChange={(e) => setOperationSearch({ ...operationSearch, username: e.target.value })}
+                />
+                <Select
+                  value={operationSearch.module}
+                  onValueChange={(value) => setOperationSearch({ ...operationSearch, module: value })}
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="所属模块" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">用户管理</SelectItem>
+                    <SelectItem value="customer">客户管理</SelectItem>
+                    <SelectItem value="lead">线索管理</SelectItem>
+                    <SelectItem value="contract">合同管理</SelectItem>
+                    <SelectItem value="project">项目管理</SelectItem>
+                  </SelectContent>
                 </Select>
-              </FormItem>
-              <FormItem field="status">
-                <Select placeholder="状态" style={{ width: 120 }} allowClear>
-                  <Select.Option value="success">成功</Select.Option>
-                  <Select.Option value="fail">失败</Select.Option>
+                <Select
+                  value={operationSearch.status}
+                  onValueChange={(value) => setOperationSearch({ ...operationSearch, status: value })}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="success">成功</SelectItem>
+                    <SelectItem value="fail">失败</SelectItem>
+                  </SelectContent>
                 </Select>
-              </FormItem>
-              <FormItem field="timeRange">
-                <RangePicker style={{ width: 280 }} />
-              </FormItem>
-              <FormItem>
-                <Space>
-                  <Button key="search" type="primary" icon={<IconSearch />} onClick={handleOperationSearch}>
-                    搜索
-                  </Button>
-                  <Button key="reset" icon={<IconRefresh />} onClick={handleOperationReset}>
-                    重置
-                  </Button>
-                </Space>
-              </FormItem>
-            </Form>
-            <Table
-              columns={operationColumns}
-              data={mockOperationLogs}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-              scroll={{ x: 1400 }}
-            />
-          </TabPane>
-          <TabPane key="login" title="登录日志">
-            <Form form={loginForm} layout="inline" style={{ marginBottom: 16 }}>
-              <FormItem field="username">
-                <Input placeholder="用户名" style={{ width: 150 }} />
-              </FormItem>
-              <FormItem field="ip">
-                <Input placeholder="IP地址" style={{ width: 150 }} />
-              </FormItem>
-              <FormItem field="status">
-                <Select placeholder="状态" style={{ width: 120 }} allowClear>
-                  <Select.Option value="success">成功</Select.Option>
-                  <Select.Option value="fail">失败</Select.Option>
+                <Input
+                  type="date"
+                  className="w-[140px]"
+                  value={operationSearch.startDate}
+                  onChange={(e) => setOperationSearch({ ...operationSearch, startDate: e.target.value })}
+                />
+                <span className="text-muted-foreground">至</span>
+                <Input
+                  type="date"
+                  className="w-[140px]"
+                  value={operationSearch.endDate}
+                  onChange={(e) => setOperationSearch({ ...operationSearch, endDate: e.target.value })}
+                />
+                <Button onClick={handleOperationSearch}>
+                  <Search className="mr-2 h-4 w-4" />
+                  搜索
+                </Button>
+                <Button variant="outline" onClick={handleOperationReset}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  重置
+                </Button>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px]">操作人</TableHead>
+                      <TableHead className="w-[120px]">所属模块</TableHead>
+                      <TableHead className="w-[120px]">操作类型</TableHead>
+                      <TableHead className="w-[200px]">请求方式</TableHead>
+                      <TableHead className="w-[120px]">IP地址</TableHead>
+                      <TableHead className="w-[100px]">操作地点</TableHead>
+                      <TableHead className="w-[80px]">状态</TableHead>
+                      <TableHead className="w-[80px]">耗时</TableHead>
+                      <TableHead className="w-[160px]">操作时间</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockOperationLogs.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell>{record.name}</TableCell>
+                        <TableCell>{record.module}</TableCell>
+                        <TableCell>{record.operation}</TableCell>
+                        <TableCell>{record.method}</TableCell>
+                        <TableCell>{record.ip}</TableCell>
+                        <TableCell>{record.location}</TableCell>
+                        <TableCell>
+                          <Badge variant={record.status === '成功' ? 'default' : 'destructive'}>
+                            {record.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{record.duration}</TableCell>
+                        <TableCell>{record.time}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="login" className="mt-6">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <Input
+                  placeholder="用户名"
+                  className="w-[150px]"
+                  value={loginSearch.username}
+                  onChange={(e) => setLoginSearch({ ...loginSearch, username: e.target.value })}
+                />
+                <Input
+                  placeholder="IP地址"
+                  className="w-[150px]"
+                  value={loginSearch.ip}
+                  onChange={(e) => setLoginSearch({ ...loginSearch, ip: e.target.value })}
+                />
+                <Select
+                  value={loginSearch.status}
+                  onValueChange={(value) => setLoginSearch({ ...loginSearch, status: value })}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="success">成功</SelectItem>
+                    <SelectItem value="fail">失败</SelectItem>
+                  </SelectContent>
                 </Select>
-              </FormItem>
-              <FormItem field="timeRange">
-                <RangePicker style={{ width: 280 }} />
-              </FormItem>
-              <FormItem>
-                <Space>
-                  <Button key="search" type="primary" icon={<IconSearch />} onClick={handleLoginSearch}>
-                    搜索
-                  </Button>
-                  <Button key="reset" icon={<IconRefresh />} onClick={handleLoginReset}>
-                    重置
-                  </Button>
-                </Space>
-              </FormItem>
-            </Form>
-            <Table
-              columns={loginColumns}
-              data={mockLoginLogs}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-              scroll={{ x: 1200 }}
-            />
-          </TabPane>
-        </Tabs>
+                <Input
+                  type="date"
+                  className="w-[140px]"
+                  value={loginSearch.startDate}
+                  onChange={(e) => setLoginSearch({ ...loginSearch, startDate: e.target.value })}
+                />
+                <span className="text-muted-foreground">至</span>
+                <Input
+                  type="date"
+                  className="w-[140px]"
+                  value={loginSearch.endDate}
+                  onChange={(e) => setLoginSearch({ ...loginSearch, endDate: e.target.value })}
+                />
+                <Button onClick={handleLoginSearch}>
+                  <Search className="mr-2 h-4 w-4" />
+                  搜索
+                </Button>
+                <Button variant="outline" onClick={handleLoginReset}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  重置
+                </Button>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[120px]">用户名</TableHead>
+                      <TableHead className="w-[100px]">姓名</TableHead>
+                      <TableHead className="w-[120px]">IP地址</TableHead>
+                      <TableHead className="w-[100px]">登录地点</TableHead>
+                      <TableHead className="w-[120px]">浏览器</TableHead>
+                      <TableHead className="w-[120px]">操作系统</TableHead>
+                      <TableHead className="w-[80px]">状态</TableHead>
+                      <TableHead className="w-[120px]">提示消息</TableHead>
+                      <TableHead className="w-[160px]">登录时间</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockLoginLogs.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell>{record.username}</TableCell>
+                        <TableCell>{record.name}</TableCell>
+                        <TableCell>{record.ip}</TableCell>
+                        <TableCell>{record.location}</TableCell>
+                        <TableCell>{record.browser}</TableCell>
+                        <TableCell>{record.os}</TableCell>
+                        <TableCell>
+                          <Badge variant={record.status === '成功' ? 'default' : 'destructive'}>
+                            {record.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{record.message}</TableCell>
+                        <TableCell>{record.time}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
     </div>
   );

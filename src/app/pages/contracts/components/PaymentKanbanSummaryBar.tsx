@@ -1,4 +1,4 @@
-import { Card } from '@arco-design/web-react';
+import { Card, CardContent } from '../../../components/ui/card';
 import type { KanbanSummary } from '../paymentUtils';
 
 const SUMMARY_ITEMS: { key: keyof KanbanSummary; label: string; format: (v: number) => string; color: string }[] = [
@@ -17,20 +17,19 @@ interface Props {
 
 export function PaymentKanbanSummaryBar({ summary }: Props) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 12, marginBottom: 16 }}>
+    <div className="grid grid-cols-7 gap-3 mb-4">
       {SUMMARY_ITEMS.map((item) => (
         <Card
           key={item.key}
-          size="small"
-          style={{
-            borderLeft: `3px solid ${item.color}`,
-            background: '#fff',
-          }}
+          className="border-l-[3px]"
+          style={{ borderLeftColor: item.color }}
         >
-          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>{item.label}</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: item.color }}>
-            {item.format(summary[item.key] as number)}
-          </div>
+          <CardContent className="pt-4 pb-3">
+            <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
+            <div className="text-lg font-bold" style={{ color: item.color }}>
+              {item.format(summary[item.key] as number)}
+            </div>
+          </CardContent>
         </Card>
       ))}
     </div>

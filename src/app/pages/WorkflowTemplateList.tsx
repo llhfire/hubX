@@ -1,24 +1,47 @@
 import { useState } from 'react';
+import { Plus, Pencil, Trash2, Copy, ArrowRight } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { Label } from '../components/ui/label';
+import { Switch } from '../components/ui/switch';
+import { Badge } from '../components/ui/badge';
 import {
-  Card,
-  Table,
-  Button,
-  Input,
-  Space,
-  Modal,
-  Form,
-  Switch,
-  Tag,
-  Radio,
   Select,
-  Typography,
-  Popconfirm,
-  Message,
-} from '@arco-design/web-react';
-import { IconPlus, IconEdit, IconDelete, IconCopy, IconArrowRight } from '@arco-design/web-react/icon';
-
-const { Title } = Typography;
-const RadioGroup = Radio.Group;
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '../components/ui/select';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '../components/ui/alert-dialog';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 
 type RejectPolicy = '驳回至上一级' | '驳回至发起人' | '流程终止';
 type ApproveStrategy = '单签' | '会签';
@@ -83,11 +106,6 @@ const initialTemplates: WorkflowTemplate[] = [
   },
 ];
 
-const strategyColor: Record<ApproveStrategy, string> = {
-  单签: 'arcoblue',
-  会签: 'purple',
-};
-
 const rejectOptions: RejectPolicy[] = ['驳回至上一级', '驳回至发起人', '流程终止'];
 
 function FlowPreview({ nodes }: { nodes: ApprovalNode[] }) {
@@ -103,7 +121,7 @@ function FlowPreview({ nodes }: { nodes: ApprovalNode[] }) {
       }}>发起</span>
       {nodes.map((node) => (
         <span key={node.id} className="flex items-center gap-1">
-          <IconArrowRight style={{ fontSize: 12, color: '#aaa' }} />
+          <ArrowRight style={{ fontSize: 12, color: '#aaa' }} size={12} />
           <span style={{
             padding: '2px 10px',
             borderRadius: 12,
@@ -114,7 +132,7 @@ function FlowPreview({ nodes }: { nodes: ApprovalNode[] }) {
           }}>{node.name}</span>
         </span>
       ))}
-      <IconArrowRight style={{ fontSize: 12, color: '#aaa' }} />
+      <ArrowRight style={{ fontSize: 12, color: '#aaa' }} size={12} />
       <span style={{
         padding: '2px 10px',
         borderRadius: 12,
@@ -131,20 +149,23 @@ export function WorkflowTemplateList() {
   const [templates, setTemplates] = useState<WorkflowTemplate[]>(initialTemplates);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<WorkflowTemplate | null>(null);
-  const [form] = Form.useForm();
+  const [formName, setFormName] = useState('');
+  const [formDescription, setFormDescription] = useState('');
   const [nodes, setNodes] = useState<ApprovalNode[]>([]);
 
   const openCreate = () => {
     setEditingTemplate(null);
     setNodes([{ id: Date.now().toString(), name: '', strategy: '单签', rejectPolicy: '驳回至发起人' }]);
-    form.resetFields();
+    setFormName('');
+    setFormDescription('');
     setModalVisible(true);
   };
 
   const openEdit = (record: WorkflowTemplate) => {
     setEditingTemplate(record);
     setNodes(record.nodes.map((n) => ({ ...n })));
-    form.setFieldsValue({ name: record.name, description: record.description });
+    setFormName(record.name);
+    setFormDescription(record.description);
     setModalVisible(true);
   };
 
@@ -152,13 +173,14 @@ export function WorkflowTemplateList() {
     setEditingTemplate(null);
     const copiedNodes = record.nodes.map((n) => ({ ...n, id: Date.now().toString() + Math.random() }));
     setNodes(copiedNodes);
-    form.setFieldsValue({ name: `${record.name}-副本`, description: record.description });
+    setFormName(`${record.name}-副本`);
+    setFormDescription(record.description);
     setModalVisible(true);
   };
 
   const handleDelete = (key: string) => {
     setTemplates((prev) => prev.filter((t) => t.key !== key));
-    Message.success('模板已删除');
+    toast.success('模板已删除');
   };
 
   const handleStatusChange = (key: string, val: boolean) => {
@@ -166,33 +188,35 @@ export function WorkflowTemplateList() {
   };
 
   const handleSave = () => {
-    form.validate().then((values) => {
-      if (nodes.length === 0) { Message.error('请至少添加一个审批节点'); return; }
-      if (nodes.some((n) => !n.name.trim())) { Message.error('节点名称不能为空'); return; }
+    if (!formName.trim()) {
+      toast.error('请输入模板名称');
+      return;
+    }
+    if (nodes.length === 0) { toast.error('请至少添加一个审批节点'); return; }
+    if (nodes.some((n) => !n.name.trim())) { toast.error('节点名称不能为空'); return; }
 
-      if (editingTemplate) {
-        setTemplates((prev) => prev.map((t) =>
-          t.key === editingTemplate.key
-            ? { ...t, name: values.name, description: values.description, nodes, nodeCount: nodes.length, updatedAt: '2026-05-06' }
-            : t
-        ));
-        Message.success('模板已更新');
-      } else {
-        const newId = `T00${templates.length + 1}`;
-        setTemplates((prev) => [...prev, {
-          key: Date.now().toString(),
-          id: newId,
-          name: values.name,
-          description: values.description || '',
-          nodes,
-          nodeCount: nodes.length,
-          status: true,
-          updatedAt: '2026-05-06',
-        }]);
-        Message.success('模板已创建');
-      }
-      setModalVisible(false);
-    });
+    if (editingTemplate) {
+      setTemplates((prev) => prev.map((t) =>
+        t.key === editingTemplate.key
+          ? { ...t, name: formName, description: formDescription, nodes, nodeCount: nodes.length, updatedAt: '2026-05-06' }
+          : t
+      ));
+      toast.success('模板已更新');
+    } else {
+      const newId = `T00${templates.length + 1}`;
+      setTemplates((prev) => [...prev, {
+        key: Date.now().toString(),
+        id: newId,
+        name: formName,
+        description: formDescription || '',
+        nodes,
+        nodeCount: nodes.length,
+        status: true,
+        updatedAt: '2026-05-06',
+      }]);
+      toast.success('模板已创建');
+    }
+    setModalVisible(false);
   };
 
   const addNode = () => {
@@ -207,164 +231,208 @@ export function WorkflowTemplateList() {
     setNodes((prev) => prev.map((n) => n.id === id ? { ...n, [field]: value } : n));
   };
 
-  const columns = [
-    { title: '模板ID', dataIndex: 'id', width: 80 },
-    {
-      title: '模板名称',
-      dataIndex: 'name',
-      width: 180,
-      render: (name: string) => <span style={{ fontWeight: 500 }}>{name}</span>,
-    },
-    { title: '描述', dataIndex: 'description' },
-    {
-      title: '审批流',
-      dataIndex: 'nodes',
-      width: 380,
-      render: (_: any, record: WorkflowTemplate) => <FlowPreview nodes={record.nodes} />,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 80,
-      render: (val: boolean, record: WorkflowTemplate) => (
-        <Switch checked={val} size="small" onChange={(v) => handleStatusChange(record.key, v)} />
-      ),
-    },
-    { title: '最后修改', dataIndex: 'updatedAt', width: 110 },
-    {
-      title: '操作',
-      width: 140,
-      fixed: 'right' as const,
-      render: (_: any, record: WorkflowTemplate) => (
-        <Space>
-          <Button type="text" size="small" icon={<IconEdit />} onClick={() => openEdit(record)}>编辑</Button>
-          <Button type="text" size="small" icon={<IconCopy />} onClick={() => openCopy(record)}>复制</Button>
-          <Popconfirm title="确认删除该模板？" onOk={() => handleDelete(record.key)}>
-            <Button type="text" size="small" icon={<IconDelete />} status="danger" />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
   return (
     <div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-        <Title heading={4} style={{ margin: 0 }}>审批模板管理</Title>
-        <Button type="primary" icon={<IconPlus />} onClick={openCreate}>新建模板</Button>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-lg font-semibold m-0">审批模板管理</h4>
+        <Button onClick={openCreate}>
+          <Plus className="mr-2 h-4 w-4" /> 新建模板
+        </Button>
       </div>
 
       <Card>
-        <Table columns={columns} data={templates} pagination={false} scroll={{ x: 1000 }} />
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead style={{ width: 80 }}>模板ID</TableHead>
+                  <TableHead style={{ width: 180 }}>模板名称</TableHead>
+                  <TableHead>描述</TableHead>
+                  <TableHead style={{ width: 380 }}>审批流</TableHead>
+                  <TableHead style={{ width: 80 }}>状态</TableHead>
+                  <TableHead style={{ width: 110 }}>最后修改</TableHead>
+                  <TableHead style={{ width: 140 }} className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {templates.map((record) => (
+                  <TableRow key={record.key}>
+                    <TableCell>{record.id}</TableCell>
+                    <TableCell><span className="font-medium">{record.name}</span></TableCell>
+                    <TableCell>{record.description}</TableCell>
+                    <TableCell><FlowPreview nodes={record.nodes} /></TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={record.status}
+                        onCheckedChange={(v) => handleStatusChange(record.key, v)}
+                      />
+                    </TableCell>
+                    <TableCell>{record.updatedAt}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(record)}>
+                          <Pencil className="h-4 w-4 mr-1" /> 编辑
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => openCopy(record)}>
+                          <Copy className="h-4 w-4 mr-1" /> 复制
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>确认删除</AlertDialogTitle>
+                              <AlertDialogDescription>确认删除该模板？</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>取消</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(record.key)}>确认</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
       </Card>
 
-      <Modal
-        title={editingTemplate ? '编辑审批模板' : '新建审批模板'}
-        visible={modalVisible}
-        maskClosable={false}
-        style={{ width: 680 }}
-        onCancel={() => setModalVisible(false)}
-        onOk={handleSave}
-        okText="保存模板"
-      >
-        <Form form={form} layout="vertical" autoComplete="off">
-          <Form.Item label="模板名称" field="name" rules={[{ required: true, message: '请输入模板名称' }]}>
-            <Input placeholder="如：通用双层审批" />
-          </Form.Item>
-          <Form.Item label="模板描述" field="description">
-            <Input.TextArea placeholder="适用场景说明" rows={2} />
-          </Form.Item>
-        </Form>
+      <Dialog open={modalVisible} onOpenChange={(open) => !open && setModalVisible(false)}>
+        <DialogContent className="max-w-[680px]">
+          <DialogHeader>
+            <DialogTitle>{editingTemplate ? '编辑审批模板' : '新建审批模板'}</DialogTitle>
+          </DialogHeader>
 
-        <div style={{ marginTop: 8 }}>
-          <div style={{ fontWeight: 500, marginBottom: 12, color: 'var(--color-text-1)' }}>审批节点配置</div>
-
-          {/* Start node */}
-          <div className="flex items-center gap-3" style={{ marginBottom: 8 }}>
-            <div style={{
-              padding: '6px 16px',
-              borderRadius: 20,
-              background: '#e8f5e9',
-              color: '#2e7d32',
-              fontSize: 13,
-              fontWeight: 500,
-              minWidth: 80,
-              textAlign: 'center',
-            }}>发起节点</div>
-            <span style={{ color: '#aaa', fontSize: 12 }}>自动生成，不可删除</span>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="template-name">模板名称</Label>
+              <Input
+                id="template-name"
+                placeholder="如：通用双层审批"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="template-desc">模板描述</Label>
+              <Textarea
+                id="template-desc"
+                placeholder="适用场景说明"
+                rows={2}
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+              />
+            </div>
           </div>
 
-          {nodes.map((node, index) => (
-            <div key={node.id} className="flex items-start gap-2" style={{ marginBottom: 8 }}>
-              <div style={{ color: '#aaa', fontSize: 12, paddingTop: 8, minWidth: 16 }}>↓</div>
+          <div className="mt-2">
+            <div className="font-medium mb-3 text-foreground">审批节点配置</div>
+
+            {/* Start node */}
+            <div className="flex items-center gap-3 mb-2">
               <div style={{
-                flex: 1,
-                border: '1px solid var(--color-border-2)',
-                borderRadius: 6,
-                padding: '10px 12px',
-                background: 'var(--color-fill-1)',
-              }}>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4, width: '100%' }}>
-                    审批节点 {index + 1}
+                padding: '6px 16px',
+                borderRadius: 20,
+                background: '#e8f5e9',
+                color: '#2e7d32',
+                fontSize: 13,
+                fontWeight: 500,
+                minWidth: 80,
+                textAlign: 'center',
+              }}>发起节点</div>
+              <span className="text-muted-foreground text-xs">自动生成，不可删除</span>
+            </div>
+
+            {nodes.map((node, index) => (
+              <div key={node.id} className="flex items-start gap-2 mb-2">
+                <div className="text-muted-foreground text-xs pt-2 min-w-[16px]">↓</div>
+                <div className="flex-1 border rounded-md p-3 bg-muted/50">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="text-xs text-muted-foreground mb-1 w-full">
+                      审批节点 {index + 1}
+                    </div>
+                    <Input
+                      placeholder="节点名称（如：部门审批）"
+                      value={node.name}
+                      onChange={(e) => updateNode(node.id, 'name', e.target.value)}
+                      className="w-[180px]"
+                    />
+                    <RadioGroup
+                      value={node.strategy}
+                      onValueChange={(v) => updateNode(node.id, 'strategy', v)}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="单签" id={`strategy-${node.id}-1`} />
+                        <Label htmlFor={`strategy-${node.id}-1`}>单签</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="会签" id={`strategy-${node.id}-2`} />
+                        <Label htmlFor={`strategy-${node.id}-2`}>会签</Label>
+                      </div>
+                    </RadioGroup>
+                    <Select
+                      value={node.rejectPolicy}
+                      onValueChange={(v) => updateNode(node.id, 'rejectPolicy', v)}
+                    >
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {rejectOptions.map((o) => (
+                          <SelectItem key={o} value={o}>{o}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      disabled={nodes.length === 1}
+                      onClick={() => removeNode(node.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Input
-                    placeholder="节点名称（如：部门审批）"
-                    value={node.name}
-                    onChange={(v) => updateNode(node.id, 'name', v)}
-                    style={{ width: 180 }}
-                  />
-                  <RadioGroup
-                    value={node.strategy}
-                    onChange={(v) => updateNode(node.id, 'strategy', v)}
-                  >
-                    <Radio value="单签">单签</Radio>
-                    <Radio value="会签">会签</Radio>
-                  </RadioGroup>
-                  <Select
-                    value={node.rejectPolicy}
-                    onChange={(v) => updateNode(node.id, 'rejectPolicy', v)}
-                    style={{ width: 150 }}
-                  >
-                    {rejectOptions.map((o) => (
-                      <Select.Option key={o} value={o}>{o}</Select.Option>
-                    ))}
-                  </Select>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<IconDelete />}
-                    status="danger"
-                    disabled={nodes.length === 1}
-                    onClick={() => removeNode(node.id)}
-                  />
                 </div>
               </div>
+            ))}
+
+            <div className="text-muted-foreground text-xs mb-2">↓</div>
+
+            {/* End node */}
+            <div className="flex items-center gap-3 mb-3">
+              <div style={{
+                padding: '6px 16px',
+                borderRadius: 20,
+                background: '#fce4ec',
+                color: '#c62828',
+                fontSize: 13,
+                fontWeight: 500,
+                minWidth: 80,
+                textAlign: 'center',
+              }}>结束节点</div>
+              <span className="text-muted-foreground text-xs">自动生成，不可删除</span>
             </div>
-          ))}
 
-          <div style={{ color: '#aaa', fontSize: 12, marginBottom: 8 }}>↓</div>
-
-          {/* End node */}
-          <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
-            <div style={{
-              padding: '6px 16px',
-              borderRadius: 20,
-              background: '#fce4ec',
-              color: '#c62828',
-              fontSize: 13,
-              fontWeight: 500,
-              minWidth: 80,
-              textAlign: 'center',
-            }}>结束节点</div>
-            <span style={{ color: '#aaa', fontSize: 12 }}>自动生成，不可删除</span>
+            <Button variant="outline" className="w-full border-dashed" onClick={addNode}>
+              <Plus className="mr-2 h-4 w-4" /> 添加审批节点
+            </Button>
           </div>
 
-          <Button type="dashed" icon={<IconPlus />} onClick={addNode} style={{ width: '100%' }}>
-            添加审批节点
-          </Button>
-        </div>
-      </Modal>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalVisible(false)}>取消</Button>
+            <Button onClick={handleSave}>保存模板</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

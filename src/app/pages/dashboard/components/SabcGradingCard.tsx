@@ -1,5 +1,5 @@
-import { Card, Empty } from '@arco-design/web-react';
 import { useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { dashboardLeads, getOverdueSaWarnings } from '../mentalModel.mock';
 import { computeGrade, type SabcGrade } from '../types';
 
@@ -31,135 +31,72 @@ export function SabcGradingCard() {
   const maxCount = Math.max(...(Object.values(gradeCounts) as number[]));
 
   return (
-    <Card
-      title={
-        <span style={{ fontSize: 14, fontWeight: 500, color: 'hsl(220, 15%, 25%)' }}>
-          SABC 线索分级
-        </span>
-      }
-      style={{
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-xs)',
-        border: '1px solid hsl(220, 12%, 88%)',
-        height: '100%',
-        flex: 1,
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-      bodyStyle={{ padding: '16px 20px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}
-    >
-      {/* 4 格分级条 + 占据比条 */}
-      <div className="grid grid-cols-4 gap-3" style={{ marginBottom: 16 }}>
-        {(['S', 'A', 'B', 'C'] as SabcGrade[]).map((grade) => {
-          const meta = gradeMeta[grade];
-          const count = gradeCounts[grade];
-          return (
-            <div
-              key={grade}
-              style={{
-                background: meta.bg,
-                borderRadius: 'var(--radius-md)',
-                padding: '12px 12px',
-                border: `1px solid ${meta.color}22`,
-              }}
-            >
-              <div className="flex items-center gap-2" style={{ marginBottom: 6 }}>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 22,
-                    height: 22,
-                    borderRadius: '50%',
-                    background: meta.color,
-                    color: '#fff',
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  {meta.label}
-                </span>
-                <span style={{ fontSize: 11, color: 'hsl(220, 8%, 55%)' }}>{meta.desc}</span>
-              </div>
+    <Card className="h-full flex-1 w-full flex flex-col">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">SABC 线索分级</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col">
+        {/* 4 格分级条 + 占据比条 */}
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          {(['S', 'A', 'B', 'C'] as SabcGrade[]).map((grade) => {
+            const meta = gradeMeta[grade];
+            const count = gradeCounts[grade];
+            return (
               <div
-                style={{
-                  fontSize: 22,
-                  fontWeight: 700,
-                  color: 'hsl(220, 20%, 10%)',
-                  lineHeight: 1.1,
-                }}
+                key={grade}
+                className="rounded-lg p-3 border"
+                style={{ background: meta.bg, borderColor: `${meta.color}22` }}
               >
-                {count}
-                <span style={{ fontSize: 12, color: 'hsl(220, 8%, 55%)', fontWeight: 400, marginLeft: 4 }}>
-                  户
-                </span>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span
+                    className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full text-white text-xs font-bold"
+                    style={{ background: meta.color }}
+                  >
+                    {meta.label}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">{meta.desc}</span>
+                </div>
+                <div className="text-[22px] font-bold text-foreground leading-tight">
+                  {count}
+                  <span className="text-xs text-muted-foreground font-normal ml-1">户</span>
+                </div>
+                {/* 占据比条（相对 max 渲染，可视化金字塔分布） */}
+                <div className="mt-2 h-1 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${maxCount > 0 ? (count / maxCount) * 100 : 0}%`,
+                      background: meta.color,
+                    }}
+                  />
+                </div>
               </div>
-              {/* 占据比条（相对 max 渲染，可视化金字塔分布） */}
-              <div
-                style={{
-                  marginTop: 8,
-                  height: 4,
-                  borderRadius: 2,
-                  background: 'hsl(220, 14%, 90%)',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    height: '100%',
-                    width: `${maxCount > 0 ? (count / maxCount) * 100 : 0}%`,
-                    background: meta.color,
-                    borderRadius: 2,
-                    transition: 'width 0.3s ease',
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* S/A 级高价值流失预警 */}
-      <div
-        style={{
-          padding: '10px 14px',
-          background: 'hsl(0 78% 50% / 0.06)',
-          border: `1px solid hsl(0 78% 50% / 0.22)`,
-          borderRadius: 'var(--radius-md)',
-        }}
-      >
-        <div className="flex items-center gap-2" style={{ marginBottom: 6 }}>
-          <span
-            style={{
-              display: 'inline-block',
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: 'hsl(0, 78%, 50%)',
-            }}
-          />
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'hsl(0, 60%, 40%)' }}>
-            S/A 级高价值流失预警 · 当前 {warnings.length} 个沉淀
-          </span>
+            );
+          })}
         </div>
-        {warnings.length === 0 ? (
-          <Empty description="暂无超期未触达的 S/A 级线索" />
-        ) : (
-          <ul style={{ margin: 0, paddingLeft: 18 }} className="flex flex-col gap-1">
-            {warnings.map((w) => (
-              <li
-                key={w.id}
-                style={{ fontSize: 12, color: 'hsl(220, 12%, 30%)', listStyle: 'disc' }}
-              >
-                <span style={{ fontWeight: 600 }}>{w.entity}</span>
-                <span style={{ color: 'hsl(220, 8%, 55%)', marginLeft: 6 }}>· {w.suggestion}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+
+        {/* S/A 级高价值流失预警 */}
+        <div className="p-3 rounded-lg border bg-red-50 border-red-200">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
+            <span className="text-xs font-semibold text-red-700">
+              S/A 级高价值流失预警 · 当前 {warnings.length} 个沉淀
+            </span>
+          </div>
+          {warnings.length === 0 ? (
+            <div className="text-xs text-muted-foreground">暂无超期未触达的 S/A 级线索</div>
+          ) : (
+            <ul className="m-0 pl-[18px] flex flex-col gap-1">
+              {warnings.map((w) => (
+                <li key={w.id} className="text-xs text-foreground list-disc">
+                  <span className="font-semibold">{w.entity}</span>
+                  <span className="text-muted-foreground ml-1.5">· {w.suggestion}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </CardContent>
     </Card>
   );
 }

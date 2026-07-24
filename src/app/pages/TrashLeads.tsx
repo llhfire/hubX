@@ -1,21 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  Card,
-  Table,
-  Button,
-  Input,
-  Select,
-  Badge,
-  Message,
-  Space,
-  Typography,
-  Tag,
-  Tooltip,
-} from '@arco-design/web-react';
-import { IconSearch, IconEye, IconUserAdd, IconReply } from '@arco-design/web-react/icon';
-
-const Title = Typography.Title;
+import { toast } from 'sonner';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip';
+import { Eye, Search, Undo2, UserPlus } from 'lucide-react';
 
 export function TrashLeads() {
   const navigate = useNavigate();
@@ -56,105 +49,130 @@ export function TrashLeads() {
     },
   ];
 
-  const columns = [
-    { title: '线索名称', dataIndex: 'name', width: 200 },
-    {
-      title: '来源',
-      dataIndex: 'source',
-      width: 120,
-      render: (source: string) => <Badge status="default" text={source} />,
-    },
-    { title: '联系人', dataIndex: 'contact', width: 100 },
-    { title: '手机号', dataIndex: 'phone', width: 120 },
-    {
-      title: '意向标签',
-      dataIndex: 'tags',
-      width: 150,
-      render: (tags: string[]) => (
-        <Space>
-          {tags.map((tag, index) => (
-            <Tag key={index} color="arcoblue">
-              {tag}
-            </Tag>
-          ))}
-        </Space>
-      ),
-    },
-    { title: '丢弃原因', dataIndex: 'reason', width: 200 },
-    { title: '丢弃人', dataIndex: 'discardBy', width: 100 },
-    { title: '丢弃时间', dataIndex: 'discardTime', width: 160 },
-    {
-      title: '操作',
-      width: 180,
-      fixed: 'right' as const,
-      render: (_, record: any) => (
-        <Space>
-          <Tooltip key={`tooltip-view-${record.key}`} content="查看详情">
-            <Button
-              type="text"
-              icon={<IconEye />}
-              size="small"
-              onClick={() => navigate(`/leads/${record.key}`, { state: { from: 'trash' } })}
-            />
-          </Tooltip>
-          <Tooltip key={`tooltip-claim-${record.key}`} content="重新认领">
-            <Button
-              type="text"
-              icon={<IconUserAdd />}
-              size="small"
-              onClick={() => {
-                Message.success('线索认领成功');
-              }}
-            />
-          </Tooltip>
-          <Tooltip key={`tooltip-public-${record.key}`} content="扔回公海">
-            <Button
-              type="text"
-              icon={<IconReply />}
-              size="small"
-              onClick={() => {
-                Message.success('已扔回公海线索');
-              }}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
-
   return (
     <div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-        <Title heading={4}>垃圾线索池</Title>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">垃圾线索池</h2>
       </div>
 
       <Card>
-        <div className="flex gap-4" style={{ marginBottom: 16 }}>
-          <Input
-            style={{ width: 240 }}
-            placeholder="搜索线索名称、联系人"
-            prefix={<IconSearch />}
-          />
-          <Select placeholder="线索来源" style={{ width: 160 }} allowClear>
-            <Select.Option key="source-baidu" value="baidu">百度推广</Select.Option>
-            <Select.Option key="source-douyin" value="douyin">抖音</Select.Option>
-            <Select.Option key="source-xiaohongshu" value="xiaohongshu">小红书</Select.Option>
-            <Select.Option key="source-wechat" value="wechat">微信推广</Select.Option>
-          </Select>
-          <Button type="primary">搜索</Button>
-        </div>
+        <CardContent className="pt-6">
+          <div className="flex gap-4 mb-4">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input className="pl-8 w-[240px]" placeholder="搜索线索名称、联系人" />
+            </div>
+            <Select>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="线索来源" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="baidu">百度推广</SelectItem>
+                <SelectItem value="douyin">抖音</SelectItem>
+                <SelectItem value="xiaohongshu">小红书</SelectItem>
+                <SelectItem value="wechat">微信推广</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button>搜索</Button>
+          </div>
 
-        <Table
-          columns={columns}
-          data={trashLeads}
-          scroll={{ x: 1400 }}
-          pagination={{
-            total: 15,
-            pageSize: 10,
-            showTotal: true,
-            showJumper: true,
-          }}
-        />
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>线索名称</TableHead>
+                  <TableHead>来源</TableHead>
+                  <TableHead>联系人</TableHead>
+                  <TableHead>手机号</TableHead>
+                  <TableHead>意向标签</TableHead>
+                  <TableHead>丢弃原因</TableHead>
+                  <TableHead>丢弃人</TableHead>
+                  <TableHead>丢弃时间</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {trashLeads.map((record) => (
+                  <TableRow key={record.key}>
+                    <TableCell>{record.name}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-gray-500" />
+                        <span>{record.source}</span>
+                      </span>
+                    </TableCell>
+                    <TableCell>{record.contact}</TableCell>
+                    <TableCell>{record.phone}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        {record.tags.map((tag, index) => (
+                          <Badge key={index} variant="secondary">{tag}</Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>{record.reason}</TableCell>
+                    <TableCell>{record.discardBy}</TableCell>
+                    <TableCell>{record.discardTime}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-0">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/leads/${record.key}`, { state: { from: 'trash' } })}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>查看详情</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                toast.success('线索认领成功');
+                              }}
+                            >
+                              <UserPlus className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>重新认领</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                toast.success('已扔回公海线索');
+                              }}
+                            >
+                              <Undo2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>扔回公海</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="flex items-center justify-between mt-4">
+            <span className="text-sm text-muted-foreground">共 15 条记录</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled>上一页</Button>
+              <Button variant="outline" size="sm">1</Button>
+              <Button variant="outline" size="sm">2</Button>
+              <Button variant="outline" size="sm">下一页</Button>
+            </div>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

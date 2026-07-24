@@ -1,31 +1,47 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
+import { Card, CardContent } from '../../components/ui/card';
 import {
-  Card,
-  Grid,
-  Statistic,
   Table,
-  Button,
-  Space,
-  Tag,
-  Input,
-  Select,
-  Modal,
-  Form,
-  DatePicker,
-  Message,
-  Dropdown,
-  Menu,
-  Typography,
-} from '@arco-design/web-react';
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 import {
-  IconPlus,
-  IconSearch,
-  IconUser,
-  IconUserGroup,
-  IconCalendar,
-  IconMore,
-} from '@arco-design/web-react/icon';
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
+import { toast } from 'sonner';
+import {
+  Plus,
+  Search,
+  User,
+  Users,
+  CalendarDays,
+  MoreHorizontal,
+} from 'lucide-react';
 import { useEmployee } from './EmployeeContext';
 import {
   Employee,
@@ -41,9 +57,19 @@ import {
   calcWorkDays,
 } from './mockData';
 
-const Row = Grid.Row;
-const Col = Grid.Col;
-const FormItem = Form.Item;
+function StatCard({ title, value, icon }: { title: string; value: number; icon: React.ReactNode }) {
+  return (
+    <Card>
+      <CardContent className="py-4">
+        <div className="text-sm text-muted-foreground">{title}</div>
+        <div className="flex items-center gap-2 mt-1">
+          {icon}
+          <span className="text-2xl font-bold">{value.toLocaleString()}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function EmployeeList() {
   const navigate = useNavigate();
@@ -51,15 +77,17 @@ export function EmployeeList() {
 
   // 搜索筛选
   const [keyword, setKeyword] = useState('');
-  const [filterPosition, setFilterPosition] = useState<Position | ''>('');
-  const [filterLevel, setFilterLevel] = useState<JobLevel | ''>('');
-  const [filterStatus, setFilterStatus] = useState<EmploymentStatus | ''>('');
-  const [filterDepartment, setFilterDepartment] = useState('');
+  const [filterPosition, setFilterPosition] = useState<string>('');
+  const [filterLevel, setFilterLevel] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [filterDepartment, setFilterDepartment] = useState<string>('');
 
   // 弹窗
-  const [modalVisible, setModalVisible] = useState(false);
-  const [form] = Form.useForm();
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
+  // 表单状态
+  const [formValues, setFormValues] = useState<Record<string, string>>({});
 
   // 筛选后数据
   const filteredEmployees = useMemo(() => {
@@ -91,382 +119,345 @@ export function EmployeeList() {
   // 操作
   const handleAdd = () => {
     setEditingEmployee(null);
-    form.resetFields();
-    form.setFieldsValue({ employmentStatus: '在职', hireDate: new Date().toISOString().slice(0, 10) });
-    setModalVisible(true);
+    setFormValues({
+      employmentStatus: '在职',
+      hireDate: new Date().toISOString().slice(0, 10),
+    });
+    setDialogOpen(true);
   };
 
   const handleEdit = (emp: Employee) => {
     setEditingEmployee(emp);
-    form.setFieldsValue(emp);
-    setModalVisible(true);
+    setFormValues({
+      jobNumber: emp.jobNumber,
+      name: emp.name,
+      department: emp.department,
+      position: emp.position,
+      level: emp.level,
+      employmentStatus: emp.employmentStatus,
+      phone: emp.phone,
+      email: emp.email || '',
+      hireDate: emp.hireDate,
+      contractEndDate: emp.contractEndDate || '',
+      education: emp.education || '',
+      school: emp.school || '',
+    });
+    setDialogOpen(true);
+  };
+
+  const handleFormChange = (field: string, value: string) => {
+    setFormValues(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = () => {
-    form.validate().then(values => {
-      if (editingEmployee) {
-        updateEmployee(editingEmployee.id, values);
-        Message.success('编辑成功');
-      } else {
-        addEmployee(values);
-        Message.success('新增成功');
-      }
-      setModalVisible(false);
-    });
+    if (!formValues.jobNumber) { toast.error('请输入工号'); return; }
+    if (!formValues.name) { toast.error('请输入姓名'); return; }
+    if (!formValues.department) { toast.error('请选择部门'); return; }
+    if (!formValues.position) { toast.error('请选择职位'); return; }
+    if (!formValues.level) { toast.error('请选择职级'); return; }
+    if (!formValues.employmentStatus) { toast.error('请选择状态'); return; }
+    if (!formValues.phone) { toast.error('请输入手机号'); return; }
+    if (!/^1[3-9]\d{9}$/.test(formValues.phone)) { toast.error('手机号格式不正确'); return; }
+    if (!formValues.hireDate) { toast.error('请选择入职日期'); return; }
+
+    if (editingEmployee) {
+      updateEmployee(editingEmployee.id, formValues as any);
+      toast.success('编辑成功');
+    } else {
+      addEmployee(formValues as any);
+      toast.success('新增成功');
+    }
+    setDialogOpen(false);
   };
 
   const handleRegularize = (emp: Employee) => {
     const today = new Date().toISOString().slice(0, 10);
-    updateEmployee(emp.id, { employmentStatus: '已转正', 转正Date: today });
-    Message.success(`${emp.name} 已转正`);
+    updateEmployee(emp.id, { employmentStatus: '已转正', 转正Date: today } as any);
+    toast.success(`${emp.name} 已转正`);
   };
 
   const handleResign = (emp: Employee) => {
-    const today = new Date().toISOString().slice(0, 10);
-    updateEmployee(emp.id, { employmentStatus: '已离职', /* leaveDate: today */ } as any);
-    Message.success(`${emp.name} 已标记为离职`);
+    updateEmployee(emp.id, { employmentStatus: '已离职' } as any);
+    toast.success(`${emp.name} 已标记为离职`);
   };
 
-  // 表格列
-  const columns = [
-    {
-      title: '工号',
-      dataIndex: 'jobNumber',
-      width: 90,
-      fixed: 'left' as const,
-    },
-    {
-      title: '姓名',
-      dataIndex: 'name',
-      width: 80,
-      fixed: 'left' as const,
-      render: (_: unknown, record: Employee) => (
-        <Space>
-          <span style={{ color: 'var(--color-text-1)', fontWeight: 500 }}>{record.name}</span>
-        </Space>
-      ),
-    },
-    {
-      title: '部门',
-      dataIndex: 'department',
-      width: 100,
-    },
-    {
-      title: 'MBTI',
-      width: 70,
-      render: (_: unknown, record: Employee) => record.personality?.mbti
-        ? <Tag color="#7c3aed" style={{fontWeight: 600 }}>{record.personality.mbti.type}</Tag>
-        : <span style={{ color: 'var(--color-text-3)' }}>—</span>,
-    },
-    {
-      title: '职位',
-      dataIndex: 'position',
-      width: 100,
-      render: (pos: string) => <Tag>{pos}</Tag>,
-    },
-    {
-      title: '职级',
-      dataIndex: 'level',
-      width: 70,
-      render: (level: JobLevel) => (
-        <Tag color={getLevelColor(level)} style={{fontWeight: 600 }}>
-          {level}
-        </Tag>
-      ),
-    },
-    {
-      title: '状态',
-      dataIndex: 'employmentStatus',
-      width: 80,
-      render: (status: EmploymentStatus) => (
-        <Tag color={getStatusColor(status)}>
-          {status}
-        </Tag>
-      ),
-    },
-    {
-      title: '时薪',
-      dataIndex: 'standardHourlyRate',
-      width: 90,
-      render: (rate: number) => <span style={{ color: 'rgb(var(--primary-6))', fontWeight: 600 }}>{formatCurrency(rate)}/h</span>,
-      sorter: (a: Employee, b: Employee) => a.standardHourlyRate - b.standardHourlyRate,
-    },
-    {
-      title: '入职日期',
-      dataIndex: 'hireDate',
-      width: 110,
-    },
-    {
-      title: '入职天数',
-      width: 90,
-      render: (_: unknown, record: Employee) => `${calcWorkDays(record.hireDate)}天`,
-    },
-    {
-      title: '操作',
-      width: 180,
-      fixed: 'right' as const,
-      render: (_: unknown, record: Employee) => (
-        <Space>
-          <Button type="text" size="small" onClick={() => navigate(`/employees/${record.id}`)}>
-            查看
-          </Button>
-          <Button type="text" size="small" onClick={() => handleEdit(record)}>
-            编辑
-          </Button>
-          <Dropdown
-            droplist={
-              <Menu>
-                <Menu.Item key="regularize" onClick={() => handleRegularize(record)}>
-                  办理转正
-                </Menu.Item>
-                <Menu.Item key="resign" onClick={() => handleResign(record)}>
-                  办理离职
-                </Menu.Item>
-              </Menu>
-            }
-            position="br"
-          >
-            <Button type="text" size="small" icon={<IconMore />} />
-          </Dropdown>
-        </Space>
-      ),
-    },
-  ];
-
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <div className="flex flex-col gap-4 w-full">
       {/* 摘要栏 */}
-      <Row gutter={16}>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title={<span style={{ color: 'var(--color-text-2)' }}>在职总数</span>}
-              value={stats.total}
-              prefix={<IconUser style={{ color: 'rgb(var(--primary-6))' }} />}
-              groupSeparator
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title={<span style={{ color: 'var(--color-text-2)' }}>本月入职</span>}
-              value={stats.thisMonthHire}
-              prefix={<IconUserGroup style={{ color: '#00b42a' }} />}
-              groupSeparator
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title={<span style={{ color: 'var(--color-text-2)' }}>本月离职</span>}
-              value={stats.thisMonthLeave}
-              prefix={<IconUser style={{ color: '#f53f3f' }} />}
-              groupSeparator
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title={<span style={{ color: 'var(--color-text-2)' }}>试用期人数</span>}
-              value={stats.onTrial}
-              prefix={<IconCalendar style={{ color: '#ff7d00' }} />}
-              groupSeparator
-            />
-          </Card>
-        </Col>
-      </Row>
+      <div className="grid grid-cols-4 gap-4">
+        <StatCard title="在职总数" value={stats.total} icon={<User className="text-primary" />} />
+        <StatCard title="本月入职" value={stats.thisMonthHire} icon={<Users className="text-green-500" />} />
+        <StatCard title="本月离职" value={stats.thisMonthLeave} icon={<User className="text-red-500" />} />
+        <StatCard title="试用期人数" value={stats.onTrial} icon={<CalendarDays className="text-orange-500" />} />
+      </div>
 
       {/* 筛选 + 表格 */}
-      <Card bordered={false}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-          <Input
-            style={{ width: 200 }}
-            placeholder="搜索姓名或工号"
-            prefix={<IconSearch />}
-            allowClear
-            value={keyword}
-            onChange={setKeyword}
-          />
-          <Select
-            style={{ width: 130 }}
-            placeholder="全部职位"
-            allowClear
-            value={filterPosition}
-            onChange={v => setFilterPosition(v as Position | '')}
-          >
-            {ALL_POSITIONS.map(p => (
-              <Select.Option key={p} value={p}>{p}</Select.Option>
-            ))}
-          </Select>
-          <Select
-            style={{ width: 110 }}
-            placeholder="全部职级"
-            allowClear
-            value={filterLevel}
-            onChange={v => setFilterLevel(v as JobLevel | '')}
-          >
-            {ALL_JOB_LEVELS.map(l => (
-              <Select.Option key={l} value={l}>{l}</Select.Option>
-            ))}
-          </Select>
-          <Select
-            style={{ width: 120 }}
-            placeholder="全部状态"
-            allowClear
-            value={filterStatus}
-            onChange={v => setFilterStatus(v as EmploymentStatus | '')}
-          >
-            {ALL_EMPLOYMENT_STATUSES.map(s => (
-              <Select.Option key={s} value={s}>{s}</Select.Option>
-            ))}
-          </Select>
-          <Select
-            style={{ width: 130 }}
-            placeholder="全部部门"
-            allowClear
-            value={filterDepartment}
-            onChange={setFilterDepartment}
-          >
-            {DEPARTMENTS.map(d => (
-              <Select.Option key={d} value={d}>{d}</Select.Option>
-            ))}
-          </Select>
-          <div style={{ marginLeft: 'auto' }}>
-            <Button type="primary" icon={<IconPlus />} onClick={handleAdd}>
-              新增员工
-            </Button>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-3 mb-4">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+              <Input
+                className="w-[200px] pl-8"
+                placeholder="搜索姓名或工号"
+                value={keyword}
+                onChange={e => setKeyword(e.target.value)}
+              />
+            </div>
+            <Select value={filterPosition || '__all__'} onValueChange={v => setFilterPosition(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="全部职位" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">全部职位</SelectItem>
+                {ALL_POSITIONS.map(p => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterLevel || '__all__'} onValueChange={v => setFilterLevel(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-[110px]">
+                <SelectValue placeholder="全部职级" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">全部职级</SelectItem>
+                {ALL_JOB_LEVELS.map(l => (
+                  <SelectItem key={l} value={l}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus || '__all__'} onValueChange={v => setFilterStatus(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="全部状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">全部状态</SelectItem>
+                {ALL_EMPLOYMENT_STATUSES.map(s => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterDepartment || '__all__'} onValueChange={v => setFilterDepartment(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="全部部门" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">全部部门</SelectItem>
+                {DEPARTMENTS.map(d => (
+                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="ml-auto">
+              <Button onClick={handleAdd}>
+                <Plus className="mr-1 size-4" />
+                新增员工
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <Table
-          columns={columns as any}
-          data={filteredEmployees}
-          rowKey="id"
-          pagination={{ pageSize: 12, showTotal: true, showJumper: true }}
-          scroll={{ x: 1100 }}
-        />
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>工号</TableHead>
+                  <TableHead>姓名</TableHead>
+                  <TableHead>部门</TableHead>
+                  <TableHead>MBTI</TableHead>
+                  <TableHead>职位</TableHead>
+                  <TableHead>职级</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead>时薪</TableHead>
+                  <TableHead>入职日期</TableHead>
+                  <TableHead>入职天数</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredEmployees.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
+                      暂无数据
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredEmployees.map(record => (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.jobNumber}</TableCell>
+                      <TableCell className="font-medium">{record.name}</TableCell>
+                      <TableCell>{record.department}</TableCell>
+                      <TableCell>
+                        {record.personality?.mbti ? (
+                          <Badge className="bg-purple-500 font-semibold">{record.personality.mbti.type}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{record.position}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getLevelColor(record.level)} style={{ fontWeight: 600 }}>
+                          {record.level}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(record.employmentStatus)}>
+                          {record.employmentStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-primary font-semibold">{formatCurrency(record.standardHourlyRate)}/h</span>
+                      </TableCell>
+                      <TableCell>{record.hireDate}</TableCell>
+                      <TableCell>{calcWorkDays(record.hireDate)}天</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => navigate(`/employees/${record.id}`)}>
+                            查看
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(record)}>
+                            编辑
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="size-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleRegularize(record)}>
+                                办理转正
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleResign(record)}>
+                                办理离职
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
       </Card>
 
       {/* 新增 / 编辑弹窗 */}
-      <Modal
-        title={
-          <Space>
-            <IconUser />
-            <span>{editingEmployee ? '编辑员工' : '新增员工'}</span>
-          </Space>
-        }
-        visible={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-        style={{ width: 600 }}
-      >
-        <Form form={form} layout="vertical">
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="工号" field="jobNumber" rules={[{ required: true, message: '请输入工号' }]}>
-                <Input placeholder="如 EMP017" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="姓名" field="name" rules={[{ required: true, message: '请输入姓名' }]}>
-                <Input placeholder="请输入姓名" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="所属部门" field="department" rules={[{ required: true, message: '请选择部门' }]}>
-                <Select placeholder="请选择部门" allowClear>
-                  {DEPARTMENTS.map(d => (
-                    <Select.Option key={d} value={d}>{d}</Select.Option>
-                  ))}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="size-4" />
+              {editingEmployee ? '编辑员工' : '新增员工'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>工号</Label>
+                <Input placeholder="如 EMP017" value={formValues.jobNumber || ''} onChange={e => handleFormChange('jobNumber', e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label>姓名</Label>
+                <Input placeholder="请输入姓名" value={formValues.name || ''} onChange={e => handleFormChange('name', e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>所属部门</Label>
+                <Select value={formValues.department || ''} onValueChange={v => handleFormChange('department', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择部门" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENTS.map(d => (
+                      <SelectItem key={d} value={d}>{d}</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="职位" field="position" rules={[{ required: true, message: '请选择职位' }]}>
-                <Select placeholder="请选择职位" allowClear>
-                  {ALL_POSITIONS.map(p => (
-                    <Select.Option key={p} value={p}>{p}</Select.Option>
-                  ))}
+              </div>
+              <div className="grid gap-2">
+                <Label>职位</Label>
+                <Select value={formValues.position || ''} onValueChange={v => handleFormChange('position', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择职位" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALL_POSITIONS.map(p => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="职级" field="level" rules={[{ required: true, message: '请选择职级' }]}>
-                <Select placeholder="请选择职级" allowClear>
-                  {ALL_JOB_LEVELS.map(l => (
-                    <Select.Option key={l} value={l}>{l}</Select.Option>
-                  ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>职级</Label>
+                <Select value={formValues.level || ''} onValueChange={v => handleFormChange('level', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择职级" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALL_JOB_LEVELS.map(l => (
+                      <SelectItem key={l} value={l}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="在职状态" field="employmentStatus" rules={[{ required: true, message: '请选择状态' }]}>
-                <Select placeholder="请选择状态">
-                  {ALL_EMPLOYMENT_STATUSES.map(s => (
-                    <Select.Option key={s} value={s}>{s}</Select.Option>
-                  ))}
+              </div>
+              <div className="grid gap-2">
+                <Label>在职状态</Label>
+                <Select value={formValues.employmentStatus || ''} onValueChange={v => handleFormChange('employmentStatus', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALL_EMPLOYMENT_STATUSES.map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem
-                label="手机号"
-                field="phone"
-                rules={[
-                  { required: true, message: '请输入手机号' },
-                  { match: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
-                ]}
-              >
-                <Input placeholder="请输入手机号" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem
-                label="邮箱"
-                field="email"
-                rules={[{ match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: '邮箱格式不正确' }]}
-              >
-                <Input placeholder="请输入邮箱" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="入职日期" field="hireDate" rules={[{ required: true, message: '请选择入职日期' }]}>
-                <DatePicker placeholder="请选择入职日期" style={{ width: '100%' }} />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="合同到期日" field="contractEndDate">
-                <DatePicker placeholder="请选择合同到期日" style={{ width: '100%' }} />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="学历" field="education">
-                <Input placeholder="如 本科/硕士/大专" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="毕业院校" field="school">
-                <Input placeholder="请输入毕业院校" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-        </Form>
-      </Modal>
-    </Space>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>手机号</Label>
+                <Input placeholder="请输入手机号" value={formValues.phone || ''} onChange={e => handleFormChange('phone', e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label>邮箱</Label>
+                <Input placeholder="请输入邮箱" value={formValues.email || ''} onChange={e => handleFormChange('email', e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>入职日期</Label>
+                <Input type="date" value={formValues.hireDate || ''} onChange={e => handleFormChange('hireDate', e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label>合同到期日</Label>
+                <Input type="date" value={formValues.contractEndDate || ''} onChange={e => handleFormChange('contractEndDate', e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>学历</Label>
+                <Input placeholder="如 本科/硕士/大专" value={formValues.education || ''} onChange={e => handleFormChange('education', e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label>毕业院校</Label>
+                <Input placeholder="请输入毕业院校" value={formValues.school || ''} onChange={e => handleFormChange('school', e.target.value)} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>取消</Button>
+            <Button onClick={handleSubmit}>{editingEmployee ? '保存' : '新增'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

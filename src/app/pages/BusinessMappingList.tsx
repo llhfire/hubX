@@ -1,21 +1,25 @@
 import { useState } from 'react';
+import { Button } from '../components/ui/button';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
 import {
-  Card,
-  Table,
-  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../components/ui/dialog';
+import {
   Select,
-  Space,
-  Modal,
-  Tag,
-  Typography,
-  Descriptions,
-  Message,
-  Checkbox,
-  Badge,
-} from '@arco-design/web-react';
-import { IconEdit, IconEye } from '@arco-design/web-react/icon';
-
-const { Title } = Typography;
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '../components/ui/select';
+import { Checkbox } from '../components/ui/checkbox';
+import { Pencil, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 
 type AssigneeType = '具体人员' | '部门角色' | '指定主管' | '上一节点负责人';
 
@@ -125,8 +129,8 @@ const initialMappings: BusinessMapping[] = [
 
 export function BusinessMappingList() {
   const [mappings, setMappings] = useState<BusinessMapping[]>(initialMappings);
-  const [configVisible, setConfigVisible] = useState(false);
-  const [previewVisible, setPreviewVisible] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [editing, setEditing] = useState<BusinessMapping | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [assignments, setAssignments] = useState<NodeAssignment[]>([]);
@@ -135,12 +139,12 @@ export function BusinessMappingList() {
     setEditing(record);
     setSelectedTemplateId(record.templateId);
     setAssignments(record.assignments.map((a) => ({ ...a })));
-    setConfigVisible(true);
+    setConfigOpen(true);
   };
 
   const openPreview = (record: BusinessMapping) => {
     setEditing(record);
-    setPreviewVisible(true);
+    setPreviewOpen(true);
   };
 
   const handleTemplateChange = (tid: string) => {
@@ -168,9 +172,9 @@ export function BusinessMappingList() {
   };
 
   const handleSave = () => {
-    if (!selectedTemplateId) { Message.error('请选择审批模板'); return; }
+    if (!selectedTemplateId) { toast.error('请选择审批模板'); return; }
     const incomplete = assignments.find((a) => !a.assigneeValue && !a.skipIfEmpty);
-    if (incomplete) { Message.warning(`节点"${incomplete.nodeName}"尚未配置审批人`); return; }
+    if (incomplete) { toast.warning(`节点"${incomplete.nodeName}"尚未配置审批人`); return; }
 
     const tmpl = templates.find((t) => t.id === selectedTemplateId);
     setMappings((prev) => prev.map((m) =>
@@ -178,221 +182,228 @@ export function BusinessMappingList() {
         ? { ...m, templateId: selectedTemplateId, templateName: tmpl?.name || '', assignments, updatedAt: '2026-05-06' }
         : m
     ));
-    Message.success('业务审批配置已保存');
-    setConfigVisible(false);
+    toast.success('业务审批配置已保存');
+    setConfigOpen(false);
   };
-
-  const columns = [
-    {
-      title: '业务模块',
-      dataIndex: 'bizName',
-      width: 140,
-      render: (name: string) => <span style={{ fontWeight: 500 }}>{name}</span>,
-    },
-    {
-      title: '当前绑定模板',
-      dataIndex: 'templateName',
-      width: 200,
-      render: (name: string | null) =>
-        name ? <Tag color="arcoblue">{name}</Tag> : <span style={{ color: 'var(--color-text-3)' }}>未配置</span>,
-    },
-    {
-      title: '审批环节数',
-      dataIndex: 'assignments',
-      width: 100,
-      render: (arr: NodeAssignment[]) =>
-        arr.length > 0 ? `${arr.length} 个节点` : <span style={{ color: '#aaa' }}>—</span>,
-    },
-    { title: '最近更新', dataIndex: 'updatedAt', width: 120 },
-    {
-      title: '操作',
-      width: 140,
-      fixed: 'right' as const,
-      render: (_: any, record: BusinessMapping) => (
-        <Space>
-          <Button type="text" size="small" icon={<IconEdit />} onClick={() => openConfig(record)}>配置</Button>
-          {record.templateId && (
-            <Button type="text" size="small" icon={<IconEye />} onClick={() => openPreview(record)}>预览</Button>
-          )}
-        </Space>
-      ),
-    },
-  ];
 
   const currentTemplate = templates.find((t) => t.id === selectedTemplateId);
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
-        <Title heading={4} style={{ margin: 0 }}>业务审批配置</Title>
-        <p style={{ color: 'var(--color-text-3)', marginTop: 4, fontSize: 13 }}>
+      <div className="mb-4">
+        <h4 className="text-lg font-semibold m-0">业务审批配置</h4>
+        <p className="text-muted-foreground mt-1 text-sm">
           将业务模块与审批模板绑定，并为每个审批节点指定具体审批人或角色策略。
         </p>
       </div>
 
       <Card>
-        <Table columns={columns} data={mappings} pagination={false} />
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[140px]">业务模块</TableHead>
+                <TableHead className="w-[200px]">当前绑定模板</TableHead>
+                <TableHead className="w-[100px]">审批环节数</TableHead>
+                <TableHead className="w-[120px]">最近更新</TableHead>
+                <TableHead className="w-[140px]">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {mappings.map((record) => (
+                <TableRow key={record.key}>
+                  <TableCell className="font-medium">{record.bizName}</TableCell>
+                  <TableCell>
+                    {record.templateName ? (
+                      <Badge variant="default">{record.templateName}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">未配置</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {record.assignments.length > 0 ? (
+                      `${record.assignments.length} 个节点`
+                    ) : (
+                      <span className="text-muted-foreground">&mdash;</span>
+                    )}
+                  </TableCell>
+                  <TableCell>{record.updatedAt}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => openConfig(record)}>
+                        <Pencil className="mr-1 h-4 w-4" />
+                        配置
+                      </Button>
+                      {record.templateId && (
+                        <Button variant="ghost" size="sm" onClick={() => openPreview(record)}>
+                          <Eye className="mr-1 h-4 w-4" />
+                          预览
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
       </Card>
 
-      {/* Config Modal */}
-      <Modal
-        title={`配置审批 — ${editing?.bizName}`}
-        visible={configVisible}
-        maskClosable={false}
-        style={{ width: 780 }}
-        onCancel={() => setConfigVisible(false)}
-        onOk={handleSave}
-        okText="保存配置"
-      >
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontWeight: 500, marginBottom: 8 }}>步骤 1：选择审批模板</div>
-          <Select
-            value={selectedTemplateId || undefined}
-            placeholder="请选择审批模板"
-            style={{ width: 300 }}
-            onChange={handleTemplateChange}
-          >
-            {templates.map((t) => (
-              <Select.Option key={t.id} value={t.id}>{t.id} — {t.name}</Select.Option>
-            ))}
-          </Select>
-        </div>
-
-        {currentTemplate && assignments.length > 0 && (
-          <div>
-            <div style={{ fontWeight: 500, marginBottom: 8 }}>步骤 2：环节审批人映射</div>
-            <div style={{ border: '1px solid var(--color-border-2)', borderRadius: 6, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'var(--color-fill-2)', fontSize: 13 }}>
-                    {['审批环节', '审批策略', '审批人员 / 策略', '异常处理'].map((h) => (
-                      <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 500, color: 'var(--color-text-2)', borderBottom: '1px solid var(--color-border-2)' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {assignments.map((a, idx) => (
-                    <tr key={a.nodeId} style={{ borderBottom: idx < assignments.length - 1 ? '1px solid var(--color-border-2)' : 'none' }}>
-                      <td style={{ padding: '10px 12px', fontWeight: 500 }}>{a.nodeName}</td>
-                      <td style={{ padding: '10px 12px' }}>
-                        <Tag color={a.strategy === '会签' ? 'purple' : 'arcoblue'}>{a.strategy}</Tag>
-                      </td>
-                      <td style={{ padding: '10px 12px' }}>
-                        <Space direction="vertical" size={4}>
-                          <Select
-                            value={a.assigneeType}
-                            onChange={(v) => updateAssignment(a.nodeId, 'assigneeType', v)}
-                            style={{ width: 150 }}
-                            size="small"
-                          >
-                            {assigneeTypeOptions.map((o) => (
-                              <Select.Option key={o} value={o}>{o}</Select.Option>
-                            ))}
-                          </Select>
-                          {a.assigneeType !== '上一节点负责人' && (
-                            <Select
-                              value={a.assigneeValue || undefined}
-                              placeholder="请选择"
-                              onChange={(v) => updateAssignment(a.nodeId, 'assigneeValue', v)}
-                              style={{ width: 180 }}
-                              size="small"
-                              allowClear
-                            >
-                              {assigneeValueOptions[a.assigneeType].map((o) => (
-                                <Select.Option key={o} value={o}>{o}</Select.Option>
-                              ))}
-                            </Select>
-                          )}
-                        </Space>
-                      </td>
-                      <td style={{ padding: '10px 12px' }}>
-                        <Checkbox
-                          checked={a.skipIfEmpty}
-                          onChange={(v) => updateAssignment(a.nodeId, 'skipIfEmpty', v)}
-                        >
-                          <span style={{ fontSize: 12 }}>审批人为空时自动跳过</span>
-                        </Checkbox>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      {/* Config Dialog */}
+      <Dialog open={configOpen} onOpenChange={setConfigOpen}>
+        <DialogContent className="max-w-[780px]">
+          <DialogHeader>
+            <DialogTitle>配置审批 &mdash; {editing?.bizName}</DialogTitle>
+          </DialogHeader>
+          <div className="mb-5">
+            <div className="font-medium mb-2">步骤 1：选择审批模板</div>
+            <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateChange}>
+              <SelectTrigger className="w-[300px]">
+                <SelectValue placeholder="请选择审批模板" />
+              </SelectTrigger>
+              <SelectContent>
+                {templates.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.id} &mdash; {t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        )}
-      </Modal>
 
-      {/* Preview Modal */}
-      <Modal
-        title={`审批链路预览 — ${editing?.bizName}`}
-        visible={previewVisible}
-        footer={<Button onClick={() => setPreviewVisible(false)}>关闭</Button>}
-        onCancel={() => setPreviewVisible(false)}
-        style={{ width: 620 }}
-      >
-        {editing?.templateId && (
-          <div>
-            <div style={{ marginBottom: 16 }}>
-              <span style={{ color: 'var(--color-text-3)', fontSize: 13 }}>模板：</span>
-              <Tag color="arcoblue">{editing.templateName}</Tag>
+          {currentTemplate && assignments.length > 0 && (
+            <div>
+              <div className="font-medium mb-2">步骤 2：环节审批人映射</div>
+              <div className="border rounded-md overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted text-sm">
+                      <TableHead className="font-medium text-foreground">审批环节</TableHead>
+                      <TableHead className="font-medium text-foreground">审批策略</TableHead>
+                      <TableHead className="font-medium text-foreground">审批人员 / 策略</TableHead>
+                      <TableHead className="font-medium text-foreground">异常处理</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {assignments.map((a) => (
+                      <TableRow key={a.nodeId}>
+                        <TableCell className="font-medium">{a.nodeName}</TableCell>
+                        <TableCell>
+                          <Badge className={a.strategy === '会签' ? 'bg-purple-500 text-white' : ''}>
+                            {a.strategy}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <Select value={a.assigneeType} onValueChange={(v) => updateAssignment(a.nodeId, 'assigneeType', v)}>
+                              <SelectTrigger className="w-[150px] h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {assigneeTypeOptions.map((o) => (
+                                  <SelectItem key={o} value={o}>{o}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {a.assigneeType !== '上一节点负责人' && (
+                              <Select value={a.assigneeValue || undefined} onValueChange={(v) => updateAssignment(a.nodeId, 'assigneeValue', v)}>
+                                <SelectTrigger className="w-[180px] h-8">
+                                  <SelectValue placeholder="请选择" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {assigneeValueOptions[a.assigneeType].map((o) => (
+                                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={a.skipIfEmpty}
+                              onCheckedChange={(v) => updateAssignment(a.nodeId, 'skipIfEmpty', v)}
+                            />
+                            <span className="text-xs">审批人为空时自动跳过</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
+          )}
 
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <div style={{
-                  padding: '8px 20px',
-                  borderRadius: 20,
-                  background: '#e8f5e9',
-                  color: '#2e7d32',
-                  fontWeight: 500,
-                  fontSize: 13,
-                }}>发起人</div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfigOpen(false)}>取消</Button>
+            <Button onClick={handleSave}>保存配置</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-[620px]">
+          <DialogHeader>
+            <DialogTitle>审批链路预览 &mdash; {editing?.bizName}</DialogTitle>
+          </DialogHeader>
+          {editing?.templateId && (
+            <div>
+              <div className="mb-4">
+                <span className="text-muted-foreground text-sm">模板：</span>
+                <Badge variant="default">{editing.templateName}</Badge>
               </div>
 
-              {editing.assignments.map((a, idx) => (
-                <div key={a.nodeId} className="flex items-start gap-2">
-                  <div style={{ paddingTop: 10, color: '#aaa', fontSize: 12, minWidth: 12 }}>↓</div>
-                  <div style={{
-                    flex: 1,
-                    border: '1px solid var(--color-border-2)',
-                    borderRadius: 8,
-                    padding: '10px 16px',
-                    background: 'var(--color-fill-1)',
-                  }}>
-                    <div className="flex items-center justify-between">
-                      <span style={{ fontWeight: 500 }}>环节 {idx + 1}：{a.nodeName}</span>
-                      <Tag color={a.strategy === '会签' ? 'purple' : 'arcoblue'} size="small">{a.strategy}</Tag>
-                    </div>
-                    <div style={{ marginTop: 6, fontSize: 13, color: 'var(--color-text-2)' }}>
-                      审批人：<span style={{ color: 'var(--color-text-1)', fontWeight: 500 }}>
-                        {a.assigneeValue || <span style={{ color: '#aaa' }}>未配置</span>}
-                      </span>
-                      <span style={{ color: 'var(--color-text-3)', marginLeft: 8 }}>（{a.assigneeType}）</span>
-                    </div>
-                    {a.skipIfEmpty && (
-                      <div style={{ marginTop: 4, fontSize: 12, color: '#ff7d00' }}>⚠ 审批人为空时自动跳过</div>
-                    )}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="px-5 py-2 rounded-full font-medium text-sm"
+                    style={{ background: '#e8f5e9', color: '#2e7d32' }}
+                  >
+                    发起人
                   </div>
                 </div>
-              ))}
 
-              <div className="flex items-center gap-2">
-                <div style={{ paddingTop: 0, color: '#aaa', fontSize: 12 }}>↓</div>
+                {editing.assignments.map((a, idx) => (
+                  <div key={a.nodeId} className="flex items-start gap-2">
+                    <div className="pt-2.5 text-muted-foreground text-xs min-w-[12px]">&#8595;</div>
+                    <div className="flex-1 border rounded-lg p-3 px-4 bg-muted/50">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">环节 {idx + 1}：{a.nodeName}</span>
+                        <Badge className={a.strategy === '会签' ? 'bg-purple-500 text-white' : ''}>
+                          {a.strategy}
+                        </Badge>
+                      </div>
+                      <div className="mt-1.5 text-sm text-muted-foreground">
+                        审批人：<span className="text-foreground font-medium">
+                          {a.assigneeValue || <span className="text-muted-foreground">未配置</span>}
+                        </span>
+                        <span className="text-muted-foreground ml-2">（{a.assigneeType}）</span>
+                      </div>
+                      {a.skipIfEmpty && (
+                        <div className="mt-1 text-xs text-orange-500">! 审批人为空时自动跳过</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex items-center gap-2">
+                  <div className="text-muted-foreground text-xs">&#8595;</div>
+                </div>
+                <div
+                  className="px-5 py-2 rounded-full font-medium text-sm inline-block self-start"
+                  style={{ background: '#fce4ec', color: '#c62828' }}
+                >
+                  审批结束
+                </div>
               </div>
-              <div style={{
-                padding: '8px 20px',
-                borderRadius: 20,
-                background: '#fce4ec',
-                color: '#c62828',
-                fontWeight: 500,
-                fontSize: 13,
-                display: 'inline-block',
-                alignSelf: 'flex-start',
-              }}>审批结束</div>
             </div>
-          </div>
-        )}
-      </Modal>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>关闭</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

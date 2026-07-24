@@ -1,48 +1,32 @@
 import { useState, useMemo } from 'react';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select';
+import { Progress } from '../../components/ui/progress';
+import { Alert, AlertDescription } from '../../components/ui/alert';
 import {
-  Card,
-  Grid,
-  Statistic,
-  Table,
-  Button,
-  Space,
-  Tag,
-  Tabs,
-  Modal,
-  Form,
-  Input,
-  Select,
-  DatePicker,
-  Progress,
-  Typography,
-  Alert,
-  Tooltip,
-  Popconfirm,
-  Badge,
-} from '@arco-design/web-react';
-import {
-  IconCloud,
-  IconLanguage,
-  IconLock,
-  IconMobile,
-  IconFile,
-  IconApps,
-  IconPlus,
-  IconEdit,
-  IconDelete,
-  IconCheck,
-  IconExclamationCircle,
-  IconCalendar,
-  IconCopyright,
-  IconBulb,
-} from '@arco-design/web-react/icon';
-
-const Row = Grid.Row;
-const Col = Grid.Col;
-const TabPane = Tabs.TabPane;
-const Title = Typography.Title;
-const FormItem = Form.Item;
-const SelectOption = Select.Option;
+  Cloud,
+  Globe,
+  Lock,
+  Smartphone,
+  FileText,
+  Copyright,
+  Lightbulb,
+  Plus,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+  Grid3X3,
+} from 'lucide-react';
 
 // ---------- 类型 ----------
 
@@ -76,22 +60,22 @@ interface InventoryRecord {
 
 // ---------- 工具 ----------
 
-const ASSET_TYPE_LABELS: Record<AssetType, { label: string; icon: React.ReactNode; color: string }> = {
-  server:           { label: '服务器',       icon: <IconCloud size={14} />,     color: 'var(--primary)' },
-  domain:           { label: '域名',         icon: <IconLanguage size={14} />,  color: 'var(--success-500)' },
-  ssl:              { label: 'SSL 证书',     icon: <IconLock size={14} />,      color: 'var(--chart-5)' },
-  device:           { label: '设备',         icon: <IconMobile size={14} />,    color: 'var(--warning-500)' },
-  license:          { label: '软件许可证',    icon: <IconFile size={14} />,      color: 'var(--info-500)' },
-  'software-copyright': { label: '软件著作权', icon: <IconCopyright size={14} />, color: 'var(--chart-5)' },
-  patent:           { label: '专利',         icon: <IconBulb size={14} />,      color: 'var(--warning-300)' },
+const ASSET_TYPE_LABELS: Record<AssetType, { label: string; icon: React.ReactNode; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  server:              { label: '服务器',       icon: <Cloud className="size-3.5" />,       variant: 'default' },
+  domain:              { label: '域名',         icon: <Globe className="size-3.5" />,       variant: 'secondary' },
+  ssl:                 { label: 'SSL 证书',     icon: <Lock className="size-3.5" />,        variant: 'outline' },
+  device:              { label: '设备',         icon: <Smartphone className="size-3.5" />,  variant: 'secondary' },
+  license:             { label: '软件许可证',    icon: <FileText className="size-3.5" />,    variant: 'outline' },
+  'software-copyright': { label: '软件著作权',   icon: <Copyright className="size-3.5" />,   variant: 'outline' },
+  patent:              { label: '专利',         icon: <Lightbulb className="size-3.5" />,   variant: 'secondary' },
 };
 
-const STATUS_LABELS: Record<AssetStatus, { label: string; color: string }> = {
-  active:     { label: '正常使用', color: 'var(--success-500)' },
-  expiring:   { label: '即将到期', color: 'var(--warning-500)' },
-  expired:    { label: '已到期',   color: 'var(--destructive-500)' },
-  transferred: { label: '已转让',   color: 'var(--muted-foreground)' },
-  returned:   { label: '已归还',   color: 'var(--primary)' },
+const STATUS_LABELS: Record<AssetStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  active:      { label: '正常使用', variant: 'default' },
+  expiring:    { label: '即将到期', variant: 'secondary' },
+  expired:     { label: '已到期',   variant: 'destructive' },
+  transferred: { label: '已转让',   variant: 'outline' },
+  returned:    { label: '已归还',   variant: 'default' },
 };
 
 function getDaysUntil(dateStr: string): number {
@@ -140,9 +124,22 @@ export function AssetManagement() {
   const [assets, setAssets] = useState<Asset[]>(mockAssets);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
-  const [form] = Form.useForm();
   const [filterType, setFilterType] = useState<AssetType | ''>('');
   const [filterStatus, setFilterStatus] = useState<AssetStatus | ''>('');
+
+  // 表单状态
+  const [formData, setFormData] = useState({
+    name: '',
+    type: 'server' as AssetType,
+    vendor: '',
+    cost: '',
+    purchaseDate: '2026-07-02',
+    expiryDate: '',
+    assignee: '',
+    department: '',
+    serialNumber: '',
+    notes: '',
+  });
 
   // 计算状态
   const assetsWithStatus = useMemo(() => {
@@ -172,231 +169,415 @@ export function AssetManagement() {
     return groups;
   }, [assetsWithStatus]);
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      type: 'server',
+      vendor: '',
+      cost: '',
+      purchaseDate: '2026-07-02',
+      expiryDate: '',
+      assignee: '',
+      department: '',
+      serialNumber: '',
+      notes: '',
+    });
+  };
+
   const handleAdd = () => {
     setEditingAsset(null);
-    form.resetFields();
-    form.setFieldsValue({ type: 'server', purchaseDate: '2026-07-02' });
+    resetForm();
+    setFormData(prev => ({ ...prev, type: 'server', purchaseDate: '2026-07-02' }));
     setModalVisible(true);
   };
 
   const handleEdit = (asset: Asset) => {
     setEditingAsset(asset);
-    form.setFieldsValue(asset);
+    setFormData({
+      name: asset.name,
+      type: asset.type,
+      vendor: asset.vendor,
+      cost: String(asset.cost),
+      purchaseDate: asset.purchaseDate,
+      expiryDate: asset.expiryDate,
+      assignee: asset.assignee || '',
+      department: asset.department || '',
+      serialNumber: asset.serialNumber || '',
+      notes: asset.notes || '',
+    });
     setModalVisible(true);
   };
 
   const handleDelete = (id: string) => {
-    setAssets(prev => prev.filter(a => a.id !== id));
+    if (window.confirm('确定删除该资产?')) {
+      setAssets(prev => prev.filter(a => a.id !== id));
+    }
   };
 
-  const handleSubmit = () => {
-    form.validate().then(values => {
-      if (editingAsset) {
-        setAssets(prev => prev.map(a => a.id === editingAsset.id ? { ...a, ...values } : a));
-      } else {
-        const newAsset: Asset = { id: `ast-${Date.now()}`, ...values, status: 'active' };
-        setAssets(prev => [...prev, newAsset]);
-      }
-      setModalVisible(false);
-    });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.vendor || !formData.cost || !formData.purchaseDate || !formData.expiryDate) {
+      return;
+    }
+    const values = {
+      name: formData.name,
+      type: formData.type,
+      vendor: formData.vendor,
+      cost: Number(formData.cost),
+      purchaseDate: formData.purchaseDate,
+      expiryDate: formData.expiryDate,
+      assignee: formData.assignee || undefined,
+      department: formData.department || undefined,
+      serialNumber: formData.serialNumber || undefined,
+      notes: formData.notes || undefined,
+    };
+    if (editingAsset) {
+      setAssets(prev => prev.map(a => a.id === editingAsset.id ? { ...a, ...values } : a));
+    } else {
+      const newAsset: Asset = { id: `ast-${Date.now()}`, ...values, status: 'active' };
+      setAssets(prev => [...prev, newAsset]);
+    }
+    setModalVisible(false);
   };
+
+  const updateForm = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  const currentData = activeTab === 'all' ? filteredAssets : assetsByType[activeTab as AssetType] || [];
+  const totalPages = Math.ceil(currentData.length / pageSize);
+  const paginatedData = currentData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <div className="flex flex-col gap-4 w-full">
       {/* 摘要栏 */}
-      <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="资产总数" value={summary.total} suffix="件" icon={<IconApps style={{ color: 'var(--primary)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="正常使用" value={summary.active} suffix="件" icon={<IconCheck style={{ color: 'var(--success-500)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="即将到期" value={summary.expiring} suffix="件" prefix={<IconExclamationCircle style={{ color: 'var(--warning-500)' }} />} valueStyle={{ color: 'var(--warning-500)' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="已到期" value={summary.expired} suffix="件" prefix={<IconExclamationCircle style={{ color: 'var(--destructive-500)' }} />} valueStyle={{ color: 'var(--destructive-500)' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="资产总值" value={summary.totalValue} prefix="¥" /></Card></Col>
-        <Col span={4}><Card><Statistic title="盘点次数" value={mockInventoryRecords.length} suffix="次" icon={<IconCalendar style={{ color: 'var(--chart-5)' }} />} /></Card></Col>
-      </Row>
+      <div className="grid grid-cols-6 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <Grid3X3 className="size-4 text-primary" />
+              资产总数
+            </div>
+            <div className="text-2xl font-bold mt-1">{summary.total} <span className="text-sm font-normal text-muted-foreground">件</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-green-600" />
+              正常使用
+            </div>
+            <div className="text-2xl font-bold mt-1">{summary.active} <span className="text-sm font-normal text-muted-foreground">件</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <AlertCircle className="size-4 text-yellow-500" />
+              即将到期
+            </div>
+            <div className="text-2xl font-bold mt-1 text-yellow-600">{summary.expiring} <span className="text-sm font-normal text-muted-foreground">件</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <AlertCircle className="size-4 text-destructive" />
+              已到期
+            </div>
+            <div className="text-2xl font-bold mt-1 text-destructive">{summary.expired} <span className="text-sm font-normal text-muted-foreground">件</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm">资产总值</div>
+            <div className="text-2xl font-bold mt-1">&yen;{summary.totalValue.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <Calendar className="size-4 text-blue-500" />
+              盘点次数
+            </div>
+            <div className="text-2xl font-bold mt-1">{mockInventoryRecords.length} <span className="text-sm font-normal text-muted-foreground">次</span></div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* 到期预警 */}
       {(summary.expiring > 0 || summary.expired > 0) && (
-        <Alert
-          type="warning"
-          content={
-            <span>
-              有 <strong style={{ color: 'var(--destructive-500)' }}>{summary.expired} 件</strong> 资产已到期，
-              <strong style={{ color: 'var(--warning-500)' }}>{summary.expiring} 件</strong> 即将在 30 天内到期，请及时处理续费或回收。
-            </span>
-          }
-          icon={<IconExclamationCircle />}
-        />
+        <Alert variant="destructive">
+          <AlertCircle className="size-4" />
+          <AlertDescription>
+            有 <strong className="text-destructive">{summary.expired} 件</strong> 资产已到期，
+            <strong className="text-yellow-600">{summary.expiring} 件</strong> 即将在 30 天内到期，请及时处理续费或回收。
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* 主体 Tab */}
-      <Card bordered={false}>
-        <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="all" title={<span><IconApps /> 全部资产</span>} />
-          {Object.entries(ASSET_TYPE_LABELS).map(([key, meta]) => (
-            <TabPane key={key} title={<span>{meta.icon} {meta.label} ({assetsByType[key as AssetType].length})</span>} />
-          ))}
-        </Tabs>
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setCurrentPage(1); }}>
+            <TabsList className="flex flex-wrap">
+              <TabsTrigger value="all"><Grid3X3 className="size-4" /> 全部资产</TabsTrigger>
+              {Object.entries(ASSET_TYPE_LABELS).map(([key, meta]) => (
+                <TabsTrigger key={key} value={key}>{meta.icon} {meta.label} ({assetsByType[key as AssetType].length})</TabsTrigger>
+              ))}
+            </TabsList>
 
-        <div style={{ paddingTop: 16 }}>
-          {/* 筛选 + 操作 */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16, alignItems: 'center' }}>
-            <Select style={{ width: 130 }} placeholder="全部类型" allowClear value={filterType} onChange={v => setFilterType(v as AssetType | '')}>
-              {Object.entries(ASSET_TYPE_LABELS).map(([k, m]) => <SelectOption key={k} value={k}>{m.icon} {m.label}</SelectOption>)}
-            </Select>
-            <Select style={{ width: 130 }} placeholder="全部状态" allowClear value={filterStatus} onChange={v => setFilterStatus(v as AssetStatus | '')}>
-              {Object.entries(STATUS_LABELS).map(([k, m]) => <SelectOption key={k} value={k}>{m.label}</SelectOption>)}
-            </Select>
-            <div style={{ marginLeft: 'auto' }}>
-              <Button type="primary" icon={<IconPlus />} onClick={handleAdd}>新增资产</Button>
-            </div>
-          </div>
+            <TabsContent value={activeTab} className="pt-4">
+              {/* 筛选 + 操作 */}
+              <div className="flex flex-wrap gap-3 mb-4 items-center">
+                <Select value={filterType || '__all__'} onValueChange={(v) => setFilterType(v === '__all__' ? '' : v as AssetType)}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue placeholder="全部类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">全部类型</SelectItem>
+                    {Object.entries(ASSET_TYPE_LABELS).map(([k, m]) => (
+                      <SelectItem key={k} value={k}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterStatus || '__all__'} onValueChange={(v) => setFilterStatus(v === '__all__' ? '' : v as AssetStatus)}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue placeholder="全部状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">全部状态</SelectItem>
+                    {Object.entries(STATUS_LABELS).map(([k, m]) => (
+                      <SelectItem key={k} value={k}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="ml-auto">
+                  <Button onClick={handleAdd}>
+                    <Plus className="size-4" /> 新增资产
+                  </Button>
+                </div>
+              </div>
 
-          {/* 资产表格 */}
-          <Table
-            columns={[
-              {
-                title: '名称', dataIndex: 'name', width: 180,
-                render: (_: unknown, row: Asset) => (
-                  <Space>
-                    <span style={{ fontSize: 16 }}>{ASSET_TYPE_LABELS[row.type].icon}</span>
-                    <span style={{ fontWeight: 600 }}>{row.name}</span>
-                  </Space>
-                ),
-              },
-              {
-                title: '类型', dataIndex: 'type', width: 90,
-                render: (t: AssetType) => <Tag color={ASSET_TYPE_LABELS[t].color}>{ASSET_TYPE_LABELS[t].label}</Tag>,
-              },
-              { title: '供应商', dataIndex: 'vendor', width: 100 },
-              {
-                title: '到期日', dataIndex: 'expiryDate', width: 110,
-                render: (v: string, row: Asset) => {
-                  const days = getDaysUntil(v);
-                  if (days < 0) return <span style={{ color: 'var(--destructive-500)' }}>{v} (已到期)</span>;
-                  if (days <= 30) return <span style={{ color: 'var(--warning-500)' }}>{v} ({days}天)</span>;
-                  return v;
-                },
-              },
-              {
-                title: '状态', dataIndex: 'status', width: 90,
-                render: (s: AssetStatus) => <Tag color={STATUS_LABELS[s].color}>{STATUS_LABELS[s].label}</Tag>,
-              },
-              { title: '使用人', dataIndex: 'assignee', width: 80, render: (v: string) => v || '—' },
-              { title: '部门', dataIndex: 'department', width: 80, render: (v: string) => v || '—' },
-              { title: '成本', dataIndex: 'cost', width: 90, render: (v: number) => `¥${v.toLocaleString()}` },
-              {
-                title: '操作', width: 120,
-                render: (_: unknown, row: Asset) => (
-                  <Space>
-                    <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEdit(row)}>编辑</Button>
-                    <Popconfirm title="确定删除该资产?" onOk={() => handleDelete(row.id)}>
-                      <Button type="text" size="small" status="danger" icon={<IconDelete />}>删除</Button>
-                    </Popconfirm>
-                  </Space>
-                ),
-              },
-            ] as any}
-            data={activeTab === 'all' ? filteredAssets : assetsByType[activeTab as AssetType] || []}
-            rowKey="id"
-            pagination={{ pageSize: 10, showTotal: true }}
-          />
-        </div>
+              {/* 资产表格 */}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[180px]">名称</TableHead>
+                    <TableHead className="w-[90px]">类型</TableHead>
+                    <TableHead className="w-[100px]">供应商</TableHead>
+                    <TableHead className="w-[110px]">到期日</TableHead>
+                    <TableHead className="w-[90px]">状态</TableHead>
+                    <TableHead className="w-[80px]">使用人</TableHead>
+                    <TableHead className="w-[80px]">部门</TableHead>
+                    <TableHead className="w-[90px]">成本</TableHead>
+                    <TableHead className="w-[120px]">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedData.map(row => (
+                    <TableRow key={row.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">{ASSET_TYPE_LABELS[row.type].icon}</span>
+                          <span className="font-semibold">{row.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={ASSET_TYPE_LABELS[row.type].variant}>{ASSET_TYPE_LABELS[row.type].label}</Badge>
+                      </TableCell>
+                      <TableCell>{row.vendor}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          const days = getDaysUntil(row.expiryDate);
+                          if (days < 0) return <span className="text-destructive">{row.expiryDate} (已到期)</span>;
+                          if (days <= 30) return <span className="text-yellow-600">{row.expiryDate} ({days}天)</span>;
+                          return row.expiryDate;
+                        })()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_LABELS[row.status].variant}>{STATUS_LABELS[row.status].label}</Badge>
+                      </TableCell>
+                      <TableCell>{row.assignee || '—'}</TableCell>
+                      <TableCell>{row.department || '—'}</TableCell>
+                      <TableCell>&yen;{row.cost.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(row)}>
+                            <Pencil className="size-3.5" /> 编辑
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(row.id)}>
+                            <Trash2 className="size-3.5" /> 删除
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* 分页 */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <span className="text-sm text-muted-foreground">
+                    共 {currentData.length} 条记录，第 {currentPage}/{totalPages} 页
+                  </span>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage <= 1}
+                      onClick={() => setCurrentPage(p => p - 1)}
+                    >
+                      上一页
+                    </Button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <Button
+                        key={page}
+                        variant={page === currentPage ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => setCurrentPage(p => p + 1)}
+                    >
+                      下一页
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
 
       {/* 盘点记录 */}
-      <Card bordered={false} title={<span><IconCalendar /> 盘点记录</span>}>
-        <Table
-          columns={[
-            { title: '盘点日期', dataIndex: 'date', width: 120 },
-            { title: '操作人', dataIndex: 'operator', width: 80 },
-            { title: '资产总数', dataIndex: 'totalAssets', width: 90, render: (v: number) => `${v}件` },
-            { title: '已盘点', dataIndex: 'checkedAssets', width: 90, render: (v: number) => `${v}件` },
-            {
-              title: '完成率', width: 120,
-              render: (_: unknown, row: InventoryRecord) => (
-                <Progress percent={Math.round((row.checkedAssets / Math.max(row.totalAssets, 1)) * 100)} size="small" />
-              ),
-            },
-            {
-              title: '异常', dataIndex: 'anomalies', width: 70,
-              render: (v: number) => v > 0 ? <Tag color="red">{v}项</Tag> : <Tag color="green">无</Tag>,
-            },
-            { title: '备注', dataIndex: 'notes' },
-          ] as any}
-          data={mockInventoryRecords}
-          rowKey="id"
-          pagination={false}
-        />
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="size-5" /> 盘点记录
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[120px]">盘点日期</TableHead>
+                <TableHead className="w-[80px]">操作人</TableHead>
+                <TableHead className="w-[90px]">资产总数</TableHead>
+                <TableHead className="w-[90px]">已盘点</TableHead>
+                <TableHead className="w-[120px]">完成率</TableHead>
+                <TableHead className="w-[70px]">异常</TableHead>
+                <TableHead>备注</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {mockInventoryRecords.map(row => (
+                <TableRow key={row.id}>
+                  <TableCell>{row.date}</TableCell>
+                  <TableCell>{row.operator}</TableCell>
+                  <TableCell>{row.totalAssets}件</TableCell>
+                  <TableCell>{row.checkedAssets}件</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Progress value={Math.round((row.checkedAssets / Math.max(row.totalAssets, 1)) * 100)} className="w-16" />
+                      <span className="text-xs text-muted-foreground">{Math.round((row.checkedAssets / Math.max(row.totalAssets, 1)) * 100)}%</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {row.anomalies > 0 ? <Badge variant="destructive">{row.anomalies}项</Badge> : <Badge variant="default">无</Badge>}
+                  </TableCell>
+                  <TableCell>{row.notes}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
       </Card>
 
       {/* 新增/编辑弹窗 */}
-      <Modal
-        title={editingAsset ? '编辑资产' : '新增资产'}
-        visible={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-        style={{ width: 560 }}
-      >
-        <Form form={form} layout="vertical">
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="资产名称" field="name" rules={[{ required: true, message: '请输入名称' }]}>
-                <Input placeholder="如：阿里云ECS服务器" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="资产类型" field="type" rules={[{ required: true }]}>
-                <Select placeholder="选择类型">
-                  {Object.entries(ASSET_TYPE_LABELS).map(([k, m]) => <SelectOption key={k} value={k}>{m.icon} {m.label}</SelectOption>)}
-                </Select>
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="供应商" field="vendor" rules={[{ required: true, message: '请输入供应商' }]}>
-                <Input placeholder="如：阿里云" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="成本（元）" field="cost" rules={[{ required: true, message: '请输入成本' }]}>
-                <Input type="number" placeholder="0" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="购买日期" field="purchaseDate" rules={[{ required: true }]}>
-                <DatePicker placeholder="选择日期" style={{ width: '100%' }} />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="到期日期" field="expiryDate" rules={[{ required: true }]}>
-                <DatePicker placeholder="选择日期" style={{ width: '100%' }} />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="使用人" field="assignee">
-                <Input placeholder="如：张三" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="所属部门" field="department">
-                <Input placeholder="如：技术部" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <FormItem label="序列号" field="serialNumber">
-            <Input placeholder="设备序列号（可选）" />
-          </FormItem>
-          <FormItem label="备注" field="notes">
-            <Input.TextArea placeholder="备注信息" autoSize={{ minRows: 2, maxRows: 4 }} />
-          </FormItem>
-        </Form>
-      </Modal>
-    </Space>
+      <Dialog open={modalVisible} onOpenChange={setModalVisible}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>{editingAsset ? '编辑资产' : '新增资产'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">资产名称 <span className="text-destructive">*</span></Label>
+                  <Input id="name" placeholder="如：阿里云ECS服务器" value={formData.name} onChange={e => updateForm('name', e.target.value)} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="type">资产类型 <span className="text-destructive">*</span></Label>
+                  <Select value={formData.type} onValueChange={v => updateForm('type', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择类型" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ASSET_TYPE_LABELS).map(([k, m]) => (
+                        <SelectItem key={k} value={k}>{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="vendor">供应商 <span className="text-destructive">*</span></Label>
+                  <Input id="vendor" placeholder="如：阿里云" value={formData.vendor} onChange={e => updateForm('vendor', e.target.value)} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="cost">成本（元） <span className="text-destructive">*</span></Label>
+                  <Input id="cost" type="number" placeholder="0" value={formData.cost} onChange={e => updateForm('cost', e.target.value)} required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="purchaseDate">购买日期 <span className="text-destructive">*</span></Label>
+                  <Input id="purchaseDate" type="date" value={formData.purchaseDate} onChange={e => updateForm('purchaseDate', e.target.value)} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="expiryDate">到期日期 <span className="text-destructive">*</span></Label>
+                  <Input id="expiryDate" type="date" value={formData.expiryDate} onChange={e => updateForm('expiryDate', e.target.value)} required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="assignee">使用人</Label>
+                  <Input id="assignee" placeholder="如：张三" value={formData.assignee} onChange={e => updateForm('assignee', e.target.value)} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="department">所属部门</Label>
+                  <Input id="department" placeholder="如：技术部" value={formData.department} onChange={e => updateForm('department', e.target.value)} />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="serialNumber">序列号</Label>
+                <Input id="serialNumber" placeholder="设备序列号（可选）" value={formData.serialNumber} onChange={e => updateForm('serialNumber', e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="notes">备注</Label>
+                <Textarea id="notes" placeholder="备注信息" rows={3} value={formData.notes} onChange={e => updateForm('notes', e.target.value)} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setModalVisible(false)}>取消</Button>
+              <Button type="submit">确定</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

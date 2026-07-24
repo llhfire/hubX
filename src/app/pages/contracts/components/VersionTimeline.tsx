@@ -1,9 +1,8 @@
-import { Card, Empty, Tag, Timeline, Typography } from '@arco-design/web-react';
 import { useNavigate } from 'react-router';
-import { Button } from '@arco-design/web-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
 import type { Contract, ContractVersion } from '../types';
-
-const Text = Typography.Text;
 
 interface Props {
   contract: Contract;
@@ -17,8 +16,13 @@ export function VersionTimeline({ contract, selectedVersionNo, onSelectVersion }
 
   if (versions.length === 0) {
     return (
-      <Card title="版本历史">
-        <Empty description="暂无版本记录" />
+      <Card>
+        <CardHeader>
+          <CardTitle>版本历史</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-muted-foreground py-8">暂无版本记录</div>
+        </CardContent>
       </Card>
     );
   }
@@ -27,24 +31,40 @@ export function VersionTimeline({ contract, selectedVersionNo, onSelectVersion }
   const ordered = [...versions].reverse();
 
   return (
-    <Card title={`版本历史（共 ${versions.length} 版）`}>
-      <Timeline>
-        {ordered.map((v) => (
-          <Timeline.Item key={v.versionNo}>
-            <VersionEntry
-              version={v}
-              isApproved={v.versionNo === contract.approvedVersionNo}
-              isSelected={v.versionNo === selectedVersionNo}
-              onSelect={() => onSelectVersion(v.versionNo)}
-              onCopy={() => {
-                // 把该版本作为下次编辑起点。这里简单跳到编辑页（编辑页读 contract.current，
-                // 用户实际"复制"动作通过编辑后保存为新版本完成）。
-                navigate(`/contracts/${contract.id}/edit`);
-              }}
-            />
-          </Timeline.Item>
-        ))}
-      </Timeline>
+    <Card>
+      <CardHeader>
+        <CardTitle>版本历史（共 {versions.length} 版）</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="relative pl-6 space-y-0">
+          {ordered.map((v, idx) => (
+            <div key={v.versionNo} className="relative pb-6 last:pb-0">
+              {/* 连接线 */}
+              {idx < ordered.length - 1 && (
+                <div className="absolute left-[5px] top-4 h-full w-0.5 bg-border" />
+              )}
+              {/* 圆点 */}
+              <div className={`absolute left-0 top-1.5 size-2.5 rounded-full border-2 ${
+                v.versionNo === contract.approvedVersionNo
+                  ? 'bg-emerald-500 border-emerald-500'
+                  : v.versionNo === selectedVersionNo
+                    ? 'bg-primary border-primary'
+                    : 'bg-background border-muted-foreground'
+              }`} />
+              {/* 内容 */}
+              <div className="ml-2">
+                <VersionEntry
+                  version={v}
+                  isApproved={v.versionNo === contract.approvedVersionNo}
+                  isSelected={v.versionNo === selectedVersionNo}
+                  onSelect={() => onSelectVersion(v.versionNo)}
+                  onCopy={() => navigate(`/contracts/${contract.id}/edit`)}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
     </Card>
   );
 }
@@ -64,28 +84,26 @@ function VersionEntry({
 }) {
   return (
     <div
-      style={{
-        padding: 8,
-        borderRadius: 4,
-        background: isSelected ? 'var(--color-fill-2)' : 'transparent',
-      }}
+      className={`p-2 rounded ${
+        isSelected ? 'bg-muted' : ''
+      }`}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Text bold>{version.versionNo}</Text>
-        {isApproved && <Tag color="green">已审批</Tag>}
-        {isSelected && <Tag color="arcoblue">当前查看</Tag>}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold">{version.versionNo}</span>
+        {isApproved && <Badge variant="default" className="bg-emerald-500 text-white">已审批</Badge>}
+        {isSelected && <Badge variant="default">当前查看</Badge>}
       </div>
-      <div style={{ fontSize: 13, color: 'var(--color-text-2)', marginTop: 4 }}>
+      <div className="text-[13px] text-muted-foreground mt-1">
         {version.label}
       </div>
-      <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginTop: 2 }}>
-        {version.createdAt} · {version.createdBy}
+      <div className="text-xs text-muted-foreground mt-0.5">
+        {version.createdAt} &middot; {version.createdBy}
       </div>
-      <div style={{ marginTop: 6 }}>
-        <Button type="text" size="mini" onClick={onSelect} disabled={isSelected}>
+      <div className="mt-1.5 flex gap-2">
+        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={onSelect} disabled={isSelected}>
           查看此版本
         </Button>
-        <Button type="text" size="mini" onClick={onCopy}>
+        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={onCopy}>
           基于此版本编辑
         </Button>
       </div>

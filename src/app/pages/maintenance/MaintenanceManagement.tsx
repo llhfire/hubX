@@ -1,43 +1,24 @@
 import { useState, useMemo } from 'react';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select';
+import { Progress } from '../../components/ui/progress';
+import { Alert, AlertDescription } from '../../components/ui/alert';
 import {
-  Card,
-  Grid,
-  Statistic,
-  Table,
-  Button,
-  Space,
-  Tag,
-  Tabs,
-  Modal,
-  Form,
-  Input,
-  Select,
-  DatePicker,
-  Typography,
-  Alert,
-  Progress,
-  Badge,
-  Popconfirm,
-  Timeline,
-} from '@arco-design/web-react';
-import {
-  IconCalendar,
-  IconCheckCircle,
-  IconClockCircle,
-  IconExclamationCircle,
-  IconPlus,
-  IconEdit,
-  IconFile,
-  IconUser,
-  IconCustomerService,
-} from '@arco-design/web-react/icon';
-
-const Row = Grid.Row;
-const Col = Grid.Col;
-const TabPane = Tabs.TabPane;
-const Title = Typography.Title;
-const FormItem = Form.Item;
-const SelectOption = Select.Option;
+  Calendar,
+  CheckCircle2,
+  AlertCircle,
+  Plus,
+  FileText,
+  Headphones,
+} from 'lucide-react';
 
 // ---------- 类型 ----------
 
@@ -90,26 +71,26 @@ function getDaysUntil(dateStr: string): number {
   return Math.ceil((new Date(dateStr).getTime() - new Date('2026-07-02').getTime()) / (1000 * 60 * 60 * 24));
 }
 
-const MAINTENANCE_STATUS_LABELS: Record<MaintenanceStatus, { label: string; color: string }> = {
-  active:   { label: '维护期中', color: 'var(--success-500)' },
-  expiring: { label: '即将到期', color: 'var(--warning-500)' },
-  expired:  { label: '已到期',   color: 'var(--destructive-500)' },
-  renewed:  { label: '已续签',   color: 'var(--primary)' },
+const MAINTENANCE_STATUS_LABELS: Record<MaintenanceStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  active:   { label: '维护期中', variant: 'default' },
+  expiring: { label: '即将到期', variant: 'secondary' },
+  expired:  { label: '已到期',   variant: 'destructive' },
+  renewed:  { label: '已续签',   variant: 'outline' },
 };
 
-const TICKET_PRIORITY_LABELS: Record<TicketPriority, { label: string; color: string }> = {
-  critical: { label: '紧急', color: 'var(--destructive-500)' },
-  high:     { label: '高',   color: 'var(--warning-500)' },
-  medium:   { label: '中',   color: 'var(--primary)' },
-  low:      { label: '低',   color: 'var(--muted-foreground)' },
+const TICKET_PRIORITY_LABELS: Record<TicketPriority, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  critical: { label: '紧急', variant: 'destructive' },
+  high:     { label: '高',   variant: 'secondary' },
+  medium:   { label: '中',   variant: 'default' },
+  low:      { label: '低',   variant: 'outline' },
 };
 
-const TICKET_STATUS_LABELS: Record<TicketStatus, { label: string; color: string }> = {
-  open:       { label: '待分配', color: 'var(--muted-foreground)' },
-  assigned:   { label: '已分配', color: 'var(--primary)' },
-  processing: { label: '处理中', color: 'var(--warning-500)' },
-  resolved:   { label: '已解决', color: 'var(--success-500)' },
-  closed:     { label: '已关闭', color: 'var(--muted-foreground)' },
+const TICKET_STATUS_LABELS: Record<TicketStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  open:       { label: '待分配', variant: 'outline' },
+  assigned:   { label: '已分配', variant: 'default' },
+  processing: { label: '处理中', variant: 'secondary' },
+  resolved:   { label: '已解决', variant: 'default' },
+  closed:     { label: '已关闭', variant: 'outline' },
 };
 
 // ---------- 模拟数据 ----------
@@ -140,7 +121,16 @@ export function MaintenanceManagement() {
   const [activeTab, setActiveTab] = useState('maintenance');
   const [tickets, setTickets] = useState(mockTickets);
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
-  const [form] = Form.useForm();
+
+  // 工单表单状态
+  const [ticketForm, setTicketForm] = useState({
+    title: '',
+    customerName: '',
+    projectName: '',
+    priority: 'medium' as TicketPriority,
+    assignee: '',
+    description: '',
+  });
 
   const summary = useMemo(() => {
     const active = mockMaintenance.filter(m => m.status === 'active').length;
@@ -151,207 +141,329 @@ export function MaintenanceManagement() {
     return { active, expiring, expired, openTickets, criticalTickets, totalProjects: mockMaintenance.length };
   }, [tickets]);
 
-  const handleAddTicket = () => {
-    form.resetFields();
-    form.setFieldsValue({ priority: 'medium' });
-    setTicketModalVisible(true);
-  };
-
-  const handleSubmitTicket = () => {
-    form.validate().then(values => {
-      const newTicket: Ticket = {
-        id: `tk-${Date.now()}`,
-        ...values,
-        status: 'open',
-        assignee: values.assignee || '',
-        createdAt: '2026-07-02 12:00',
-        slaDeadline: values.priority === 'critical' ? '2026-07-02 16:00' : values.priority === 'high' ? '2026-07-03 12:00' : '2026-07-05 12:00',
-      };
-      setTickets(prev => [newTicket, ...prev]);
-      setTicketModalVisible(false);
+  const resetTicketForm = () => {
+    setTicketForm({
+      title: '',
+      customerName: '',
+      projectName: '',
+      priority: 'medium',
+      assignee: '',
+      description: '',
     });
   };
 
+  const handleAddTicket = () => {
+    resetTicketForm();
+    setTicketModalVisible(true);
+  };
+
+  const updateTicketForm = (field: string, value: string) => {
+    setTicketForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmitTicket = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticketForm.title || !ticketForm.customerName || !ticketForm.projectName) {
+      return;
+    }
+    const newTicket: Ticket = {
+      id: `tk-${Date.now()}`,
+      title: ticketForm.title,
+      customerName: ticketForm.customerName,
+      projectName: ticketForm.projectName,
+      priority: ticketForm.priority,
+      status: 'open',
+      assignee: ticketForm.assignee || '',
+      createdAt: '2026-07-02 12:00',
+      slaDeadline: ticketForm.priority === 'critical' ? '2026-07-02 16:00' : ticketForm.priority === 'high' ? '2026-07-03 12:00' : '2026-07-05 12:00',
+      description: ticketForm.description,
+    };
+    setTickets(prev => [newTicket, ...prev]);
+    setTicketModalVisible(false);
+  };
+
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <div className="flex flex-col gap-4 w-full">
       {/* 摘要栏 */}
-      <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="维护期项目" value={summary.active} suffix="个" icon={<IconCheckCircle style={{ color: 'var(--success-500)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="即将到期" value={summary.expiring} suffix="个" prefix={<IconExclamationCircle style={{ color: 'var(--warning-500)' }} />} valueStyle={{ color: 'var(--warning-500)' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="已到期" value={summary.expired} suffix="个" prefix={<IconExclamationCircle style={{ color: 'var(--destructive-500)' }} />} valueStyle={{ color: 'var(--destructive-500)' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="待处理工单" value={summary.openTickets} suffix="个" icon={<IconCustomerService style={{ color: 'rgb(var(--primary-6))' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="紧急工单" value={summary.criticalTickets} suffix="个" prefix={<IconExclamationCircle style={{ color: 'var(--destructive-500)' }} />} valueStyle={{ color: 'var(--destructive-500)' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="续签合同" value={mockRenewalContracts.length} suffix="个" icon={<IconFile style={{ color: 'var(--primary)' }} />} /></Card></Col>
-      </Row>
+      <div className="grid grid-cols-6 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-green-600" />
+              维护期项目
+            </div>
+            <div className="text-2xl font-bold mt-1">{summary.active} <span className="text-sm font-normal text-muted-foreground">个</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <AlertCircle className="size-4 text-yellow-500" />
+              即将到期
+            </div>
+            <div className="text-2xl font-bold mt-1 text-yellow-600">{summary.expiring} <span className="text-sm font-normal text-muted-foreground">个</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <AlertCircle className="size-4 text-destructive" />
+              已到期
+            </div>
+            <div className="text-2xl font-bold mt-1 text-destructive">{summary.expired} <span className="text-sm font-normal text-muted-foreground">个</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <Headphones className="size-4 text-primary" />
+              待处理工单
+            </div>
+            <div className="text-2xl font-bold mt-1">{summary.openTickets} <span className="text-sm font-normal text-muted-foreground">个</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <AlertCircle className="size-4 text-destructive" />
+              紧急工单
+            </div>
+            <div className="text-2xl font-bold mt-1 text-destructive">{summary.criticalTickets} <span className="text-sm font-normal text-muted-foreground">个</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <FileText className="size-4 text-primary" />
+              续签合同
+            </div>
+            <div className="text-2xl font-bold mt-1">{mockRenewalContracts.length} <span className="text-sm font-normal text-muted-foreground">个</span></div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* 到期预警 */}
       {(summary.expiring > 0 || summary.expired > 0) && (
-        <Alert
-          type="warning"
-          content={
-            <span>
-              {summary.expiring > 0 && <strong style={{ color: 'var(--warning-500)' }}>{summary.expiring} 个</strong>}
-              {summary.expiring > 0 && ' 项目维护期即将到期，请跟进续费。'}
-              {summary.expiring > 0 && summary.expired > 0 && ' '}
-              {summary.expired > 0 && <strong style={{ color: 'var(--destructive-500)' }}>{summary.expired} 个</strong>}
-              {summary.expired > 0 && ' 项目维护期已到期。'}
-            </span>
-          }
-          icon={<IconExclamationCircle />}
-        />
+        <Alert variant="destructive">
+          <AlertCircle className="size-4" />
+          <AlertDescription>
+            {summary.expiring > 0 && <strong className="text-yellow-600">{summary.expiring} 个</strong>}
+            {summary.expiring > 0 && ' 项目维护期即将到期，请跟进续费。'}
+            {summary.expiring > 0 && summary.expired > 0 && ' '}
+            {summary.expired > 0 && <strong className="text-destructive">{summary.expired} 个</strong>}
+            {summary.expired > 0 && ' 项目维护期已到期。'}
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* 主体 Tab */}
-      <Card bordered={false}>
-        <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="maintenance" title={<span><IconCalendar /> 维护期跟踪</span>} />
-          <TabPane key="tickets" title={<span><IconCustomerService /> 客户工单 <Badge count={summary.openTickets} style={{ background: 'rgb(var(--primary-6))' }} /></span>} />
-          <TabPane key="renewal" title={<span><IconFile /> 续费合同</span>} />
-        </Tabs>
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="flex flex-wrap">
+              <TabsTrigger value="maintenance"><Calendar className="size-4" /> 维护期跟踪</TabsTrigger>
+              <TabsTrigger value="tickets">
+                <Headphones className="size-4" /> 客户工单
+                {summary.openTickets > 0 && (
+                  <Badge variant="default" className="ml-1 h-5 min-w-5 px-1">{summary.openTickets}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="renewal"><FileText className="size-4" /> 续费合同</TabsTrigger>
+            </TabsList>
 
-        <div style={{ paddingTop: 16 }}>
-          {/* 维护期跟踪 Tab */}
-          {activeTab === 'maintenance' && (
-            <Table
-              columns={[
-                { title: '项目名称', dataIndex: 'projectName', width: 150, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
-                { title: '客户', dataIndex: 'customerName', width: 130 },
-                { title: '合同编号', dataIndex: 'contractNo', width: 130 },
-                { title: '交付日期', dataIndex: 'deliveryDate', width: 100 },
-                {
-                  title: '免费维护截止', dataIndex: 'freeMaintenanceEnd', width: 120,
-                  render: (v: string, row: MaintenanceRecord) => {
-                    const days = getDaysUntil(v);
-                    if (days < 0) return <span style={{ color: 'var(--destructive-500)' }}>{v} (已到期)</span>;
-                    if (days <= 30) return <span style={{ color: 'var(--warning-500)' }}>{v} ({days}天)</span>;
-                    return v;
-                  },
-                },
-                {
-                  title: '状态', dataIndex: 'status', width: 90,
-                  render: (s: MaintenanceStatus) => <Tag color={MAINTENANCE_STATUS_LABELS[s].color}>{MAINTENANCE_STATUS_LABELS[s].label}</Tag>,
-                },
-                {
-                  title: '维护进度', width: 120,
-                  render: (_: unknown, row: MaintenanceRecord) => {
-                    const total = Math.ceil((new Date(row.freeMaintenanceEnd).getTime() - new Date(row.deliveryDate).getTime()) / (1000 * 60 * 60 * 24));
-                    const elapsed = total - getDaysUntil(row.freeMaintenanceEnd);
-                    return <Progress percent={Math.min(100, Math.round((elapsed / total) * 100))} size="small" />;
-                  },
-                },
-                { title: '付费合同', dataIndex: 'hasPaidContract', width: 80, render: (v: boolean) => v ? <Tag color="var(--success-500)">有</Tag> : <Tag>无</Tag> },
-                { title: '销售负责人', dataIndex: 'salesOwner', width: 90 },
-              ] as any}
-              data={mockMaintenance}
-              rowKey="id"
-              pagination={false}
-            />
-          )}
+            <TabsContent value={activeTab} className="pt-4">
+              {/* 维护期跟踪 Tab */}
+              {activeTab === 'maintenance' && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[150px]">项目名称</TableHead>
+                      <TableHead className="w-[130px]">客户</TableHead>
+                      <TableHead className="w-[130px]">合同编号</TableHead>
+                      <TableHead className="w-[100px]">交付日期</TableHead>
+                      <TableHead className="w-[120px]">免费维护截止</TableHead>
+                      <TableHead className="w-[90px]">状态</TableHead>
+                      <TableHead className="w-[120px]">维护进度</TableHead>
+                      <TableHead className="w-[80px]">付费合同</TableHead>
+                      <TableHead className="w-[90px]">销售负责人</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockMaintenance.map(row => {
+                      const total = Math.ceil((new Date(row.freeMaintenanceEnd).getTime() - new Date(row.deliveryDate).getTime()) / (1000 * 60 * 60 * 24));
+                      const elapsed = total - getDaysUntil(row.freeMaintenanceEnd);
+                      return (
+                        <TableRow key={row.id}>
+                          <TableCell className="font-semibold">{row.projectName}</TableCell>
+                          <TableCell>{row.customerName}</TableCell>
+                          <TableCell>{row.contractNo}</TableCell>
+                          <TableCell>{row.deliveryDate}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              const days = getDaysUntil(row.freeMaintenanceEnd);
+                              if (days < 0) return <span className="text-destructive">{row.freeMaintenanceEnd} (已到期)</span>;
+                              if (days <= 30) return <span className="text-yellow-600">{row.freeMaintenanceEnd} ({days}天)</span>;
+                              return row.freeMaintenanceEnd;
+                            })()}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={MAINTENANCE_STATUS_LABELS[row.status].variant}>{MAINTENANCE_STATUS_LABELS[row.status].label}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Progress value={Math.min(100, Math.round((elapsed / total) * 100))} className="w-16" />
+                              <span className="text-xs text-muted-foreground">{Math.min(100, Math.round((elapsed / total) * 100))}%</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {row.hasPaidContract ? <Badge variant="default">有</Badge> : <Badge variant="outline">无</Badge>}
+                          </TableCell>
+                          <TableCell>{row.salesOwner}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
 
-          {/* 客户工单 Tab */}
-          {activeTab === 'tickets' && (
-            <div>
-              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button type="primary" icon={<IconPlus />} onClick={handleAddTicket}>新建工单</Button>
-              </div>
-              <Table
-                columns={[
-                  {
-                    title: '优先级', dataIndex: 'priority', width: 70,
-                    render: (p: TicketPriority) => <Tag color={TICKET_PRIORITY_LABELS[p].color}>{TICKET_PRIORITY_LABELS[p].label}</Tag>,
-                  },
-                  { title: '标题', dataIndex: 'title', width: 160, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
-                  { title: '客户', dataIndex: 'customerName', width: 130 },
-                  { title: '项目', dataIndex: 'projectName', width: 130 },
-                  {
-                    title: '状态', dataIndex: 'status', width: 80,
-                    render: (s: TicketStatus) => <Tag color={TICKET_STATUS_LABELS[s].color}>{TICKET_STATUS_LABELS[s].label}</Tag>,
-                  },
-                  { title: '处理人', dataIndex: 'assignee', width: 70, render: (v: string) => v || <span style={{ color: 'var(--color-text-3)' }}>待分配</span> },
-                  { title: '创建时间', dataIndex: 'createdAt', width: 130 },
-                  {
-                    title: 'SLA 截止', dataIndex: 'slaDeadline', width: 130,
-                    render: (v: string, row: Ticket) => {
-                      if (row.status === 'closed' || row.status === 'resolved') return <span style={{ color: 'var(--color-text-3)' }}>—</span>;
-                      const days = getDaysUntil(v);
-                      if (days < 0) return <span style={{ color: 'var(--destructive-500)', fontWeight: 600 }}>超时 {Math.abs(days)} 天</span>;
-                      if (days === 0) return <span style={{ color: 'var(--warning-500)', fontWeight: 600 }}>今日到期</span>;
-                      return v;
-                    },
-                  },
-                ] as any}
-                data={tickets}
-                rowKey="id"
-                pagination={false}
-              />
-            </div>
-          )}
+              {/* 客户工单 Tab */}
+              {activeTab === 'tickets' && (
+                <div>
+                  <div className="mb-4 flex justify-end">
+                    <Button onClick={handleAddTicket}>
+                      <Plus className="size-4" /> 新建工单
+                    </Button>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[70px]">优先级</TableHead>
+                        <TableHead className="w-[160px]">标题</TableHead>
+                        <TableHead className="w-[130px]">客户</TableHead>
+                        <TableHead className="w-[130px]">项目</TableHead>
+                        <TableHead className="w-[80px]">状态</TableHead>
+                        <TableHead className="w-[70px]">处理人</TableHead>
+                        <TableHead className="w-[130px]">创建时间</TableHead>
+                        <TableHead className="w-[130px]">SLA 截止</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tickets.map(row => (
+                        <TableRow key={row.id}>
+                          <TableCell>
+                            <Badge variant={TICKET_PRIORITY_LABELS[row.priority].variant}>{TICKET_PRIORITY_LABELS[row.priority].label}</Badge>
+                          </TableCell>
+                          <TableCell className="font-semibold">{row.title}</TableCell>
+                          <TableCell>{row.customerName}</TableCell>
+                          <TableCell>{row.projectName}</TableCell>
+                          <TableCell>
+                            <Badge variant={TICKET_STATUS_LABELS[row.status].variant}>{TICKET_STATUS_LABELS[row.status].label}</Badge>
+                          </TableCell>
+                          <TableCell>{row.assignee || <span className="text-muted-foreground">待分配</span>}</TableCell>
+                          <TableCell>{row.createdAt}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              if (row.status === 'closed' || row.status === 'resolved') return <span className="text-muted-foreground">—</span>;
+                              const days = getDaysUntil(row.slaDeadline);
+                              if (days < 0) return <span className="text-destructive font-semibold">超时 {Math.abs(days)} 天</span>;
+                              if (days === 0) return <span className="text-yellow-600 font-semibold">今日到期</span>;
+                              return row.slaDeadline;
+                            })()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
 
-          {/* 续费合同 Tab */}
-          {activeTab === 'renewal' && (
-            <Table
-              columns={[
-                { title: '项目', dataIndex: 'projectName', width: 150, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
-                { title: '客户', dataIndex: 'customerName', width: 130 },
-                { title: '合同编号', dataIndex: 'contractNo', width: 130 },
-                { title: '签订日期', dataIndex: 'signDate', width: 100 },
-                { title: '到期日期', dataIndex: 'endDate', width: 100 },
-                { title: '合同金额', dataIndex: 'amount', width: 100, render: (v: number) => `¥${v.toLocaleString()}` },
-                { title: '销售负责人', dataIndex: 'salesOwner', width: 90 },
-              ] as any}
-              data={mockRenewalContracts}
-              rowKey="id"
-              pagination={false}
-            />
-          )}
-        </div>
+              {/* 续费合同 Tab */}
+              {activeTab === 'renewal' && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[150px]">项目</TableHead>
+                      <TableHead className="w-[130px]">客户</TableHead>
+                      <TableHead className="w-[130px]">合同编号</TableHead>
+                      <TableHead className="w-[100px]">签订日期</TableHead>
+                      <TableHead className="w-[100px]">到期日期</TableHead>
+                      <TableHead className="w-[100px]">合同金额</TableHead>
+                      <TableHead className="w-[90px]">销售负责人</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockRenewalContracts.map(row => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-semibold">{row.projectName}</TableCell>
+                        <TableCell>{row.customerName}</TableCell>
+                        <TableCell>{row.contractNo}</TableCell>
+                        <TableCell>{row.signDate}</TableCell>
+                        <TableCell>{row.endDate}</TableCell>
+                        <TableCell>&yen;{row.amount.toLocaleString()}</TableCell>
+                        <TableCell>{row.salesOwner}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
 
       {/* 新建工单弹窗 */}
-      <Modal
-        title="新建客户工单"
-        visible={ticketModalVisible}
-        onOk={handleSubmitTicket}
-        onCancel={() => setTicketModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-        style={{ width: 520 }}
-      >
-        <Form form={form} layout="vertical">
-          <FormItem label="工单标题" field="title" rules={[{ required: true, message: '请输入标题' }]}>
-            <Input placeholder="简要描述问题" />
-          </FormItem>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="客户" field="customerName" rules={[{ required: true, message: '请输入客户' }]}>
-                <Input placeholder="客户名称" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="项目" field="projectName" rules={[{ required: true, message: '请输入项目' }]}>
-                <Input placeholder="项目名称" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="优先级" field="priority" rules={[{ required: true }]}>
-                <Select placeholder="选择优先级">
-                  {Object.entries(TICKET_PRIORITY_LABELS).map(([k, m]) => <SelectOption key={k} value={k}>{m.label}</SelectOption>)}
-                </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="处理人" field="assignee">
-                <Input placeholder="指定处理人（可选）" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <FormItem label="问题描述" field="description">
-            <Input.TextArea placeholder="详细描述问题" autoSize={{ minRows: 3, maxRows: 6 }} />
-          </FormItem>
-        </Form>
-      </Modal>
-    </Space>
+      <Dialog open={ticketModalVisible} onOpenChange={setTicketModalVisible}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>新建客户工单</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmitTicket}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="ticket-title">工单标题 <span className="text-destructive">*</span></Label>
+                <Input id="ticket-title" placeholder="简要描述问题" value={ticketForm.title} onChange={e => updateTicketForm('title', e.target.value)} required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="ticket-customer">客户 <span className="text-destructive">*</span></Label>
+                  <Input id="ticket-customer" placeholder="客户名称" value={ticketForm.customerName} onChange={e => updateTicketForm('customerName', e.target.value)} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="ticket-project">项目 <span className="text-destructive">*</span></Label>
+                  <Input id="ticket-project" placeholder="项目名称" value={ticketForm.projectName} onChange={e => updateTicketForm('projectName', e.target.value)} required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="ticket-priority">优先级 <span className="text-destructive">*</span></Label>
+                  <Select value={ticketForm.priority} onValueChange={v => updateTicketForm('priority', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择优先级" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(TICKET_PRIORITY_LABELS).map(([k, m]) => (
+                        <SelectItem key={k} value={k}>{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="ticket-assignee">处理人</Label>
+                  <Input id="ticket-assignee" placeholder="指定处理人（可选）" value={ticketForm.assignee} onChange={e => updateTicketForm('assignee', e.target.value)} />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="ticket-desc">问题描述</Label>
+                <Textarea id="ticket-desc" placeholder="详细描述问题" rows={4} value={ticketForm.description} onChange={e => updateTicketForm('description', e.target.value)} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setTicketModalVisible(false)}>取消</Button>
+              <Button type="submit">确定</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

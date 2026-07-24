@@ -1,12 +1,12 @@
-import { Card } from '@arco-design/web-react';
 import {
-  IconArrowRise,
-  IconArrowFall,
-  IconCustomerService,
-  IconUser,
-  IconCheckCircle,
-  IconApps,
-} from '@arco-design/web-react/icon';
+  ArrowUp,
+  ArrowDown,
+  Headphones,
+  User,
+  CheckCircle,
+  LayoutGrid,
+} from 'lucide-react';
+import { Card, CardContent } from '../../../components/ui/card';
 import { useReminders } from '../../../reminders/ReminderContext';
 
 // 5 张 KPI 卡混合口径配置（详见 plan §1）。
@@ -45,7 +45,7 @@ export function KpiCards() {
       value: 16,
       comparison: '+12%',
       trend: 'up',
-      icon: <IconCustomerService style={{ fontSize: 24 }} />,
+      icon: <Headphones className="h-6 w-6" />,
       color: brandColors.blue,
     },
     {
@@ -54,7 +54,7 @@ export function KpiCards() {
       comparison: '-8.3%',
       trend: 'down',
       badge: { text: '4 紧急', tone: 'warning' },
-      icon: <IconUser style={{ fontSize: 24 }} />,
+      icon: <User className="h-6 w-6" />,
       color: brandColors.green,
     },
     {
@@ -62,7 +62,7 @@ export function KpiCards() {
       value: '¥852,000',
       comparison: '+8%',
       trend: 'up',
-      icon: <IconCustomerService style={{ fontSize: 24 }} />,
+      icon: <Headphones className="h-6 w-6" />,
       color: brandColors.amber,
     },
     {
@@ -71,7 +71,7 @@ export function KpiCards() {
       badge: taskDone
         ? { text: '全部完成 🎉', tone: 'success' }
         : undefined,
-      icon: <IconCheckCircle style={{ fontSize: 24 }} />,
+      icon: <CheckCircle className="h-6 w-6" />,
       color: taskDone ? brandColors.green : brandColors.blue,
     },
     {
@@ -79,101 +79,69 @@ export function KpiCards() {
       value: 35,
       comparison: '+5.7%',
       trend: 'up',
-      icon: <IconApps style={{ fontSize: 24 }} />,
+      icon: <LayoutGrid className="h-6 w-6" />,
       color: brandColors.red,
     },
   ];
 
   // 顶部 5 张 KPI 卡 — flex 均分 + 等高 + flex-column 内部对齐
   return (
-    <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+    <div className="flex gap-4 mb-6">
       {kpis.map((kpi, index) => (
-        <div key={index} style={{ flex: '1 1 0%', minWidth: 0, display: 'flex' }}>
-          <Card
-            style={{
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: 'var(--shadow-xs)',
-              border: '1px solid hsl(220, 12%, 88%)',
-              height: '100%',
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-            bodyStyle={{ padding: '20px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}
-          >
-            <div className="flex items-center justify-between" style={{ minHeight: 68 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, color: 'hsl(220, 8%, 55%)', marginBottom: 8 }}>
-                  {kpi.title}
+        <div key={index} className="flex-1 min-w-0 flex">
+          <Card className="h-full w-full flex flex-col">
+            <CardContent className="p-5 flex-1 flex flex-col">
+              <div className="flex items-center justify-between min-h-[68px]">
+                <div className="flex-1">
+                  <div className="text-[13px] text-muted-foreground mb-2">
+                    {kpi.title}
+                  </div>
+                  <div className="text-[28px] font-bold text-foreground mb-2 leading-tight">
+                    {typeof kpi.value === 'number' ? kpi.value.toLocaleString() : kpi.value}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {kpi.comparison && (
+                      <>
+                        {kpi.trend === 'up' ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-green-600" />
+                        ) : kpi.trend === 'down' ? (
+                          <ArrowDown className="h-3.5 w-3.5 text-red-500" />
+                        ) : null}
+                        <span
+                          className={`text-[13px] font-semibold ${
+                            kpi.trend === 'up'
+                              ? 'text-green-600'
+                              : kpi.trend === 'down'
+                                ? 'text-red-500'
+                                : 'text-muted-foreground'
+                          }`}
+                        >
+                          {kpi.comparison}
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-0.5">
+                          环比
+                        </span>
+                      </>
+                    )}
+                    {kpi.badge && (
+                      <span
+                        className={`text-xs font-medium ${kpi.comparison ? 'ml-2' : ''} ${
+                          kpi.badge.tone === 'warning' ? 'text-amber-600' : 'text-green-600'
+                        }`}
+                      >
+                        {kpi.badge.text}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div
-                  style={{
-                    fontSize: 28,
-                    fontWeight: 700,
-                    color: 'hsl(220, 20%, 10%)',
-                    marginBottom: 8,
-                    lineHeight: 1.2,
-                  }}
+                  className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${kpi.color}14`, color: kpi.color }}
                 >
-                  {typeof kpi.value === 'number' ? kpi.value.toLocaleString() : kpi.value}
-                </div>
-                <div className="flex items-center gap-1">
-                  {kpi.comparison && (
-                    <>
-                      {kpi.trend === 'up' ? (
-                        <IconArrowRise style={{ fontSize: 14, color: brandColors.green }} />
-                      ) : kpi.trend === 'down' ? (
-                        <IconArrowFall style={{ fontSize: 14, color: brandColors.red }} />
-                      ) : null}
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color:
-                            kpi.trend === 'up'
-                              ? brandColors.green
-                              : kpi.trend === 'down'
-                                ? brandColors.red
-                                : 'hsl(220, 8%, 55%)',
-                        }}
-                      >
-                        {kpi.comparison}
-                      </span>
-                      <span style={{ fontSize: 12, color: 'hsl(220, 8%, 55%)', marginLeft: 2 }}>
-                        环比
-                      </span>
-                    </>
-                  )}
-                  {kpi.badge && (
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 500,
-                        marginLeft: kpi.comparison ? 8 : 0,
-                        color: kpi.badge.tone === 'warning' ? brandColors.amber : brandColors.green,
-                      }}
-                    >
-                      {kpi.badge.text}
-                    </span>
-                  )}
+                  {kpi.icon}
                 </div>
               </div>
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 'var(--radius-md)',
-                  background: `${kpi.color}14`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: kpi.color,
-                  flexShrink: 0,
-                }}
-              >
-                {kpi.icon}
-              </div>
-            </div>
+            </CardContent>
           </Card>
         </div>
       ))}

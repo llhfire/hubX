@@ -1,26 +1,27 @@
 import { useState } from 'react';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Label } from '../components/ui/label';
+import { Switch } from '../components/ui/switch';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
+import { Checkbox } from '../components/ui/checkbox';
 import {
-  Card,
-  Button,
-  Switch,
-  Tag,
-  Space,
-  Typography,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Radio,
-  Popconfirm,
-  Message,
-  Tree,
-  Checkbox,
-  Badge,
-} from '@arco-design/web-react';
-import { IconPlus, IconEdit, IconDelete, IconDown, IconRight } from '@arco-design/web-react/icon';
-
-const { Title, Text } = Typography;
-const RadioGroup = Radio.Group;
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ExpenseCategory {
   id: string;
@@ -77,8 +78,15 @@ export function ExpenseCategoryManager() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<ExpenseCategory | null>(null);
   const [defaultLevel, setDefaultLevel] = useState<1 | 2>(1);
-  const [form] = Form.useForm();
   const [formLevel, setFormLevel] = useState<1 | 2>(1);
+  const [formName, setFormName] = useState('');
+  const [formCode, setFormCode] = useState('');
+  const [formParentId, setFormParentId] = useState('');
+  const [formAccountCode, setFormAccountCode] = useState('');
+  const [formBizScopes, setFormBizScopes] = useState<string[]>([]);
+  const [formRemark, setFormRemark] = useState('');
+  const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ExpenseCategory | null>(null);
 
   const tree = buildTree(categories);
 
@@ -92,23 +100,24 @@ export function ExpenseCategoryManager() {
     setEditing(null);
     setDefaultLevel(level);
     setFormLevel(level);
-    form.resetFields();
-    form.setFieldsValue({ level, parentId: parentId || undefined });
+    setFormName('');
+    setFormCode('');
+    setFormParentId(parentId || '');
+    setFormAccountCode('');
+    setFormBizScopes([]);
+    setFormRemark('');
     setModalVisible(true);
   };
 
   const openEdit = (record: ExpenseCategory) => {
     setEditing(record);
     setFormLevel(record.level);
-    form.setFieldsValue({
-      level: record.level,
-      parentId: record.parentId || undefined,
-      name: record.name,
-      code: record.code,
-      accountCode: record.accountCode,
-      bizScopes: record.bizScopes,
-      remark: record.remark,
-    });
+    setFormName(record.name);
+    setFormCode(record.code);
+    setFormParentId(record.parentId || '');
+    setFormAccountCode(record.accountCode);
+    setFormBizScopes(record.bizScopes);
+    setFormRemark(record.remark);
     setModalVisible(true);
   };
 
@@ -120,279 +129,363 @@ export function ExpenseCategoryManager() {
     }));
   };
 
-  const handleDelete = (record: ExpenseCategory) => {
-    if (record.level === 1) {
-      const childCount = categories.filter((c) => c.parentId === record.id).length;
-      if (childCount > 0) {
-        Modal.confirm({
-          title: '确认删除',
-          content: `该分类下包含 ${childCount} 个二级分类，删除将导致关联业务报错，是否确认？`,
-          okButtonProps: { status: 'danger' },
-          onOk: () => {
-            setCategories((prev) => prev.filter((c) => c.id !== record.id && c.parentId !== record.id));
-            if (selectedParentId === record.id) setSelectedParentId(null);
-            Message.success('已删除');
-          },
-        });
-        return;
-      }
+  const confirmDelete = (record: ExpenseCategory) => {
+    setDeleteTarget(record);
+    setDeleteAlertOpen(true);
+  };
+
+  const executeDelete = () => {
+    if (!deleteTarget) return;
+
+    if (deleteTarget.level === 1) {
+      setCategories((prev) => prev.filter((c) => c.id !== deleteTarget.id && c.parentId !== deleteTarget.id));
+      if (selectedParentId === deleteTarget.id) setSelectedParentId(null);
+    } else {
+      setCategories((prev) => prev.filter((c) => c.id !== deleteTarget.id));
     }
-    setCategories((prev) => prev.filter((c) => c.id !== record.id));
-    Message.success('已删除');
+
+    toast.success('已删除');
+    setDeleteAlertOpen(false);
+    setDeleteTarget(null);
   };
 
   const handleSave = () => {
-    form.validate().then((values) => {
-      const codeExists = categories.some(
-        (c) => c.code === values.code && (!editing || c.id !== editing.id)
-      );
-      if (codeExists) { Message.error('分类编码已存在，请修改'); return; }
+    if (!formName.trim()) {
+      toast.error('请输入分类名称');
+      return;
+    }
+    if (!formCode.trim()) {
+      toast.error('请输入分类编码');
+      return;
+    }
+    if (formLevel === 2 && !formParentId) {
+      toast.error('请选择父级分类');
+      return;
+    }
+    if (!formAccountCode) {
+      toast.error('请选择会计科目');
+      return;
+    }
 
-      const acct = ACCOUNT_OPTIONS.find((a) => a.value === values.accountCode);
+    const codeExists = categories.some(
+      (c) => c.code === formCode && (!editing || c.id !== editing.id)
+    );
+    if (codeExists) {
+      toast.error('分类编码已存在，请修改');
+      return;
+    }
 
-      if (editing) {
-        setCategories((prev) => prev.map((c) =>
-          c.id === editing.id
-            ? { ...c, ...values, accountName: acct?.label.split(' — ')[1] || '' }
-            : c
-        ));
-        Message.success('已更新');
-      } else {
-        const newCat: ExpenseCategory = {
-          id: values.code,
-          name: values.name,
-          code: values.code,
-          parentId: values.level === 2 ? values.parentId : null,
-          level: values.level,
-          accountCode: values.accountCode,
-          accountName: acct?.label.split(' — ')[1] || '',
-          status: true,
-          bizScopes: values.bizScopes || [],
-          remark: values.remark || '',
-          order: categories.filter((c) => values.level === 1 ? c.level === 1 : c.parentId === values.parentId).length + 1,
-        };
-        setCategories((prev) => [...prev, newCat]);
-        Message.success('已创建');
-      }
-      setModalVisible(false);
-    });
+    const acct = ACCOUNT_OPTIONS.find((a) => a.value === formAccountCode);
+
+    if (editing) {
+      setCategories((prev) => prev.map((c) =>
+        c.id === editing.id
+          ? {
+              ...c,
+              name: formName,
+              code: formCode,
+              level: formLevel,
+              parentId: formLevel === 2 ? formParentId : null,
+              accountCode: formAccountCode,
+              accountName: acct?.label.split(' — ')[1] || '',
+              bizScopes: formBizScopes,
+              remark: formRemark,
+            }
+          : c
+      ));
+      toast.success('已更新');
+    } else {
+      const newCat: ExpenseCategory = {
+        id: formCode,
+        name: formName,
+        code: formCode,
+        parentId: formLevel === 2 ? formParentId : null,
+        level: formLevel,
+        accountCode: formAccountCode,
+        accountName: acct?.label.split(' — ')[1] || '',
+        status: true,
+        bizScopes: formBizScopes,
+        remark: formRemark,
+        order: categories.filter((c) => formLevel === 1 ? c.level === 1 : c.parentId === formParentId).length + 1,
+      };
+      setCategories((prev) => [...prev, newCat]);
+      toast.success('已创建');
+    }
+    setModalVisible(false);
   };
+
+  const deleteChildCount = deleteTarget ? categories.filter((c) => c.parentId === deleteTarget.id).length : 0;
+  const deleteMessage = deleteTarget?.level === 1 && deleteChildCount > 0
+    ? `该分类下包含 ${deleteChildCount} 个二级分类，删除将导致关联业务报错，是否确认？`
+    : '确认删除该分类？';
 
   return (
     <div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-        <Title heading={4} style={{ margin: 0 }}>费用分类管理</Title>
-        <Space>
-          <Button onClick={() => openCreate(2)}>新增二级分类</Button>
-          <Button type="primary" icon={<IconPlus />} onClick={() => openCreate(1)}>新增一级分类</Button>
-        </Space>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">费用分类管理</h2>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => openCreate(2)}>新增二级分类</Button>
+          <Button variant="default" onClick={() => openCreate(1)}>
+            <Plus className="mr-2 h-4 w-4" />新增一级分类
+          </Button>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16 }}>
+      <div className="grid grid-cols-[260px_1fr] gap-4">
         {/* Left: tree */}
-        <Card title="分类结构" bodyStyle={{ padding: '8px 0' }}>
-          <div
-            style={{
-              padding: '8px 16px',
-              cursor: 'pointer',
-              background: selectedParentId === null ? 'rgb(var(--primary-1))' : 'transparent',
-              color: selectedParentId === null ? 'rgb(var(--primary-6))' : 'inherit',
-              fontWeight: selectedParentId === null ? 500 : 400,
-              fontSize: 13,
-            }}
-            onClick={() => setSelectedParentId(null)}
-          >
-            全部一级分类
-          </div>
-          {tree.map((parent) => (
-            <div key={parent.id}>
-              <div
-                className="flex items-center gap-2"
-                style={{
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  background: selectedParentId === parent.id ? 'rgb(var(--primary-1))' : 'transparent',
-                  color: selectedParentId === parent.id ? 'rgb(var(--primary-6))' : 'inherit',
-                  borderLeft: selectedParentId === parent.id ? '3px solid rgb(var(--primary-6))' : '3px solid transparent',
-                  transition: 'all 0.15s',
-                }}
-                onClick={() => setSelectedParentId(parent.id === selectedParentId ? null : parent.id)}
-              >
-                <span style={{ fontSize: 13, fontWeight: 500, flex: 1 }}>{parent.name}</span>
-                {!parent.status && <Tag size="small" color="gray">停用</Tag>}
-                <span style={{ color: 'var(--color-text-3)', fontSize: 12 }}>{parent.children.length}</span>
-              </div>
-              {selectedParentId === parent.id && parent.children.map((child) => (
-                <div
-                  key={child.id}
-                  style={{
-                    padding: '6px 16px 6px 32px',
-                    fontSize: 12,
-                    color: child.status ? 'var(--color-text-2)' : 'var(--color-text-4)',
-                  }}
-                >
-                  {child.name}
-                  {!child.status && <span style={{ marginLeft: 6, color: '#aaa' }}>（停用）</span>}
-                </div>
-              ))}
+        <Card>
+          <CardHeader>
+            <CardTitle>分类结构</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div
+              className={`px-4 py-2 cursor-pointer text-[13px] ${
+                selectedParentId === null
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'font-normal'
+              }`}
+              onClick={() => setSelectedParentId(null)}
+            >
+              全部一级分类
             </div>
-          ))}
+            {tree.map((parent) => (
+              <div key={parent.id}>
+                <div
+                  className={`flex items-center gap-2 px-4 py-2 cursor-pointer transition-all ${
+                    selectedParentId === parent.id
+                      ? 'bg-primary/10 text-primary border-l-3 border-primary'
+                      : 'border-l-3 border-transparent'
+                  }`}
+                  onClick={() => setSelectedParentId(parent.id === selectedParentId ? null : parent.id)}
+                >
+                  <span className="text-[13px] font-medium flex-1">{parent.name}</span>
+                  {!parent.status && <Badge variant="secondary" className="text-xs">停用</Badge>}
+                  <span className="text-muted-foreground text-xs">{parent.children.length}</span>
+                </div>
+                {selectedParentId === parent.id && parent.children.map((child) => (
+                  <div
+                    key={child.id}
+                    className={`py-1.5 px-4 pl-8 text-xs ${
+                      child.status ? 'text-muted-foreground' : 'text-gray-400'
+                    }`}
+                  >
+                    {child.name}
+                    {!child.status && <span className="ml-1.5 text-gray-400">（停用）</span>}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </CardContent>
         </Card>
 
         {/* Right: table */}
-        <Card
-          title={selectedParentId
-            ? `${categories.find((c) => c.id === selectedParentId)?.name || ''} — 详细配置`
-            : '一级分类列表'
-          }
-          extra={
-            selectedParentId && (
-              <Button size="small" icon={<IconPlus />} type="primary"
-                onClick={() => openCreate(2, selectedParentId)}>
-                新增子分类
-              </Button>
-            )
-          }
-        >
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: 'var(--color-fill-2)', borderBottom: '1px solid var(--color-border-2)' }}>
-                {['分类名称', '编码', '会计科目', '适用场景', '状态', '操作'].map((h) => (
-                  <th key={h} style={{ padding: '9px 12px', textAlign: 'left', fontWeight: 500, color: 'var(--color-text-2)' }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {displayList.map((item) => {
-                const isParent = item.level === 1;
-                const childCount = categories.filter((c) => c.parentId === item.id).length;
-                return (
-                  <tr
-                    key={item.id}
-                    style={{ borderBottom: '1px solid var(--color-border-2)', background: isParent ? 'var(--color-fill-1)' : '#fff' }}
-                  >
-                    <td style={{ padding: '10px 12px' }}>
-                      <div className="flex items-center gap-2">
-                        {isParent
-                          ? <Tag size="small" color="arcoblue">一级</Tag>
-                          : <span style={{ paddingLeft: 12, color: 'var(--color-text-3)' }}>└</span>
-                        }
-                        <span style={{ fontWeight: isParent ? 500 : 400 }}>{item.name}</span>
-                        {isParent && childCount > 0 && (
-                          <span style={{ color: 'var(--color-text-3)', fontSize: 11 }}>({childCount})</span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 12px', fontFamily: 'monospace', color: 'var(--color-text-2)' }}>
-                      {item.code}
-                    </td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <span style={{ color: 'var(--color-text-2)' }}>{item.accountCode}</span>
-                      <span style={{ color: 'var(--color-text-3)', marginLeft: 6 }}>— {item.accountName}</span>
-                    </td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <Space size={4}>
-                        {item.bizScopes.map((s) => (
-                          <Tag key={s} size="small" color="cyan">{s}</Tag>
-                        ))}
-                      </Space>
-                    </td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <Switch
-                        checked={item.status}
-                        size="small"
-                        onChange={(v) => handleToggleStatus(item.id, v)}
-                      />
-                    </td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <Space>
-                        <Button type="text" size="small" icon={<IconEdit />} onClick={() => openEdit(item)}>编辑</Button>
-                        {isParent && (
-                          <Button type="text" size="small" icon={<IconPlus />} onClick={() => openCreate(2, item.id)}>
-                            子类
-                          </Button>
-                        )}
-                        <Popconfirm
-                          title={isParent && childCount > 0
-                            ? `该分类下有 ${childCount} 个子分类，确认删除？`
-                            : '确认删除该分类？'
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>
+                {selectedParentId
+                  ? `${categories.find((c) => c.id === selectedParentId)?.name || ''} — 详细配置`
+                  : '一级分类列表'
+                }
+              </CardTitle>
+              {selectedParentId && (
+                <Button size="sm" onClick={() => openCreate(2, selectedParentId)}>
+                  <Plus className="mr-2 h-4 w-4" />新增子分类
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <table className="w-full border-collapse text-[13px]">
+              <thead>
+                <tr className="bg-muted border-b border-border">
+                  {['分类名称', '编码', '会计科目', '适用场景', '状态', '操作'].map((h) => (
+                    <th key={h} className="px-3 py-2.5 text-left font-medium text-muted-foreground">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {displayList.map((item) => {
+                  const isParent = item.level === 1;
+                  const childCount = categories.filter((c) => c.parentId === item.id).length;
+                  return (
+                    <tr
+                      key={item.id}
+                      className={`border-b border-border ${isParent ? 'bg-muted/50' : 'bg-background'}`}
+                    >
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          {isParent
+                            ? <Badge variant="default" className="text-xs">一级</Badge>
+                            : <span className="pl-3 text-muted-foreground">└</span>
                           }
-                          onOk={() => handleDelete(item)}
-                        >
-                          <Button type="text" size="small" icon={<IconDelete />} status="danger" />
-                        </Popconfirm>
-                      </Space>
+                          <span className={isParent ? 'font-medium' : 'font-normal'}>{item.name}</span>
+                          {isParent && childCount > 0 && (
+                            <span className="text-muted-foreground text-[11px]">({childCount})</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-muted-foreground">
+                        {item.code}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span className="text-muted-foreground">{item.accountCode}</span>
+                        <span className="text-muted-foreground/70 ml-1.5">— {item.accountName}</span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex gap-1">
+                          {item.bizScopes.map((s) => (
+                            <Badge key={s} className="bg-cyan-500 text-white text-xs">{s}</Badge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Switch
+                          checked={item.status}
+                          onCheckedChange={(v) => handleToggleStatus(item.id, v)}
+                        />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>
+                            <Pencil className="mr-1 h-3.5 w-3.5" />编辑
+                          </Button>
+                          {isParent && (
+                            <Button variant="ghost" size="sm" onClick={() => openCreate(2, item.id)}>
+                              <Plus className="mr-1 h-3.5 w-3.5" />子类
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => confirmDelete(item)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {displayList.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-8 py-8 text-center text-muted-foreground">
+                      暂无数据
                     </td>
                   </tr>
-                );
-              })}
-              {displayList.length === 0 && (
-                <tr>
-                  <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-3)' }}>
-                    暂无数据
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </CardContent>
         </Card>
       </div>
 
-      <Modal
-        title={editing ? '编辑费用分类' : '新增费用分类'}
-        visible={modalVisible}
-        maskClosable={false}
-        style={{ width: 560 }}
-        onCancel={() => setModalVisible(false)}
-        onOk={handleSave}
-        okText="保存"
-      >
-        <Form form={form} layout="vertical" autoComplete="off">
-          <Form.Item label="分类级别" field="level" rules={[{ required: true }]}>
-            <RadioGroup onChange={(v) => setFormLevel(v)}>
-              <Radio value={1}>一级分类</Radio>
-              <Radio value={2}>二级分类</Radio>
-            </RadioGroup>
-          </Form.Item>
+      <Dialog open={modalVisible} onOpenChange={(open) => !open && setModalVisible(false)}>
+        <DialogContent className="max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>{editing ? '编辑费用分类' : '新增费用分类'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>分类级别</Label>
+              <RadioGroup value={formLevel.toString()} onValueChange={(v) => setFormLevel(Number(v) as 1 | 2)} className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="1" id="level-1" />
+                  <Label htmlFor="level-1">一级分类</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="2" id="level-2" />
+                  <Label htmlFor="level-2">二级分类</Label>
+                </div>
+              </RadioGroup>
+            </div>
 
-          {formLevel === 2 && (
-            <Form.Item label="所属父级" field="parentId" rules={[{ required: true, message: '请选择父级分类' }]}>
-              <Select placeholder="请选择一级分类">
-                {parents.map((p) => (
-                  <Select.Option key={p.id} value={p.id}>{p.name}</Select.Option>
-                ))}
+            {formLevel === 2 && (
+              <div className="space-y-2">
+                <Label>所属父级</Label>
+                <Select value={formParentId} onValueChange={setFormParentId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择一级分类" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {parents.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>分类名称</Label>
+                <Input placeholder="如：差旅费" value={formName} onChange={(e) => setFormName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>分类编码</Label>
+                <Input placeholder="如：B01（全局唯一）" value={formCode} onChange={(e) => setFormCode(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>关联会计科目</Label>
+              <Select value={formAccountCode} onValueChange={setFormAccountCode}>
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择会计科目" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACCOUNT_OPTIONS.map((a) => (
+                    <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </Form.Item>
-          )}
+            </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-            <Form.Item label="分类名称" field="name" rules={[{ required: true, message: '请输入分类名称' }]}>
-              <Input placeholder="如：差旅费" />
-            </Form.Item>
-            <Form.Item label="分类编码" field="code" rules={[{ required: true, message: '请输入分类编码' }]}>
-              <Input placeholder="如：B01（全局唯一）" />
-            </Form.Item>
+            <div className="space-y-2">
+              <Label>适用业务场景</Label>
+              <div className="flex gap-4">
+                {BIZ_SCOPES.map((s) => (
+                  <div key={s} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={formBizScopes.includes(s)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setFormBizScopes([...formBizScopes, s]);
+                        } else {
+                          setFormBizScopes(formBizScopes.filter((b) => b !== s));
+                        }
+                      }}
+                    />
+                    <Label>{s}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>备注</Label>
+              <Textarea placeholder="分类说明或用途备注" rows={2} value={formRemark} onChange={(e) => setFormRemark(e.target.value)} />
+            </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalVisible(false)}>取消</Button>
+            <Button variant="default" onClick={handleSave}>保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <Form.Item label="关联会计科目" field="accountCode" rules={[{ required: true, message: '请选择会计科目' }]}>
-            <Select placeholder="请选择会计科目">
-              {ACCOUNT_OPTIONS.map((a) => (
-                <Select.Option key={a.value} value={a.value}>{a.label}</Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item label="适用业务场景" field="bizScopes">
-            <Checkbox.Group options={BIZ_SCOPES.map((s) => ({ label: s, value: s }))} />
-          </Form.Item>
-
-          <Form.Item label="备注" field="remark">
-            <Input.TextArea placeholder="分类说明或用途备注" rows={2} />
-          </Form.Item>
-        </Form>
-      </Modal>
+      <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>{deleteMessage}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={executeDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              确认
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

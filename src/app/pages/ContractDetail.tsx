@@ -1,38 +1,32 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { toast } from 'sonner';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
+import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
+import { Progress } from '../components/ui/progress';
+import { Separator } from '../components/ui/separator';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { Label } from '../components/ui/label';
 import {
-  Card,
-  Descriptions,
-  Tabs,
-  Timeline,
-  Table,
-  Progress,
-  Space,
-  Divider,
-  Grid,
-  Result,
-  Button,
-  Select,
-  Tag,
-  Modal,
-  Form,
-  Input,
-  Message,
-} from '@arco-design/web-react';
-import {
-  IconLeft,
-  IconCheckCircleFill,
-  IconCloseCircleFill,
-  IconClockCircle,
-  IconPlus,
-  IconFile,
-  IconHistory,
-  IconEdit,
-  IconCheck,
-  IconWechatpay,
-  IconPushpin,
-  IconCalendar,
-} from '@arco-design/web-react/icon';
+  ArrowLeft,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Plus,
+  FileText,
+  History,
+  Pencil,
+  Check,
+  CreditCard,
+  Pin,
+  Calendar,
+} from 'lucide-react';
 import { useContracts } from './contracts/ContractsContext';
 import { ContractStatusBadge } from './contracts/components/ContractStatusBadge';
 import { ContractActionBar } from './contracts/components/ContractActionBar';
@@ -41,8 +35,6 @@ import { ScanFileList } from './contracts/components/ScanFileList';
 import { ContractFlowProgress } from './contracts/components/ContractFlowProgress';
 import { CONTRACT_STATUS_LABEL } from './contracts/utils';
 import type { Contract, ContractStatus } from './contracts/types';
-
-const FormItem = Form.Item;
 
 interface FollowUpRecord {
   id: string;
@@ -54,10 +46,10 @@ interface FollowUpRecord {
 }
 
 const FOLLOW_UP_TYPES: Record<FollowUpRecord['type'], { label: string; color: string; icon: React.ReactNode }> = {
-  requirement_change: { label: '需求变更', color: 'orange', icon: <IconEdit size={12} /> },
-  ui_confirm:         { label: 'UI/原型确认', color: 'cyan', icon: <IconCheck size={12} /> },
-  dunning:            { label: '催款记录', color: 'red', icon: <IconWechatpay size={12} /> },
-  other:              { label: '其他', color: 'gray', icon: <IconPushpin size={12} /> },
+  requirement_change: { label: '需求变更', color: 'orange', icon: <Pencil size={12} /> },
+  ui_confirm:         { label: 'UI/原型确认', color: 'cyan', icon: <Check size={12} /> },
+  dunning:            { label: '催款记录', color: 'red', icon: <CreditCard size={12} /> },
+  other:              { label: '其他', color: 'gray', icon: <Pin size={12} /> },
 };
 
 const mockFollowUps: FollowUpRecord[] = [
@@ -69,8 +61,17 @@ const mockFollowUps: FollowUpRecord[] = [
   { id: 'fu-6', type: 'dunning', title: '首期款项到账确认', content: '已收到客户首期款项 ¥480,000，银行回单已归档。', author: '张三', date: '2026-06-10' },
 ];
 
-const { Row, Col } = Grid;
-const TabPane = Tabs.TabPane;
+function BadgeForColor({ color, children }: { color: string; children: React.ReactNode }) {
+  const className =
+    color === 'purple' ? 'bg-purple-500 text-white' :
+    color === 'orange' ? 'bg-orange-500 text-white' :
+    color === 'cyan'   ? 'bg-cyan-500 text-white' :
+    color === 'red'    ? '' : // use variant="destructive"
+    color === 'gray'   ? '' : // use variant="secondary"
+    '';
+  const variant = color === 'red' ? 'destructive' : color === 'gray' ? 'secondary' : undefined;
+  return <Badge className={className || undefined} variant={variant}>{children}</Badge>;
+}
 
 export function ContractDetail() {
   const { id } = useParams();
@@ -100,16 +101,14 @@ export function ContractDetail() {
 
   if (!contract) {
     return (
-      <Result
-        status="404"
-        title="合同不存在"
-        subTitle="该合同可能已被删除，或链接有误。"
-        extra={
-          <Button type="primary" onClick={() => navigate('/contracts')}>
-            返回合同列表
-          </Button>
-        }
-      />
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="text-6xl font-bold text-muted-foreground mb-4">404</div>
+        <h2 className="text-xl font-semibold mb-2">合同不存在</h2>
+        <p className="text-muted-foreground mb-6">该合同可能已被删除，或链接有误。</p>
+        <Button onClick={() => navigate('/contracts')}>
+          返回合同列表
+        </Button>
+      </div>
     );
   }
 
@@ -157,299 +156,349 @@ export function ContractDetail() {
   // 跟进记录
   const [followUps, setFollowUps] = useState<FollowUpRecord[]>(mockFollowUps);
   const [followUpModalVisible, setFollowUpModalVisible] = useState(false);
-  const [followUpForm] = Form.useForm();
+  const [followUpType, setFollowUpType] = useState('');
+  const [followUpTitle, setFollowUpTitle] = useState('');
+  const [followUpContent, setFollowUpContent] = useState('');
 
   const handleAddFollowUp = () => {
-    followUpForm.validate().then(values => {
-      const newRecord: FollowUpRecord = {
-        id: `fu-${Date.now()}`,
-        ...values,
-        author: '当前用户',
-        date: '2026-07-02',
-      };
-      setFollowUps(prev => [newRecord, ...prev]);
-      setFollowUpModalVisible(false);
-      Message.success('跟进记录已添加');
-    });
+    if (!followUpType || !followUpTitle || !followUpContent) {
+      toast.error('请填写完整信息');
+      return;
+    }
+    const newRecord: FollowUpRecord = {
+      id: `fu-${Date.now()}`,
+      type: followUpType as FollowUpRecord['type'],
+      title: followUpTitle,
+      content: followUpContent,
+      author: '当前用户',
+      date: '2026-07-02',
+    };
+    setFollowUps(prev => [newRecord, ...prev]);
+    setFollowUpModalVisible(false);
+    setFollowUpType('');
+    setFollowUpTitle('');
+    setFollowUpContent('');
+    toast.success('跟进记录已添加');
   };
 
   return (
     <div>
       {/* 顶部操作栏 */}
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Button icon={<IconLeft />} onClick={() => navigate(-1)}>
-              返回
-            </Button>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 20, fontWeight: 600 }}>{cd.contractName}</span>
-                <ContractStatusBadge status={contract.status} />
-                {contract.executionStatus && (
-                  <Tag color="purple">履行：{contract.executionStatus}</Tag>
-                )}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginTop: 4 }}>
-                合同编号：{contract.contractNo}
-                <span style={{ marginLeft: 16 }}>
-                  当前查看版本：
-                  <Select
-                    size="mini"
-                    value={selectedVersionNo ?? undefined}
-                    onChange={setSelectedVersionNo}
-                    style={{ width: 200, marginLeft: 4 }}
-                  >
-                    {contract.versionHistory.map((v) => (
-                      <Select.Option key={v.versionNo} value={v.versionNo}>
-                        {v.versionNo} · {v.label}
-                        {v.versionNo === contract.approvedVersionNo ? ' ✅' : ''}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </span>
+      <Card className="mb-4">
+        <CardContent className="py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" onClick={() => navigate(-1)}>
+                <ArrowLeft className="mr-2 size-4" />
+                返回
+              </Button>
+              <div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-xl font-semibold">{cd.contractName}</span>
+                  <ContractStatusBadge status={contract.status} />
+                  {contract.executionStatus && (
+                    <Badge className="bg-purple-500 text-white">履行：{contract.executionStatus}</Badge>
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  合同编号：{contract.contractNo}
+                  <span className="ml-4">
+                    当前查看版本：
+                    <Select value={selectedVersionNo ?? undefined} onValueChange={setSelectedVersionNo}>
+                      <SelectTrigger className="inline-flex w-[200px] ml-1 h-7">
+                        <SelectValue placeholder="选择版本" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {contract.versionHistory.map((v) => (
+                          <SelectItem key={v.versionNo} value={v.versionNo}>
+                            {v.versionNo} · {v.label}
+                            {v.versionNo === contract.approvedVersionNo ? ' ✅' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </span>
+                </div>
               </div>
             </div>
+            <ContractActionBar contract={contract} />
           </div>
-          <ContractActionBar contract={contract} />
-        </div>
+        </CardContent>
       </Card>
 
-      <Row gutter={16}>
+      <div className="grid grid-cols-[17fr_7fr] gap-4">
         {/* 左侧核心区 70% */}
-        <Col span={17}>
+        <div>
           {/* 基础信息卡片 */}
-          <Card title="基础信息" style={{ marginBottom: 16 }}>
-            <Descriptions
-              column={4}
-              data={[
-                { label: '签约主体', value: cd.signingEntity },
-                { label: '产品类别', value: cd.productCategory },
-                { label: '合同总额', value: `¥${cd.totalAmount.toLocaleString()}` },
-                { label: '付款方式', value: cd.paymentMethod },
-                { label: '签约日期', value: cd.signDate },
-                { label: '生效日期', value: cd.effectiveDate },
-                { label: '终止日期', value: cd.endDate },
-                { label: '创建人', value: contract.createdBy },
-              ]}
-            />
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>基础信息</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 gap-4">
+                <div><span className="text-sm text-muted-foreground">签约主体</span><div className="font-medium">{cd.signingEntity}</div></div>
+                <div><span className="text-sm text-muted-foreground">产品类别</span><div className="font-medium">{cd.productCategory}</div></div>
+                <div><span className="text-sm text-muted-foreground">合同总额</span><div className="font-medium">¥{cd.totalAmount.toLocaleString()}</div></div>
+                <div><span className="text-sm text-muted-foreground">付款方式</span><div className="font-medium">{cd.paymentMethod}</div></div>
+                <div><span className="text-sm text-muted-foreground">签约日期</span><div className="font-medium">{cd.signDate}</div></div>
+                <div><span className="text-sm text-muted-foreground">生效日期</span><div className="font-medium">{cd.effectiveDate}</div></div>
+                <div><span className="text-sm text-muted-foreground">终止日期</span><div className="font-medium">{cd.endDate}</div></div>
+                <div><span className="text-sm text-muted-foreground">创建人</span><div className="font-medium">{contract.createdBy}</div></div>
+              </div>
 
-            <Divider style={{ margin: '16px 0' }} />
+              <Separator className="my-4" />
 
-            <div style={{ fontWeight: 600, marginBottom: 12 }}>甲方画像</div>
-            <Descriptions
-              column={4}
-              data={[
-                { label: '公司名称', value: cd.customerName },
-                { label: '联系人', value: cd.customerContact },
-                { label: '联系电话', value: cd.customerPhone },
-                { label: '税务登记号', value: cd.customerTaxNo || '—' },
-              ]}
-            />
+              <div className="font-semibold mb-3">甲方画像</div>
+              <div className="grid grid-cols-4 gap-4">
+                <div><span className="text-sm text-muted-foreground">公司名称</span><div className="font-medium">{cd.customerName}</div></div>
+                <div><span className="text-sm text-muted-foreground">联系人</span><div className="font-medium">{cd.customerContact}</div></div>
+                <div><span className="text-sm text-muted-foreground">联系电话</span><div className="font-medium">{cd.customerPhone}</div></div>
+                <div><span className="text-sm text-muted-foreground">税务登记号</span><div className="font-medium">{cd.customerTaxNo || '—'}</div></div>
+              </div>
+            </CardContent>
           </Card>
 
           {/* 款项与回款计划 */}
-          <Card title="款项与回款计划" style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                background: 'var(--color-fill-2)',
-                padding: 16,
-                borderRadius: 6,
-                marginBottom: 16,
-              }}
-            >
-              <Row gutter={16}>
-                <Col span={6}>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>合同总额</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--primary)' }}>
-                    ¥{totalAmount.toLocaleString()}
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>款项与回款计划</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted p-4 rounded-md mb-4">
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">合同总额</div>
+                    <div className="text-xl font-bold text-primary">
+                      ¥{totalAmount.toLocaleString()}
+                    </div>
                   </div>
-                </Col>
-                <Col span={6}>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>已回款</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--success-500)' }}>
-                    ¥{receivedAmount.toLocaleString()}
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">已回款</div>
+                    <div className="text-xl font-bold text-green-600">
+                      ¥{receivedAmount.toLocaleString()}
+                    </div>
                   </div>
-                </Col>
-                <Col span={6}>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>待回款</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--warning-500)' }}>
-                    ¥{receivableAmount.toLocaleString()}
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">待回款</div>
+                    <div className="text-xl font-bold text-orange-500">
+                      ¥{receivableAmount.toLocaleString()}
+                    </div>
                   </div>
-                </Col>
-                <Col span={6}>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>到账率</div>
-                  <Progress
-                    percent={receivedRate}
-                    color={receivedRate >= 80 ? 'var(--success-500)' : 'var(--warning-500)'}
-                    style={{ marginTop: 8 }}
-                  />
-                </Col>
-              </Row>
-            </div>
-            <Table
-              columns={paymentColumns}
-              data={cd.paymentPlans}
-              pagination={false}
-              rowKey="period"
-            />
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">到账率</div>
+                    <Progress value={receivedRate} className="mt-2" />
+                  </div>
+                </div>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {paymentColumns.map((col) => (
+                      <TableHead key={col.dataIndex} style={{ width: col.width }}>{col.title}</TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cd.paymentPlans.map((plan: any) => (
+                    <TableRow key={plan.period}>
+                      <TableCell>第 {plan.period} 期</TableCell>
+                      <TableCell>{plan.expectedDate}</TableCell>
+                      <TableCell>{plan.percentage.toFixed(2)}%</TableCell>
+                      <TableCell>¥{plan.amount.toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
           </Card>
 
           {/* 合同正文 / 扫描件归档 */}
-          <Card title="合同文件" style={{ marginBottom: 16 }}>
-            <Tabs activeTab={activeTab} onChange={setActiveTab}>
-              <TabPane key="document" title="合同正文">
-                {selectedVersion ? (
-                  <div
-                    style={{
-                      background: '#f7f8fa',
-                      padding: 16,
-                      borderRadius: 6,
-                      maxHeight: 600,
-                      overflow: 'auto',
-                    }}
-                    dangerouslySetInnerHTML={{ __html: selectedVersion.renderedHtml }}
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>合同文件</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                  <TabsTrigger value="document">合同正文</TabsTrigger>
+                  <TabsTrigger value="scan">
+                    扫描件归档{contract.archivedScans.length > 0 ? ` (${contract.archivedScans.length})` : ''}
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="document">
+                  {selectedVersion ? (
+                    <div
+                      className="bg-muted p-4 rounded-md max-h-[600px] overflow-auto"
+                      dangerouslySetInnerHTML={{ __html: selectedVersion.renderedHtml }}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                      <p className="font-medium">该版本无可用预览</p>
+                    </div>
+                  )}
+                </TabsContent>
+                <TabsContent value="scan">
+                  <ScanFileList
+                    entries={contract.archivedScans}
+                    uploadEnabled={uploadEnabled}
+                    uploadIntent={uploadIntent}
+                    onUpload={(files) => uploadScan(contract.id, files)}
+                    onSetPrimary={(entryId) => setPrimaryScan(contract.id, entryId)}
                   />
-                ) : (
-                  <Result status="info" title="该版本无可用预览" />
-                )}
-              </TabPane>
-              <TabPane
-                key="scan"
-                title={`扫描件归档${contract.archivedScans.length > 0 ? ` (${contract.archivedScans.length})` : ''}`}
-              >
-                <ScanFileList
-                  entries={contract.archivedScans}
-                  uploadEnabled={uploadEnabled}
-                  uploadIntent={uploadIntent}
-                  onUpload={(files) => uploadScan(contract.id, files)}
-                  onSetPrimary={(entryId) => setPrimaryScan(contract.id, entryId)}
-                />
-                {!uploadEnabled && contract.archivedScans.length === 0 && (
-                  <Result
-                    status="info"
-                    title="尚未到归档阶段"
-                    subTitle={`合同需进入「待回寄」状态后方可上传扫描件。当前状态：${CONTRACT_STATUS_LABEL[contract.status]}`}
-                  />
-                )}
-              </TabPane>
-            </Tabs>
+                  {!uploadEnabled && contract.archivedScans.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                      <p className="font-medium">尚未到归档阶段</p>
+                      <p className="text-sm mt-1">合同需进入「待回寄」状态后方可上传扫描件。当前状态：{CONTRACT_STATUS_LABEL[contract.status]}</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
           </Card>
-
-        </Col>
+        </div>
 
         {/* 右侧动态侧边栏 30% */}
-        <Col span={7}>
+        <div>
           {/* 流转进度（形成期）/ 项目里程碑（履行期，本次只占位） */}
           {contract.status !== 'archived' && (
             <ContractFlowProgress status={contract.status} />
           )}
 
           {/* 右侧 Tab：跟进记录 / 审批记录 / 版本历史 */}
-          <Tabs activeTab={activeRightTab} onChange={setActiveRightTab} style={{ marginTop: 16 }}>
-            <TabPane key="followup" title={<span><IconFile size={14} /> 跟进</span>}>
-              <Card
-                size="small"
-                style={{ borderRadius: 8 }}
-                extra={<Button type="text" icon={<IconPlus />} size="small" onClick={() => setFollowUpModalVisible(true)} />}
-              >
-                <Timeline>
-                  {followUps.map(fu => {
-                    const typeMeta = FOLLOW_UP_TYPES[fu.type];
-                    return (
-                      <Timeline.Item key={fu.id} dot={typeMeta.icon}>
-                        <div style={{ marginBottom: 2 }}>
-                          <Tag color={typeMeta.color} size="small">{typeMeta.label}</Tag>
-                          <span style={{ fontWeight: 600, fontSize: 13, marginLeft: 4 }}>{fu.title}</span>
+          <Tabs value={activeRightTab} onValueChange={setActiveRightTab} className="mt-4">
+            <TabsList>
+              <TabsTrigger value="followup"><FileText className="size-3.5 mr-1" /> 跟进</TabsTrigger>
+              <TabsTrigger value="approval"><Calendar className="size-3.5 mr-1" /> 审批</TabsTrigger>
+              <TabsTrigger value="versions"><History className="size-3.5 mr-1" /> 版本</TabsTrigger>
+            </TabsList>
+            <TabsContent value="followup">
+              <Card className="rounded-lg">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-sm" />
+                    <Button variant="ghost" size="sm" onClick={() => setFollowUpModalVisible(true)}>
+                      <Plus className="size-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative pl-6">
+                    <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border" />
+                    {followUps.map(fu => {
+                      const typeMeta = FOLLOW_UP_TYPES[fu.type];
+                      return (
+                        <div key={fu.id} className="relative pb-6">
+                          <div className="absolute left-[-13px] top-1 size-2.5 rounded-full bg-primary" />
+                          <div className="mb-1">
+                            <BadgeForColor color={typeMeta.color}>{typeMeta.label}</BadgeForColor>
+                            <span className="font-semibold text-sm ml-1">{fu.title}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mb-1">{fu.date} · {fu.author}</div>
+                          <div className="text-xs text-muted-foreground p-2 bg-muted rounded">
+                            {fu.content}
+                          </div>
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>{fu.date} · {fu.author}</div>
-                        <div style={{ fontSize: 12, color: 'var(--color-text-2)', padding: '4px 8px', background: 'var(--color-fill-1)', borderRadius: 4 }}>
-                          {fu.content}
-                        </div>
-                      </Timeline.Item>
-                    );
-                  })}
-                </Timeline>
+                      );
+                    })}
+                  </div>
+                </CardContent>
               </Card>
-            </TabPane>
-            <TabPane key="approval" title={<span><IconCalendar size={14} /> 审批</span>}>
-              <Card size="small" style={{ borderRadius: 8 }}>
-                {showApprovalForSelected ? (
-                  <Timeline>
-                    {contract.approvalFlow.map((node, index) => (
-                      <Timeline.Item
-                        key={index}
-                        dot={
-                          node.status === 'approved' ? (
-                            <IconCheckCircleFill style={{ fontSize: 14, color: 'var(--success-500)' }} />
+            </TabsContent>
+            <TabsContent value="approval">
+              <Card className="rounded-lg">
+                <CardContent className="pt-4">
+                  {showApprovalForSelected ? (
+                    <div className="relative pl-6">
+                      <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border" />
+                      {contract.approvalFlow.map((node, index) => (
+                        <div key={index} className="relative pb-6">
+                          <div className="absolute left-[-13px] top-1 size-2.5 rounded-full bg-primary" />
+                          {node.status === 'approved' ? (
+                            <div className="absolute left-[-17px] top-0.5">
+                              <CheckCircle2 className="size-3.5 text-green-600" />
+                            </div>
                           ) : node.status === 'rejected' ? (
-                            <IconCloseCircleFill style={{ fontSize: 14, color: 'var(--destructive-500)' }} />
+                            <div className="absolute left-[-17px] top-0.5">
+                              <XCircle className="size-3.5 text-destructive" />
+                            </div>
                           ) : (
-                            <IconClockCircle style={{ fontSize: 14, color: 'var(--warning-500)' }} />
-                          )
-                        }
-                      >
-                        <div style={{ marginBottom: 2 }}>
-                          <span style={{ fontWeight: 600, fontSize: 13 }}>{node.step}</span>
-                          {node.time && (
-                            <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--color-text-3)' }}>
-                              {node.time}
-                            </span>
+                            <div className="absolute left-[-17px] top-0.5">
+                              <Clock className="size-3.5 text-orange-500" />
+                            </div>
+                          )}
+                          <div className="mb-1">
+                            <span className="font-semibold text-sm">{node.step}</span>
+                            {node.time && (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                {node.time}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground mb-1">
+                            审批人：{node.approver}
+                          </div>
+                          {node.comment && (
+                            <div className="text-xs text-muted-foreground p-2 bg-muted rounded">
+                              {node.comment}
+                            </div>
                           )}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--color-text-2)', marginBottom: 2 }}>
-                          审批人：{node.approver}
-                        </div>
-                        {node.comment && (
-                          <div style={{ fontSize: 12, color: 'var(--color-text-2)', padding: '4px 8px', background: 'var(--color-fill-1)', borderRadius: 4 }}>
-                            {node.comment}
-                          </div>
-                        )}
-                      </Timeline.Item>
-                    ))}
-                  </Timeline>
-                ) : (
-                  <Result status="info" title="该版本未提交审批" size="small" />
-                )}
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                      <p className="font-medium">该版本未提交审批</p>
+                    </div>
+                  )}
+                </CardContent>
               </Card>
-            </TabPane>
-            <TabPane key="versions" title={<span><IconHistory size={14} /> 版本</span>}>
+            </TabsContent>
+            <TabsContent value="versions">
               <VersionTimeline
                 contract={contract}
                 selectedVersionNo={selectedVersionNo}
                 onSelectVersion={setSelectedVersionNo}
               />
-            </TabPane>
+            </TabsContent>
           </Tabs>
-        </Col>
-      </Row>
+        </div>
+      </div>
 
       {/* 添加跟进记录弹窗 */}
-      <Modal
-        title="添加跟进记录"
-        visible={followUpModalVisible}
-        onOk={handleAddFollowUp}
-        onCancel={() => setFollowUpModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-        style={{ width: 520 }}
-      >
-        <Form form={followUpForm} layout="vertical">
-          <FormItem label="跟进类型" field="type" rules={[{ required: true, message: '请选择类型' }]}>
-            <Select placeholder="选择跟进类型">
-              {Object.entries(FOLLOW_UP_TYPES).map(([k, m]) => (
-                <Select.Option key={k} value={k}>{m.icon} {m.label}</Select.Option>
-              ))}
-            </Select>
-          </FormItem>
-          <FormItem label="标题" field="title" rules={[{ required: true, message: '请输入标题' }]}>
-            <Input placeholder="简要描述" />
-          </FormItem>
-          <FormItem label="详细内容" field="content" rules={[{ required: true, message: '请输入内容' }]}>
-            <Input.TextArea placeholder="详细描述跟进内容..." autoSize={{ minRows: 3, maxRows: 6 }} />
-          </FormItem>
-        </Form>
-      </Modal>
+      <Dialog open={followUpModalVisible} onOpenChange={setFollowUpModalVisible}>
+        <DialogContent className="max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>添加跟进记录</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>跟进类型</Label>
+              <Select value={followUpType} onValueChange={setFollowUpType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择跟进类型" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(FOLLOW_UP_TYPES).map(([k, m]) => (
+                    <SelectItem key={k} value={k}>{m.icon} {m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>标题</Label>
+              <Input placeholder="简要描述" value={followUpTitle} onChange={(e) => setFollowUpTitle(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>详细内容</Label>
+              <Textarea placeholder="详细描述跟进内容..." rows={4} value={followUpContent} onChange={(e) => setFollowUpContent(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFollowUpModalVisible(false)}>取消</Button>
+            <Button onClick={handleAddFollowUp}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

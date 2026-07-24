@@ -1,41 +1,40 @@
 import { useMemo, useState } from 'react';
 import {
-  Avatar,
-  Button,
-  Divider,
-  Drawer,
-  Input,
-  Space,
-  Tabs,
-  Tag,
-  Typography,
-  Select,
-} from '@arco-design/web-react';
+  Pencil,
+  Link,
+  MoreHorizontal,
+  Copy,
+  Maximize2,
+  Star,
+  ThumbsUp,
+  X,
+} from 'lucide-react';
+import { Avatar, AvatarFallback } from '../../../components/ui/avatar';
+import { Button } from '../../../components/ui/button';
+import { Separator } from '../../../components/ui/separator';
 import {
-  IconEdit,
-  IconLink,
-  IconMore,
-  IconCopy,
-  IconExpand,
-  IconStar,
-  IconThumbUp,
-  IconClose,
-} from '@arco-design/web-react/icon';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '../../../components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/tabs';
+import { Badge } from '../../../components/ui/badge';
 import type { Defect, Requirement, Task, WorkItemActions, WorkItemType } from '../types';
 import {
-  STATUS_COLOR_MAP,
-  PRIORITY_COLOR_MAP,
-  SEVERITY_COLOR_MAP,
   STATUS_OPTIONS,
   TYPE_LABEL_MAP,
   TYPE_BADGE_COLOR,
-  SPACING,
 } from '../constants';
 import { getEmployeeName } from '../mockData';
 import { CommentSection } from './CommentSection';
-
-const { Title, Text, Paragraph } = Typography;
-const TabPane = Tabs.TabPane;
 
 // ── 优先级配置 ────────────────────────────────────────────────
 const PRIORITY_PILL: Record<string, { bg: string; color: string }> = {
@@ -104,402 +103,346 @@ export function WorkItemDetailDrawer({
   const priorityPill = PRIORITY_PILL[item.priority] || PRIORITY_PILL['中'];
 
   return (
-    <Drawer
-      width={900}
-      visible={true}
-      onCancel={onClose}
-      footer={null}
-      closable={false}
-      style={{ padding: 0 }}
-      className="tapid-detail-drawer"
-      header={
-        <div style={{
-          display: 'none',
-          margin: 0,
-          padding: 0,
-          minHeight: 0,
-        }}>
-          {/* 隐藏默认头部 */}
-        </div>
-      }
-    >
-      {/* 自定义头部 */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: `${SPACING.md}px ${SPACING.lg}px`,
-        borderBottom: '1px solid #e5e6eb',
-        background: '#fafafa',
-      }}>
-        <Space size={SPACING.md}>
-          <Select
-            value={item.status}
-            onChange={handleStatusChange}
-            style={{ width: 100 }}
-            size="small"
-            bordered={false}
-            dropdownStyle={{ minWidth: 120 }}
-          >
-            {statusOptions.map(s => (
-              <Select.Option key={s} value={s}>
-                <span style={{
-                  padding: '2px 8px',
-                  borderRadius: 10,
-                  background: STATUS_PILL[s]?.bg || '#f5f5f5',
-                  color: STATUS_PILL[s]?.color || '#86909c',
-                  fontSize: 12,
-                }}>
-                  {s}
-                </span>
-              </Select.Option>
-            ))}
-          </Select>
-          <Text style={{ color: '#86909c' }}>ID: {item.projectNo}</Text>
-        </Space>
-        <Space size={SPACING.sm}>
-          <Button type="text" size="small" icon={<IconExpand />} />
-          <Button type="text" size="small" icon={<IconThumbUp />} />
-          <Button type="text" size="small" icon={<IconLink />} />
-          <Button type="text" size="small" icon={<IconMore />} />
-          <Button type="text" size="small" icon={<IconCopy />} />
-          <Button type="text" size="small" icon={<IconClose />} onClick={onClose} />
-        </Space>
-      </div>
-
-      {/* 标题区域 */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: SPACING.sm,
-        padding: `${SPACING.md}px ${SPACING.lg}px`,
-      }}>
-        <span style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '2px 6px',
-          borderRadius: 4,
-          background: TYPE_BADGE_COLOR[workItemType],
-          color: '#fff',
-          fontSize: 10,
-          fontWeight: 600,
-          lineHeight: 1,
-        }}>
-          {TYPE_LABEL_MAP[workItemType].slice(0, 2)}
-        </span>
-        <Text style={{ fontSize: 16, fontWeight: 600 }}>{item.title}</Text>
-        <Space size={4}>
-          <Button type="text" size="small" icon={<IconCopy />} style={{ color: '#86909c' }} />
-          <Button type="text" size="small" icon={<IconStar />} style={{ color: '#86909c' }} />
-          <Button type="text" size="small" icon={<IconLink />} style={{ color: '#86909c' }} />
-        </Space>
-      </div>
-
-      {/* Tab 导航 */}
-      <Tabs
-        activeTab={activeTab}
-        onChange={setActiveTab}
-        style={{ padding: `0 ${SPACING.lg}px` }}
-        size="small"
+    <Sheet open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <SheetContent
+        side="right"
+        className="w-[900px] max-w-[900px] sm:max-w-[900px] p-0 gap-0 [&>button]:hidden"
       >
-        <TabPane key="detail" title="详细信息" />
-        <TabPane key="sub" title={`子需求 (${0})`} />
-        <TabPane key="bugs" title={`缺陷 (${0})`} />
-        <TabPane key="history" title={`变更历史 (${activityLogs.length})`} />
-        <TabPane key="more" title="更多" />
-      </Tabs>
-
-      {/* 主内容区域 - 占据所有可用空间，可滚动 */}
-      <div style={{
-        display: 'flex',
-        flex: 1,
-        overflow: 'hidden',
-        minHeight: 0,
-      }}>
-        {/* 左侧内容区 */}
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: `${SPACING.lg}px`,
-          borderRight: '1px solid #e5e6eb',
-          paddingBottom: 80, /* 为底部评论框留出空间 */
-        }}>
-          {/* 编辑按钮 */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            marginBottom: SPACING.md,
-          }}>
-            <Space>
-              <Button type="text" size="small" icon={<IconEdit />}>编辑</Button>
-              <Button type="text" size="small" icon={<IconExpand />} />
-            </Space>
-          </div>
-
-          {/* 描述内容 */}
-          <div
-            className="rich-text-content"
-            dangerouslySetInnerHTML={{ __html: item.description }}
-            style={{
-              lineHeight: 1.8,
-              color: '#1d2129',
-            }}
-          />
-
-          {/* 验收标准（需求） */}
-          {workItemType === 'requirement' && (item as Requirement).acceptanceCriteria && (
-            <div style={{ marginTop: SPACING.xl }}>
-              <Title heading={6} style={{ marginBottom: SPACING.sm }}>验收标准</Title>
-              <Paragraph style={{ whiteSpace: 'pre-wrap', color: '#4e5969' }}>
-                {(item as Requirement).acceptanceCriteria}
-              </Paragraph>
-            </div>
-          )}
-
-          {/* 复现步骤（缺陷） */}
-          {workItemType === 'defect' && (item as Defect).reproductionSteps && (
-            <div style={{ marginTop: SPACING.xl }}>
-              <Title heading={6} style={{ marginBottom: SPACING.sm }}>复现步骤</Title>
-              <Paragraph style={{ whiteSpace: 'pre-wrap', color: '#4e5969' }}>
-                {(item as Defect).reproductionSteps}
-              </Paragraph>
-            </div>
-          )}
-
-          {/* 检查清单（任务） */}
-          {workItemType === 'task' && (item as Task).checklist.length > 0 && (
-            <div style={{ marginTop: SPACING.xl }}>
-              <Title heading={6} style={{ marginBottom: SPACING.sm }}>检查清单</Title>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                {(item as Task).checklist.map((c) => (
-                  <label
-                    key={c.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: SPACING.sm,
-                      cursor: 'pointer',
-                      padding: `${SPACING.xs}px 0`,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={c.done}
-                      onChange={() => {
-                        const updated = (item as Task).checklist.map((x) =>
-                          x.id === c.id ? { ...x, done: !x.done } : x
-                        );
-                        workItems.updateTask(workItemId, { checklist: updated }, '1');
+        {/* 自定义头部 */}
+        <div className="flex items-center justify-between border-b border-[#e5e6eb] bg-[#fafafa] px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Select value={item.status} onValueChange={handleStatusChange}>
+              <SelectTrigger className="w-[100px] h-8 border-none bg-transparent text-xs shadow-none focus:ring-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="min-w-[120px]">
+                {statusOptions.map(s => (
+                  <SelectItem key={s} value={s}>
+                    <span
+                      className="rounded-[10px] px-2 py-0.5 text-xs"
+                      style={{
+                        background: STATUS_PILL[s]?.bg || '#f5f5f5',
+                        color: STATUS_PILL[s]?.color || '#86909c',
                       }}
-                      style={{ width: 16, height: 16 }}
-                    />
-                    <Text style={{
-                      textDecoration: c.done ? 'line-through' : 'none',
-                      color: c.done ? '#86909c' : '#1d2129',
-                    }}>
-                      {c.text}
-                    </Text>
-                  </label>
+                    >
+                      {s}
+                    </span>
+                  </SelectItem>
                 ))}
-              </Space>
-            </div>
-          )}
-
-          {/* 关联 */}
-          {(item.contractId || links.length > 0) && (
-            <div style={{ marginTop: SPACING.xl }}>
-              <Title heading={6} style={{ marginBottom: SPACING.sm }}>关联</Title>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                {item.contractId && (
-                  <Text type="secondary">关联合同：{item.contractId}</Text>
-                )}
-                {links.length > 0 && (
-                  <Space wrap>
-                    {links.map((l) => {
-                      const linkedId = l.sourceId === workItemId ? l.targetId : l.sourceId;
-                      const linkedItem = workItems.allWorkItems.find(w => w.id === linkedId);
-                      return (
-                        <Tag key={l.id} style={{ borderRadius: 4 }}>
-                          {linkedItem?.projectNo || linkedId}
-                        </Tag>
-                      );
-                    })}
-                  </Space>
-                )}
-              </Space>
-            </div>
-          )}
-
-          {/* 评论列表 */}
-          <div style={{ marginTop: SPACING.xl }}>
-            <Title heading={6} style={{ marginBottom: SPACING.sm }}>评论 ({comments.length})</Title>
-            <CommentSection
-              workItemId={workItemId}
-              workItemType={workItemType}
-              comments={comments}
-              workItems={workItems}
-              listOnly
-            />
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-[#86909c]">ID: {item.projectNo}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Maximize2 className="size-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <ThumbsUp className="size-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Link className="size-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <MoreHorizontal className="size-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Copy className="size-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onClose}>
+              <X className="size-4" />
+            </Button>
           </div>
         </div>
 
-        {/* 右侧信息面板 */}
-        <div style={{
-          width: 280,
-          overflowY: 'auto',
-          padding: `${SPACING.lg}px`,
-          background: '#fafafa',
-          flexShrink: 0,
-        }}>
-          <Title heading={6} style={{ marginBottom: SPACING.md, color: '#86909c' }}>基础信息</Title>
-
-          <Space direction="vertical" style={{ width: '100%' }} size={SPACING.md}>
-            {/* 状态 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Space size={SPACING.xs}>
-                <span style={{ color: '#86909c', fontSize: 13 }}>状态</span>
-              </Space>
-              <span style={{
-                padding: '2px 10px',
-                borderRadius: 10,
-                background: statusPill.bg,
-                color: statusPill.color,
-                fontSize: 12,
-                fontWeight: 500,
-              }}>
-                {item.status}
-              </span>
-            </div>
-
-            {/* 父需求（任务和缺陷） */}
-            {(workItemType === 'task' || workItemType === 'defect') && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#86909c', fontSize: 13 }}>父需求</span>
-                <Text style={{ fontSize: 13 }}>
-                  {(workItemType === 'task' ? (item as Task).requirementId : (item as Defect).requirementId) || '-'}
-                </Text>
-              </div>
-            )}
-
-            {/* 创建模板 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#86909c', fontSize: 13 }}>创建模板</span>
-              <Text style={{ fontSize: 13 }}>工作项模板</Text>
-            </div>
-
-            {/* 分类 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#86909c', fontSize: 13 }}>分类</span>
-              <Text style={{ fontSize: 13 }}>未分类</Text>
-            </div>
-
-            {/* 优先级 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#86909c', fontSize: 13 }}>优先级</span>
-              <span style={{
-                padding: '2px 10px',
-                borderRadius: 10,
-                background: priorityPill.bg,
-                color: priorityPill.color,
-                fontSize: 12,
-                fontWeight: 500,
-              }}>
-                {item.priority}
-              </span>
-            </div>
-
-            {/* 严重程度（缺陷） */}
-            {workItemType === 'defect' && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#86909c', fontSize: 13 }}>严重程度</span>
-                <Text style={{ fontSize: 13 }}>{(item as Defect).severity}</Text>
-              </div>
-            )}
-
-            {/* 处理人 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#86909c', fontSize: 13 }}>处理人</span>
-              <Space size={SPACING.xs}>
-                <Avatar size={18} style={{ backgroundColor: '#165dff', fontSize: 10 }}>
-                  {getEmployeeName(item.assigneeId)[0]}
-                </Avatar>
-                <Text style={{ fontSize: 13 }}>{getEmployeeName(item.assigneeId)}</Text>
-              </Space>
-            </div>
-
-            {/* 预计开始 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#86909c', fontSize: 13 }}>预计开始</span>
-              <Text style={{ fontSize: 13 }}>{item.createdAt?.split(' ')[0] || '-'}</Text>
-            </div>
-
-            {/* 预计结束 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#86909c', fontSize: 13 }}>预计结束</span>
-              <Text style={{ fontSize: 13 }}>{(item as Task).dueDate || '-'}</Text>
-            </div>
-
-            {/* 创建人 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#86909c', fontSize: 13 }}>创建人</span>
-              <Space size={SPACING.xs}>
-                <Avatar size={18} style={{ backgroundColor: '#00b42a', fontSize: 10 }}>
-                  {getEmployeeName(item.creatorId)[0]}
-                </Avatar>
-                <Text style={{ fontSize: 13 }}>{getEmployeeName(item.creatorId)}</Text>
-              </Space>
-            </div>
-
-            {/* 创建时间 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#86909c', fontSize: 13 }}>创建时间</span>
-              <Text style={{ fontSize: 13 }}>{item.createdAt}</Text>
-            </div>
-
-            {/* 完成时间 */}
-            {item.status === '已完成' || item.status === '已关闭' ? (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#86909c', fontSize: 13 }}>完成时间</span>
-                <Text style={{ fontSize: 13 }}>{item.updatedAt}</Text>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#86909c', fontSize: 13 }}>完成时间</span>
-                <Text style={{ fontSize: 13, color: '#c9cdd4' }}>-</Text>
-              </div>
-            )}
-
-            {/* 工时（任务） */}
-            {workItemType === 'task' && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#86909c', fontSize: 13 }}>工时</span>
-                <Text style={{ fontSize: 13 }}>
-                  {(item as Task).actualHours || 0}/{(item as Task).estimatedHours || 0}h
-                </Text>
-              </div>
-            )}
-          </Space>
+        {/* 标题区域 */}
+        <div className="flex items-center gap-2 px-4 py-3">
+          <span
+            className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white"
+            style={{ background: TYPE_BADGE_COLOR[workItemType] }}
+          >
+            {TYPE_LABEL_MAP[workItemType].slice(0, 2)}
+          </span>
+          <span className="text-base font-semibold">{item.title}</span>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#86909c]">
+              <Copy className="size-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#86909c]">
+              <Star className="size-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#86909c]">
+              <Link className="size-4" />
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* 底部评论输入框 - 固定在底部 */}
-      <div style={{
-        borderTop: '1px solid #e5e6eb',
-        padding: `${SPACING.md}px ${SPACING.lg}px`,
-        background: '#fff',
-        position: 'sticky',
-        bottom: 0,
-        zIndex: 10,
-      }}>
-        <CommentSection
-          workItemId={workItemId}
-          workItemType={workItemType}
-          comments={comments}
-          workItems={workItems}
-          inputOnly
-        />
-      </div>
-    </Drawer>
+        {/* Tab 导航 */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="px-4">
+          <TabsList className="bg-transparent p-0 h-auto gap-0">
+            <TabsTrigger value="detail" className="text-xs">详细信息</TabsTrigger>
+            <TabsTrigger value="sub" className="text-xs">子需求 ({0})</TabsTrigger>
+            <TabsTrigger value="bugs" className="text-xs">缺陷 ({0})</TabsTrigger>
+            <TabsTrigger value="history" className="text-xs">变更历史 ({activityLogs.length})</TabsTrigger>
+            <TabsTrigger value="more" className="text-xs">更多</TabsTrigger>
+          </TabsList>
+
+          {/* 主内容区域 */}
+          <div className="flex flex-1 overflow-hidden min-h-0">
+            {/* 左侧内容区 */}
+            <div className="flex-1 overflow-y-auto p-4 border-r border-[#e5e6eb] pb-20">
+              {/* 编辑按钮 */}
+              <div className="flex justify-end mb-3">
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    <Pencil className="size-4" />
+                    编辑
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Maximize2 className="size-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* 描述内容 */}
+              <div
+                className="rich-text-content leading-[1.8] text-[#1d2129]"
+                dangerouslySetInnerHTML={{ __html: item.description }}
+              />
+
+              {/* 验收标准（需求） */}
+              {workItemType === 'requirement' && (item as Requirement).acceptanceCriteria && (
+                <div className="mt-6">
+                  <h6 className="text-sm font-semibold mb-2">验收标准</h6>
+                  <p className="whitespace-pre-wrap text-[#4e5969] text-sm">
+                    {(item as Requirement).acceptanceCriteria}
+                  </p>
+                </div>
+              )}
+
+              {/* 复现步骤（缺陷） */}
+              {workItemType === 'defect' && (item as Defect).reproductionSteps && (
+                <div className="mt-6">
+                  <h6 className="text-sm font-semibold mb-2">复现步骤</h6>
+                  <p className="whitespace-pre-wrap text-[#4e5969] text-sm">
+                    {(item as Defect).reproductionSteps}
+                  </p>
+                </div>
+              )}
+
+              {/* 检查清单（任务） */}
+              {workItemType === 'task' && (item as Task).checklist.length > 0 && (
+                <div className="mt-6">
+                  <h6 className="text-sm font-semibold mb-2">检查清单</h6>
+                  <div className="flex flex-col gap-1 w-full">
+                    {(item as Task).checklist.map((c) => (
+                      <label
+                        key={c.id}
+                        className="flex items-center gap-2 cursor-pointer py-1"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={c.done}
+                          onChange={() => {
+                            const updated = (item as Task).checklist.map((x) =>
+                              x.id === c.id ? { ...x, done: !x.done } : x
+                            );
+                            workItems.updateTask(workItemId, { checklist: updated }, '1');
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span
+                          className="text-sm"
+                          style={{
+                            textDecoration: c.done ? 'line-through' : 'none',
+                            color: c.done ? '#86909c' : '#1d2129',
+                          }}
+                        >
+                          {c.text}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 关联 */}
+              {(item.contractId || links.length > 0) && (
+                <div className="mt-6">
+                  <h6 className="text-sm font-semibold mb-2">关联</h6>
+                  <div className="flex flex-col gap-1 w-full">
+                    {item.contractId && (
+                      <span className="text-sm text-muted-foreground">关联合同：{item.contractId}</span>
+                    )}
+                    {links.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {links.map((l) => {
+                          const linkedId = l.sourceId === workItemId ? l.targetId : l.sourceId;
+                          const linkedItem = workItems.allWorkItems.find(w => w.id === linkedId);
+                          return (
+                            <Badge key={l.id} variant="secondary" className="rounded">
+                              {linkedItem?.projectNo || linkedId}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 评论列表 */}
+              <div className="mt-6">
+                <h6 className="text-sm font-semibold mb-2">评论 ({comments.length})</h6>
+                <CommentSection
+                  workItemId={workItemId}
+                  workItemType={workItemType}
+                  comments={comments}
+                  workItems={workItems}
+                  listOnly
+                />
+              </div>
+            </div>
+
+            {/* 右侧信息面板 */}
+            <div className="w-[280px] shrink-0 overflow-y-auto p-4 bg-[#fafafa]">
+              <h6 className="text-sm font-semibold mb-3 text-[#86909c]">基础信息</h6>
+
+              <div className="flex flex-col gap-3 w-full">
+                {/* 状态 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-[#86909c]">状态</span>
+                  <span
+                    className="rounded-[10px] px-2.5 py-0.5 text-xs font-medium"
+                    style={{ background: statusPill.bg, color: statusPill.color }}
+                  >
+                    {item.status}
+                  </span>
+                </div>
+
+                {/* 父需求（任务和缺陷） */}
+                {(workItemType === 'task' || workItemType === 'defect') && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] text-[#86909c]">父需求</span>
+                    <span className="text-[13px]">
+                      {(workItemType === 'task' ? (item as Task).requirementId : (item as Defect).requirementId) || '-'}
+                    </span>
+                  </div>
+                )}
+
+                {/* 创建模板 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-[#86909c]">创建模板</span>
+                  <span className="text-[13px]">工作项模板</span>
+                </div>
+
+                {/* 分类 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-[#86909c]">分类</span>
+                  <span className="text-[13px]">未分类</span>
+                </div>
+
+                {/* 优先级 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-[#86909c]">优先级</span>
+                  <span
+                    className="rounded-[10px] px-2.5 py-0.5 text-xs font-medium"
+                    style={{ background: priorityPill.bg, color: priorityPill.color }}
+                  >
+                    {item.priority}
+                  </span>
+                </div>
+
+                {/* 严重程度（缺陷） */}
+                {workItemType === 'defect' && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] text-[#86909c]">严重程度</span>
+                    <span className="text-[13px]">{(item as Defect).severity}</span>
+                  </div>
+                )}
+
+                {/* 处理人 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-[#86909c]">处理人</span>
+                  <div className="flex items-center gap-1">
+                    <Avatar className="size-[18px]">
+                      <AvatarFallback className="bg-[#165dff] text-white text-[10px]">
+                        {getEmployeeName(item.assigneeId)[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-[13px]">{getEmployeeName(item.assigneeId)}</span>
+                  </div>
+                </div>
+
+                {/* 预计开始 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-[#86909c]">预计开始</span>
+                  <span className="text-[13px]">{item.createdAt?.split(' ')[0] || '-'}</span>
+                </div>
+
+                {/* 预计结束 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-[#86909c]">预计结束</span>
+                  <span className="text-[13px]">{(item as Task).dueDate || '-'}</span>
+                </div>
+
+                {/* 创建人 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-[#86909c]">创建人</span>
+                  <div className="flex items-center gap-1">
+                    <Avatar className="size-[18px]">
+                      <AvatarFallback className="bg-[#00b42a] text-white text-[10px]">
+                        {getEmployeeName(item.creatorId)[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-[13px]">{getEmployeeName(item.creatorId)}</span>
+                  </div>
+                </div>
+
+                {/* 创建时间 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-[#86909c]">创建时间</span>
+                  <span className="text-[13px]">{item.createdAt}</span>
+                </div>
+
+                {/* 完成时间 */}
+                {item.status === '已完成' || item.status === '已关闭' ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] text-[#86909c]">完成时间</span>
+                    <span className="text-[13px]">{item.updatedAt}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] text-[#86909c]">完成时间</span>
+                    <span className="text-[13px] text-[#c9cdd4]">-</span>
+                  </div>
+                )}
+
+                {/* 工时（任务） */}
+                {workItemType === 'task' && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] text-[#86909c]">工时</span>
+                    <span className="text-[13px]">
+                      {(item as Task).actualHours || 0}/{(item as Task).estimatedHours || 0}h
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </Tabs>
+
+        {/* 底部评论输入框 - 固定在底部 */}
+        <div className="border-t border-[#e5e6eb] bg-white sticky bottom-0 z-10 px-4 py-3">
+          <CommentSection
+            workItemId={workItemId}
+            workItemType={workItemType}
+            comments={comments}
+            workItems={workItems}
+            inputOnly
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

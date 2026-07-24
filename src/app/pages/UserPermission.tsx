@@ -1,25 +1,46 @@
 import { useState } from 'react';
+import { Plus, Pencil, Trash2, Lock } from 'lucide-react';
+import { toast } from 'sonner';
+import { Card, CardContent } from '../components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import {
-  Card,
-  Tabs,
   Table,
-  Button,
-  Space,
-  Modal,
-  Form,
-  Input,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../components/ui/table';
+import { Button } from '../components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Badge } from '../components/ui/badge';
+import { Checkbox } from '../components/ui/checkbox';
+import {
   Select,
-  Message,
-  Popconfirm,
-  Tag,
-  Transfer,
-  Tree,
-  Checkbox,
-} from '@arco-design/web-react';
-import { IconPlus, IconEdit, IconDelete, IconLock } from '@arco-design/web-react/icon';
-
-const TabPane = Tabs.TabPane;
-const FormItem = Form.Item;
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '../components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '../components/ui/alert-dialog';
 
 // 模拟用户数据
 const mockUsers = [
@@ -106,7 +127,13 @@ const mockRoles = [
 ];
 
 // 模拟权限树数据
-const mockPermissionTree = [
+interface PermissionNode {
+  title: string;
+  key: string;
+  children?: PermissionNode[];
+}
+
+const mockPermissionTree: PermissionNode[] = [
   {
     title: '系统管理',
     key: 'system',
@@ -185,159 +212,170 @@ const mockPermissionTree = [
   },
 ];
 
+const initialUserForm = {
+  username: '',
+  name: '',
+  phone: '',
+  email: '',
+  password: '',
+  roles: [] as string[],
+  status: '启用',
+};
+
+const initialRoleForm = { name: '', code: '', description: '', status: '启用' };
+
+// 收集所有叶子节点 key
+function collectLeafKeys(nodes: PermissionNode[]): string[] {
+  return nodes.flatMap((node) =>
+    node.children ? collectLeafKeys(node.children) : [node.key]
+  );
+}
+
+// 收集所有节点 key
+function collectAllKeys(nodes: PermissionNode[]): string[] {
+  return nodes.flatMap((node) => [
+    node.key,
+    ...(node.children ? collectAllKeys(node.children) : []),
+  ]);
+}
+
+// 获取节点的所有后代叶子 key
+function getDescendantLeafKeys(node: PermissionNode): string[] {
+  if (!node.children) return [node.key];
+  return node.children.flatMap((child) => getDescendantLeafKeys(child));
+}
+
+// 自定义权限树组件
+function PermissionTree({
+  treeData,
+  checkedKeys,
+  onCheckedChange,
+}: {
+  treeData: PermissionNode[];
+  checkedKeys: string[];
+  onCheckedChange: (keys: string[]) => void;
+}) {
+  const allKeys = collectAllKeys(treeData);
+
+  const handleToggle = (node: PermissionNode) => {
+    const descendantKeys = getDescendantLeafKeys(node);
+    const isLeaf = !node.children;
+
+    if (isLeaf) {
+      // 叶子节点：直接切换
+      const newKeys = checkedKeys.includes(node.key)
+        ? checkedKeys.filter((k) => k !== node.key)
+        : [...checkedKeys, node.key];
+      onCheckedChange(newKeys);
+    } else {
+      // 父节点：切换所有叶子后代
+      const allDescendantsChecked = descendantKeys.every((k) => checkedKeys.includes(k));
+      if (allDescendantsChecked) {
+        onCheckedChange(checkedKeys.filter((k) => !descendantKeys.includes(k)));
+      } else {
+        const newKeys = [...new Set([...checkedKeys, ...descendantKeys])];
+        onCheckedChange(newKeys);
+      }
+    }
+  };
+
+  const isChecked = (node: PermissionNode): boolean | 'indeterminate' => {
+    if (!node.children) {
+      return checkedKeys.includes(node.key);
+    }
+    const descendantKeys = getDescendantLeafKeys(node);
+    const checkedCount = descendantKeys.filter((k) => checkedKeys.includes(k)).length;
+    if (checkedCount === 0) return false;
+    if (checkedCount === descendantKeys.length) return true;
+    return 'indeterminate';
+  };
+
+  const renderNode = (node: PermissionNode, depth: number) => {
+    const checked = isChecked(node);
+    return (
+      <div key={node.key}>
+        <div className="flex items-center gap-2" style={{ paddingLeft: depth * 24 }}>
+          <Checkbox
+            checked={checked}
+            onCheckedChange={() => handleToggle(node)}
+          />
+          <span className="text-sm">{node.title}</span>
+        </div>
+        {node.children?.map((child) => renderNode(child, depth + 1))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-1">
+      {treeData.map((node) => renderNode(node, 0))}
+    </div>
+  );
+}
+
 export function UserPermission() {
   const [activeTab, setActiveTab] = useState('user');
   const [userModalVisible, setUserModalVisible] = useState(false);
   const [roleModalVisible, setRoleModalVisible] = useState(false);
   const [permissionModalVisible, setPermissionModalVisible] = useState(false);
-  const [userForm] = Form.useForm();
-  const [roleForm] = Form.useForm();
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editingRole, setEditingRole] = useState<any>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [dataScope, setDataScope] = useState('all');
-
-  // 用户表格列配置
-  const userColumns = [
-    { title: '用户名', dataIndex: 'username' },
-    { title: '姓名', dataIndex: 'name' },
-    { title: '手机号', dataIndex: 'phone' },
-    { title: '邮箱', dataIndex: 'email' },
-    {
-      title: '角色',
-      dataIndex: 'roles',
-      render: (roles: string[]) => (
-        <Space>
-          {roles.map((role, idx) => (
-            <Tag key={idx} color="blue">{role}</Tag>
-          ))}
-        </Space>
-      ),
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      render: (status: string) => (
-        <Tag color={status === '启用' ? 'green' : 'red'}>{status}</Tag>
-      ),
-    },
-    { title: '创建时间', dataIndex: 'createTime' },
-    {
-      title: '操作',
-      render: (_: any, record: any) => (
-        <Space>
-          <Button
-            key="edit"
-            type="text"
-            size="small"
-            icon={<IconEdit />}
-            onClick={() => handleEditUser(record)}
-          >
-            编辑
-          </Button>
-          <Button
-            key="reset"
-            type="text"
-            size="small"
-            icon={<IconLock />}
-          >
-            重置密码
-          </Button>
-          <Popconfirm
-            key="delete"
-            title="确定要删除该用户吗?"
-            onOk={() => handleDeleteUser(record.id)}
-          >
-            <Button type="text" size="small" status="danger" icon={<IconDelete />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
-  // 角色表格列配置
-  const roleColumns = [
-    { title: '角色名称', dataIndex: 'name' },
-    { title: '角色编码', dataIndex: 'code' },
-    { title: '描述', dataIndex: 'description' },
-    { title: '用户数', dataIndex: 'userCount', render: (count: number) => `${count}人` },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      render: (status: string) => (
-        <Tag color={status === '启用' ? 'green' : 'red'}>{status}</Tag>
-      ),
-    },
-    { title: '创建时间', dataIndex: 'createTime' },
-    {
-      title: '操作',
-      render: (_: any, record: any) => (
-        <Space>
-          <Button
-            key="permission"
-            type="text"
-            size="small"
-            onClick={() => handleEditRolePermission(record)}
-          >
-            权限配置
-          </Button>
-          <Button
-            key="edit"
-            type="text"
-            size="small"
-            icon={<IconEdit />}
-            onClick={() => handleEditRole(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            key="delete"
-            title="确定要删除该角色吗?"
-            onOk={() => handleDeleteRole(record.id)}
-          >
-            <Button type="text" size="small" status="danger" icon={<IconDelete />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  const [userForm, setUserForm] = useState(initialUserForm);
+  const [roleForm, setRoleForm] = useState(initialRoleForm);
 
   const handleAddUser = () => {
     setEditingUser(null);
-    userForm.resetFields();
+    setUserForm(initialUserForm);
     setUserModalVisible(true);
   };
 
   const handleEditUser = (record: any) => {
     setEditingUser(record);
-    userForm.setFieldsValue(record);
+    setUserForm({
+      username: record.username,
+      name: record.name,
+      phone: record.phone,
+      email: record.email,
+      password: '',
+      roles: record.roles,
+      status: record.status,
+    });
     setUserModalVisible(true);
   };
 
-  const handleDeleteUser = (id: string) => {
-    Message.success('删除成功');
+  const handleDeleteUser = (_id: string) => {
+    toast.success('删除成功');
   };
 
   const handleUserSubmit = () => {
-    userForm.validate().then(() => {
-      Message.success(editingUser ? '编辑成功' : '新建成功');
-      setUserModalVisible(false);
-    });
+    if (!userForm.username.trim() || !userForm.name.trim() || !userForm.phone.trim()) {
+      toast.error('请填写必填字段');
+      return;
+    }
+    if (!editingUser && !userForm.password.trim()) {
+      toast.error('请输入密码');
+      return;
+    }
+    toast.success(editingUser ? '编辑成功' : '新建成功');
+    setUserModalVisible(false);
   };
 
   const handleAddRole = () => {
     setEditingRole(null);
-    roleForm.resetFields();
+    setRoleForm(initialRoleForm);
     setRoleModalVisible(true);
   };
 
   const handleEditRole = (record: any) => {
     setEditingRole(record);
-    roleForm.setFieldsValue(record);
+    setRoleForm({
+      name: record.name,
+      code: record.code,
+      description: record.description,
+      status: record.status,
+    });
     setRoleModalVisible(true);
   };
 
@@ -348,158 +386,398 @@ export function UserPermission() {
     setPermissionModalVisible(true);
   };
 
-  const handleDeleteRole = (id: string) => {
-    Message.success('删除成功');
+  const handleDeleteRole = (_id: string) => {
+    toast.success('删除成功');
   };
 
   const handleRoleSubmit = () => {
-    roleForm.validate().then(() => {
-      Message.success(editingRole ? '编辑成功' : '新建成功');
-      setRoleModalVisible(false);
-    });
+    if (!roleForm.name.trim() || !roleForm.code.trim()) {
+      toast.error('请填写必填字段');
+      return;
+    }
+    toast.success(editingRole ? '编辑成功' : '新建成功');
+    setRoleModalVisible(false);
   };
 
   const handlePermissionSubmit = () => {
-    Message.success('权限配置成功');
+    toast.success('权限配置成功');
     setPermissionModalVisible(false);
+  };
+
+  const handleRoleToggle = (roleName: string) => {
+    setUserForm((prev) => ({
+      ...prev,
+      roles: prev.roles.includes(roleName)
+        ? prev.roles.filter((r) => r !== roleName)
+        : [...prev.roles, roleName],
+    }));
   };
 
   return (
     <div>
-      <Card bordered={false}>
-        <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="user" title="用户管理">
-            <div style={{ marginBottom: 16 }}>
-              <Button type="primary" icon={<IconPlus />} onClick={handleAddUser}>
-                新建用户
-              </Button>
-            </div>
-            <Table
-              columns={userColumns}
-              data={mockUsers}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-            />
-          </TabPane>
-          <TabPane key="role" title="角色管理">
-            <div style={{ marginBottom: 16 }}>
-              <Button type="primary" icon={<IconPlus />} onClick={handleAddRole}>
-                新建角色
-              </Button>
-            </div>
-            <Table
-              columns={roleColumns}
-              data={mockRoles}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-            />
-          </TabPane>
-        </Tabs>
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="user">用户管理</TabsTrigger>
+              <TabsTrigger value="role">角色管理</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="user">
+              <div className="mb-4">
+                <Button onClick={handleAddUser}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  新建用户
+                </Button>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>用户名</TableHead>
+                    <TableHead>姓名</TableHead>
+                    <TableHead>手机号</TableHead>
+                    <TableHead>邮箱</TableHead>
+                    <TableHead>角色</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead>创建时间</TableHead>
+                    <TableHead>操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mockUsers.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.username}</TableCell>
+                      <TableCell>{record.name}</TableCell>
+                      <TableCell>{record.phone}</TableCell>
+                      <TableCell>{record.email}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {record.roles.map((role, idx) => (
+                            <Badge key={idx} variant="default">
+                              {role}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={record.status === '启用' ? 'default' : 'destructive'}>
+                          {record.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{record.createTime}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditUser(record)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            编辑
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Lock className="h-4 w-4" />
+                            重置密码
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                                删除
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>确认删除</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  确定要删除该用户吗?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteUser(record.id)}>
+                                  确定
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
+
+            <TabsContent value="role">
+              <div className="mb-4">
+                <Button onClick={handleAddRole}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  新建角色
+                </Button>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>角色名称</TableHead>
+                    <TableHead>角色编码</TableHead>
+                    <TableHead>描述</TableHead>
+                    <TableHead>用户数</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead>创建时间</TableHead>
+                    <TableHead>操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mockRoles.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.name}</TableCell>
+                      <TableCell>{record.code}</TableCell>
+                      <TableCell>{record.description}</TableCell>
+                      <TableCell>{record.userCount}人</TableCell>
+                      <TableCell>
+                        <Badge variant={record.status === '启用' ? 'default' : 'destructive'}>
+                          {record.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{record.createTime}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditRolePermission(record)}
+                          >
+                            权限配置
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditRole(record)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            编辑
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                                删除
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>确认删除</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  确定要删除该角色吗?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteRole(record.id)}>
+                                  确定
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
 
       {/* 用户编辑弹窗 */}
-      <Modal
-        title={editingUser ? '编辑用户' : '新建用户'}
-        visible={userModalVisible}
-        onOk={handleUserSubmit}
-        onCancel={() => setUserModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-      >
-        <Form form={userForm} layout="vertical">
-          <FormItem label="用户名" field="username" rules={[{ required: true, message: '请输入用户名' }]}>
-            <Input placeholder="请输入用户名" />
-          </FormItem>
-          <FormItem label="姓名" field="name" rules={[{ required: true, message: '请输入姓名' }]}>
-            <Input placeholder="请输入姓名" />
-          </FormItem>
-          <FormItem label="手机号" field="phone" rules={[{ required: true, message: '请输入手机号' }]}>
-            <Input placeholder="请输入手机号" />
-          </FormItem>
-          <FormItem label="邮箱" field="email">
-            <Input placeholder="请输入邮箱" />
-          </FormItem>
-          <FormItem label="密码" field="password" rules={[{ required: !editingUser, message: '请输入密码' }]}>
-            <Input.Password placeholder={editingUser ? '不填写则不修改密码' : '请输入密码'} />
-          </FormItem>
-          <FormItem label="角色" field="roles" rules={[{ required: true, message: '请选择角色' }]}>
-            <Select placeholder="请选择角色" mode="multiple">
-              {mockRoles.map(role => (
-                <Select.Option key={role.id} value={role.name}>{role.name}</Select.Option>
-              ))}
-            </Select>
-          </FormItem>
-          <FormItem label="状态" field="status" initialValue="启用">
-            <Select placeholder="请选择状态">
-              <Select.Option value="启用">启用</Select.Option>
-              <Select.Option value="禁用">禁用</Select.Option>
-            </Select>
-          </FormItem>
-        </Form>
-      </Modal>
+      <Dialog open={userModalVisible} onOpenChange={setUserModalVisible}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingUser ? '编辑用户' : '新建用户'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>用户名 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入用户名"
+                value={userForm.username}
+                onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>姓名 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入姓名"
+                value={userForm.name}
+                onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>手机号 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入手机号"
+                value={userForm.phone}
+                onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>邮箱</Label>
+              <Input
+                placeholder="请输入邮箱"
+                value={userForm.email}
+                onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>
+                密码{' '}
+                {!editingUser && <span className="text-destructive">*</span>}
+              </Label>
+              <Input
+                type="password"
+                placeholder={editingUser ? '不填写则不修改密码' : '请输入密码'}
+                value={userForm.password}
+                onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>角色 <span className="text-destructive">*</span></Label>
+              <div className="space-y-2">
+                {mockRoles.map((role) => (
+                  <div key={role.id} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={userForm.roles.includes(role.name)}
+                      onCheckedChange={() => handleRoleToggle(role.name)}
+                    />
+                    <span className="text-sm">{role.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>状态</Label>
+              <Select
+                value={userForm.status}
+                onValueChange={(val) => setUserForm({ ...userForm, status: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="启用">启用</SelectItem>
+                  <SelectItem value="禁用">禁用</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUserModalVisible(false)}>
+              取消
+            </Button>
+            <Button onClick={handleUserSubmit}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 角色编辑弹窗 */}
-      <Modal
-        title={editingRole ? '编辑角色' : '新建角色'}
-        visible={roleModalVisible}
-        onOk={handleRoleSubmit}
-        onCancel={() => setRoleModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-      >
-        <Form form={roleForm} layout="vertical">
-          <FormItem label="角色名称" field="name" rules={[{ required: true, message: '请输入角色名称' }]}>
-            <Input placeholder="请输入角色名称" />
-          </FormItem>
-          <FormItem label="角色编码" field="code" rules={[{ required: true, message: '请输入角色编码' }]}>
-            <Input placeholder="请输入角色编码,如:sales_manager" />
-          </FormItem>
-          <FormItem label="描述" field="description">
-            <Input.TextArea placeholder="请输入角色描述" rows={3} />
-          </FormItem>
-          <FormItem label="状态" field="status" initialValue="启用">
-            <Select placeholder="请选择状态">
-              <Select.Option value="启用">启用</Select.Option>
-              <Select.Option value="禁用">禁用</Select.Option>
-            </Select>
-          </FormItem>
-        </Form>
-      </Modal>
+      <Dialog open={roleModalVisible} onOpenChange={setRoleModalVisible}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingRole ? '编辑角色' : '新建角色'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>角色名称 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入角色名称"
+                value={roleForm.name}
+                onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>角色编码 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入角色编码,如:sales_manager"
+                value={roleForm.code}
+                onChange={(e) => setRoleForm({ ...roleForm, code: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>描述</Label>
+              <textarea
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                placeholder="请输入角色描述"
+                rows={3}
+                value={roleForm.description}
+                onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>状态</Label>
+              <Select
+                value={roleForm.status}
+                onValueChange={(val) => setRoleForm({ ...roleForm, status: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="启用">启用</SelectItem>
+                  <SelectItem value="禁用">禁用</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRoleModalVisible(false)}>
+              取消
+            </Button>
+            <Button onClick={handleRoleSubmit}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 权限配置弹窗 */}
-      <Modal
-        title={`权限配置 - ${editingRole?.name || ''}`}
-        visible={permissionModalVisible}
-        onOk={handlePermissionSubmit}
-        onCancel={() => setPermissionModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-        style={{ width: 600 }}
-      >
-        <div>
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ marginBottom: 8, fontWeight: 500 }}>功能权限</div>
-            <Tree
-              checkable
-              checkedKeys={selectedPermissions}
-              onCheck={(keys) => setSelectedPermissions(keys as string[])}
-              treeData={mockPermissionTree}
-            />
+      <Dialog open={permissionModalVisible} onOpenChange={setPermissionModalVisible}>
+        <DialogContent className="max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>权限配置 - {editingRole?.name || ''}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div>
+              <div className="mb-2 font-medium">功能权限</div>
+              <div className="max-h-[300px] overflow-y-auto rounded-md border p-4">
+                <PermissionTree
+                  treeData={mockPermissionTree}
+                  checkedKeys={selectedPermissions}
+                  onCheckedChange={setSelectedPermissions}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="mb-2 font-medium">数据权限</div>
+              <Select value={dataScope} onValueChange={setDataScope}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部数据</SelectItem>
+                  <SelectItem value="department">本部门数据</SelectItem>
+                  <SelectItem value="self">仅本人数据</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div>
-            <div style={{ marginBottom: 8, fontWeight: 500 }}>数据权限</div>
-            <Select
-              value={dataScope}
-              onChange={setDataScope}
-              style={{ width: '100%' }}
-            >
-              <Select.Option value="all">全部数据</Select.Option>
-              <Select.Option value="department">本部门数据</Select.Option>
-              <Select.Option value="self">仅本人数据</Select.Option>
-            </Select>
-          </div>
-        </div>
-      </Modal>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPermissionModalVisible(false)}>
+              取消
+            </Button>
+            <Button onClick={handlePermissionSubmit}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

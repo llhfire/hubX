@@ -1,47 +1,24 @@
 import { useMemo } from 'react';
-import { Badge, Button, Card, Dropdown, Empty, Space, Typography } from '@arco-design/web-react';
-import { IconNotification } from '@arco-design/web-react/icon';
+import { Bell } from 'lucide-react';
 import { useNavigate } from 'react-router';
+
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '../../components/ui/card';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '../../components/ui/popover';
+
 import { useReminders } from '../ReminderContext';
 import type { ReminderItem } from '../types';
 import { ReminderSnoozeMenu } from './ReminderSnoozeMenu';
-
-const Text = Typography.Text;
-const Paragraph = Typography.Paragraph;
-
-const dropdownShellStyle = {
-  width: 360,
-  border: '1px solid var(--color-border-2)',
-  borderRadius: 12,
-  background: 'var(--color-bg-2)',
-  boxShadow: '0 8px 24px rgba(15, 35, 95, 0.12)',
-  overflow: 'hidden' as const,
-};
-
-const dropdownHeaderStyle = {
-  padding: '16px 16px 12px',
-  borderBottom: '1px solid var(--color-border-2)',
-  background: 'var(--color-bg-2)',
-};
-
-const dropdownListStyle = {
-  maxHeight: 420,
-  overflowY: 'auto' as const,
-  padding: 16,
-  background: 'var(--color-bg-2)',
-};
-
-const dropdownFooterStyle = {
-  padding: 16,
-  borderTop: '1px solid var(--color-border-2)',
-  background: 'var(--color-bg-2)',
-};
-
-const reminderItemCardStyle = {
-  background: 'var(--color-fill-1)',
-  border: '1px solid var(--color-border-2)',
-  borderRadius: 10,
-};
 
 export function buildReminderBellPreviewItems(reminders: ReminderItem[]): ReminderItem[] {
   return reminders.slice(0, 5);
@@ -69,43 +46,53 @@ export function ReminderBellDropdownContent({
   onViewAll,
 }: ReminderBellDropdownContentProps) {
   return (
-    <Card style={dropdownShellStyle} bodyStyle={{ padding: 0 }}>
-      <div style={dropdownHeaderStyle}>
-        <Text bold>待我处理</Text>
-        <Text type="secondary" style={{ marginLeft: 8 }}>
-          {pendingCount} 项未处理
-        </Text>
-      </div>
+    <Card className="w-[360px] overflow-hidden">
+      <CardHeader className="border-b px-4 pt-4 pb-3">
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-sm font-bold">待我处理</CardTitle>
+          <span className="text-sm text-muted-foreground">
+            {pendingCount} 项未处理
+          </span>
+        </div>
+      </CardHeader>
 
-      <div style={dropdownListStyle}>
+      <CardContent className="max-h-[420px] overflow-y-auto p-4">
         {reminders.length === 0 ? (
-          <Empty description="暂无待处理提醒" />
+          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+            暂无待处理提醒
+          </div>
         ) : (
-          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <div className="flex flex-col gap-3">
             {reminders.map((reminder) => (
-              <Card key={reminder.id} size="small" style={reminderItemCardStyle}>
-                <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                  <Text bold>{reminder.title}</Text>
+              <Card
+                key={reminder.id}
+                className="rounded-[10px] border bg-muted/50"
+              >
+                <CardContent className="flex flex-col gap-2 p-3">
+                  <span className="text-sm font-bold">{reminder.title}</span>
                   {reminder.content ? (
-                    <Paragraph type="secondary" style={{ marginBottom: 0 }} ellipsis={{ rows: 2 }}>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-0">
                       {reminder.content}
-                    </Paragraph>
+                    </p>
                   ) : null}
-                  <Space>
-                    <Button size="mini" type="primary" onClick={() => onOpenReminder(reminder)}>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => onOpenReminder(reminder)}
+                    >
                       {reminder.actionLabel}
                     </Button>
                     <ReminderSnoozeMenu reminderId={reminder.id} />
-                  </Space>
-                </Space>
+                  </div>
+                </CardContent>
               </Card>
             ))}
-          </Space>
+          </div>
         )}
-      </div>
+      </CardContent>
 
-      <div style={dropdownFooterStyle}>
-        <Button type="text" onClick={onViewAll}>
+      <div className="border-t p-4">
+        <Button variant="ghost" className="w-full" onClick={onViewAll}>
           查看全部待我处理
         </Button>
       </div>
@@ -135,20 +122,26 @@ export function ReminderBell({ onOpenDailyReport }: ReminderBellProps) {
     });
   };
 
-  const dropContent = (
-    <ReminderBellDropdownContent
-      reminders={previewItems}
-      pendingCount={pendingCount}
-      onOpenReminder={openReminder}
-      onViewAll={() => navigate('/')}
-    />
-  );
-
   return (
-    <Dropdown position="br" trigger="click" droplist={dropContent}>
-      <Badge count={pendingCount} maxCount={99}>
-        <IconNotification style={{ fontSize: 20, cursor: 'pointer' }} />
-      </Badge>
-    </Dropdown>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="relative inline-flex items-center justify-center">
+          {pendingCount > 0 ? (
+            <Badge className="absolute -top-1.5 -right-1.5 h-5 min-w-5 rounded-full px-1 text-xs">
+              {pendingCount > 99 ? '99+' : pendingCount}
+            </Badge>
+          ) : null}
+          <Bell className="h-5 w-5 cursor-pointer" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-auto p-0">
+        <ReminderBellDropdownContent
+          reminders={previewItems}
+          pendingCount={pendingCount}
+          onOpenReminder={openReminder}
+          onViewAll={() => navigate('/')}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

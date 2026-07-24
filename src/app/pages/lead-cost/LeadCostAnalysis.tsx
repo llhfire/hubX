@@ -1,5 +1,12 @@
-import { Button, Card, DatePicker, Grid, Message, Progress, Select, Space, Table, Tag, Typography } from '@arco-design/web-react';
-import { IconDownload } from '@arco-design/web-react/icon';
+import { toast } from 'sonner';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Progress } from '../../components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Download } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   buildChannelSummaries,
@@ -12,10 +19,6 @@ import {
   platforms,
   safeDivide,
 } from './mockData';
-
-const Row = Grid.Row;
-const Col = Grid.Col;
-const Title = Typography.Title;
 
 export function LeadCostAnalysis() {
   const summaries = buildChannelSummaries(initialDailyCostRecords);
@@ -43,40 +46,42 @@ export function LeadCostAnalysis() {
     { subject: '客资质量', ...Object.fromEntries(rankedSummaries.map((item) => [item.platform, item.qualityRate])) },
   ];
 
-  const columns = [
-    { title: '排名', width: 80, render: (_: unknown, __: unknown, index: number) => index + 1 },
-    { title: '平台', dataIndex: 'platform', width: 100, render: (platform: string) => <Tag color="arcoblue">{platform}</Tag> },
-    { title: '渠道', dataIndex: 'channel', width: 200 },
-    { title: '消耗', dataIndex: 'spend', width: 120, render: (value: number) => formatCurrency(value) },
-    { title: '退款影响', dataIndex: 'refund', width: 120, render: (value: number) => formatCurrency(value) },
-    { title: '有效线索', dataIndex: 'validLeads', width: 100 },
-    { title: '名义成本', dataIndex: 'nominalCost', width: 120, render: (value: number) => formatCurrency(value) },
-    { title: '实际成本', dataIndex: 'actualCost', width: 120, render: (value: number) => formatCurrency(value) },
-    { title: '有效率', dataIndex: 'validRate', width: 120, render: (value: number) => `${value.toFixed(1)}%` },
-    { title: '客资质量', dataIndex: 'qualityRate', width: 120, render: (value: number) => `${value.toFixed(1)}%` },
-    { title: '综合评分', dataIndex: 'score', width: 160, render: (value: number) => <Progress percent={value} size="small" /> },
-  ];
-
   return (
     <div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-        <Title heading={4}>渠道分析</Title>
-        <Button icon={<IconDownload />} onClick={() => Message.info('第一版仅展示导出按钮，暂不实现真实导出')}>导出 Excel</Button>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-lg font-semibold">渠道分析</h4>
+        <Button variant="outline" onClick={() => toast('第一版仅展示导出按钮，暂不实现真实导出')}>
+          <Download className="mr-2 h-4 w-4" />
+          导出 Excel
+        </Button>
       </div>
 
-      <Card style={{ marginBottom: 16 }}>
-        <Space wrap>
-          <DatePicker.RangePicker style={{ width: 260 }} />
-          <Select placeholder="平台" mode="multiple" style={{ width: 260 }} allowClear>
-            {platforms.map((platform) => <Select.Option key={platform} value={platform}>{platform}</Select.Option>)}
-          </Select>
-          <Button type="primary">分析</Button>
-        </Space>
+      <Card className="mb-4">
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-2">
+            <Input type="date" className="w-[130px]" />
+            <Input type="date" className="w-[130px]" />
+            <Select>
+              <SelectTrigger className="w-[260px]">
+                <SelectValue placeholder="平台" />
+              </SelectTrigger>
+              <SelectContent>
+                {platforms.map((platform) => (
+                  <SelectItem key={platform} value={platform}>{platform}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button>分析</Button>
+          </div>
+        </CardContent>
       </Card>
 
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={12}>
-          <Card title="消耗金额与有效线索数对比">
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>消耗金额与有效线索数对比</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div style={{ height: 320 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={barData}>
@@ -90,10 +95,13 @@ export function LeadCostAnalysis() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="渠道四维能力雷达图">
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>渠道四维能力雷达图</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div style={{ height: 320 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={radarData}>
@@ -115,12 +123,52 @@ export function LeadCostAnalysis() {
                 </RadarChart>
               </ResponsiveContainer>
             </div>
-          </Card>
-        </Col>
-      </Row>
+          </CardContent>
+        </Card>
+      </div>
 
-      <Card title="渠道综合明细">
-        <Table columns={columns} data={rankedSummaries} scroll={{ x: 1500 }} pagination={false} />
+      <Card>
+        <CardHeader>
+          <CardTitle>渠道综合明细</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-20">排名</TableHead>
+                  <TableHead className="w-24">平台</TableHead>
+                  <TableHead className="w-48">渠道</TableHead>
+                  <TableHead className="w-28">消耗</TableHead>
+                  <TableHead className="w-28">退款影响</TableHead>
+                  <TableHead className="w-24">有效线索</TableHead>
+                  <TableHead className="w-28">名义成本</TableHead>
+                  <TableHead className="w-28">实际成本</TableHead>
+                  <TableHead className="w-28">有效率</TableHead>
+                  <TableHead className="w-28">客资质量</TableHead>
+                  <TableHead className="w-40">综合评分</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rankedSummaries.map((record, index) => (
+                  <TableRow key={record.key}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell><Badge variant="default">{record.platform}</Badge></TableCell>
+                    <TableCell>{record.channel}</TableCell>
+                    <TableCell>{formatCurrency(record.spend)}</TableCell>
+                    <TableCell>{formatCurrency(record.refund)}</TableCell>
+                    <TableCell>{record.validLeads}</TableCell>
+                    <TableCell>{formatCurrency(record.nominalCost)}</TableCell>
+                    <TableCell>{formatCurrency(record.actualCost)}</TableCell>
+                    <TableCell>{record.validRate.toFixed(1)}%</TableCell>
+                    <TableCell>{record.qualityRate.toFixed(1)}%</TableCell>
+                    <TableCell><Progress value={record.score} className="h-2" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

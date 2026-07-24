@@ -1,7 +1,7 @@
 // src/app/pages/delivery-plan/GanttChart.tsx
 
 import React, { useMemo } from 'react';
-import { Radio } from '@arco-design/web-react';
+import { ToggleGroup, ToggleGroupItem } from '../../components/ui/toggle-group';
 import type { DeliveryPlan, SopStep, GanttZoomLevel } from './types';
 import { PHASE_COLORS, PHASE_COLORS_LIGHT } from './constants';
 import { isStepOverdue } from './utils';
@@ -228,18 +228,21 @@ const GanttChart: React.FC<GanttChartProps> = ({
           flexShrink: 0,
         }}
       >
-        <Radio.Group
-          type="button"
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
           value={zoomLevel}
-          onChange={(val) => onZoomLevelChange(val as GanttZoomLevel)}
-          size="small"
+          onValueChange={(val) => {
+            if (val) onZoomLevelChange(val as GanttZoomLevel);
+          }}
         >
           {ZOOM_OPTIONS.map((opt) => (
-            <Radio key={opt.value} value={opt.value}>
+            <ToggleGroupItem key={opt.value} value={opt.value}>
               {opt.label}
-            </Radio>
+            </ToggleGroupItem>
           ))}
-        </Radio.Group>
+        </ToggleGroup>
       </div>
 
       {/* Scrollable area */}

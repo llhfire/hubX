@@ -1,4 +1,4 @@
-import { Card, Grid, Statistic, Select, Typography, Tabs } from '@arco-design/web-react';
+import { useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -14,14 +14,20 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { IconArrowRise } from '@arco-design/web-react/icon';
-
-const Row = Grid.Row;
-const Col = Grid.Col;
-const Title = Typography.Title;
-const TabPane = Tabs.TabPane;
+import { TrendingUp } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '../components/ui/select';
 
 export function Reports() {
+  const [timeRange, setTimeRange] = useState('current-month');
+
   const salesFunnelData = [
     { stage: '公海线索', count: 450, conversion: 100 },
     { stage: '已认领', count: 320, conversion: 71 },
@@ -67,217 +73,251 @@ export function Reports() {
 
   return (
     <div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-        <Title heading={4}>数据报表</Title>
-        <Select defaultValue="current-month" style={{ width: 180 }}>
-          <Select.Option value="current-month">本月</Select.Option>
-          <Select.Option value="last-month">上月</Select.Option>
-          <Select.Option value="current-quarter">本季度</Select.Option>
-          <Select.Option value="current-year">本年度</Select.Option>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">数据报表</h4>
+        <Select value={timeRange} onValueChange={setTimeRange}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="current-month">本月</SelectItem>
+            <SelectItem value="last-month">上月</SelectItem>
+            <SelectItem value="current-quarter">本季度</SelectItem>
+            <SelectItem value="current-year">本年度</SelectItem>
+          </SelectContent>
         </Select>
       </div>
 
-      <Tabs defaultActiveTab="sales">
-        <TabPane key="sales" title="销售分析">
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="总线索数"
-                  value={450}
-                  suffix={
-                    <span style={{ fontSize: 14, color: '#00b42a' }}>
-                      <IconArrowRise />
-                      12.5%
-                    </span>
-                  }
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="签约数"
-                  value={42}
-                  suffix={
-                    <span style={{ fontSize: 14, color: '#00b42a' }}>
-                      <IconArrowRise />
-                      18.2%
-                    </span>
-                  }
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="签约金额"
-                  value="560万"
-                  suffix={
-                    <span style={{ fontSize: 14, color: '#00b42a' }}>
-                      <IconArrowRise />
-                      15.7%
-                    </span>
-                  }
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="转化率"
-                  value="9.3%"
-                  suffix={
-                    <span style={{ fontSize: 14, color: '#00b42a' }}>
-                      <IconArrowRise />
-                      2.1%
-                    </span>
-                  }
-                />
-              </Card>
-            </Col>
-          </Row>
+      <Tabs defaultValue="sales">
+        <TabsList>
+          <TabsTrigger value="sales">销售分析</TabsTrigger>
+          <TabsTrigger value="performance">人员业绩</TabsTrigger>
+          <TabsTrigger value="project">项目成本</TabsTrigger>
+        </TabsList>
 
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={16}>
-              <Card title="销售漏斗分析">
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={salesFunnelData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="stage" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="count" fill="#165dff" name="数量" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card title="线索来源分布">
-                <ResponsiveContainer width="100%" height={350}>
-                  <PieChart>
-                    <Pie
-                      data={leadSourceData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={(entry) => `${entry.name}: ${entry.value}`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {leadSourceData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
-          </Row>
+        <TabsContent value="sales">
+          <div className="grid grid-cols-4 gap-4 mb-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <span className="text-sm text-muted-foreground">总线索数</span>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">450</div>
+                <span className="text-sm text-green-600 flex items-center gap-1 mt-1">
+                  <TrendingUp className="h-4 w-4" />
+                  12.5%
+                </span>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <span className="text-sm text-muted-foreground">签约数</span>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">42</div>
+                <span className="text-sm text-green-600 flex items-center gap-1 mt-1">
+                  <TrendingUp className="h-4 w-4" />
+                  18.2%
+                </span>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <span className="text-sm text-muted-foreground">签约金额</span>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">560万</div>
+                <span className="text-sm text-green-600 flex items-center gap-1 mt-1">
+                  <TrendingUp className="h-4 w-4" />
+                  15.7%
+                </span>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <span className="text-sm text-muted-foreground">转化率</span>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">9.3%</div>
+                <span className="text-sm text-green-600 flex items-center gap-1 mt-1">
+                  <TrendingUp className="h-4 w-4" />
+                  2.1%
+                </span>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Row gutter={16}>
-            <Col span={24}>
-              <Card title="销售趋势">
-                <ResponsiveContainer width="100%" height={350}>
-                  <LineChart data={salesTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip />
-                    <Legend />
-                    <Line
-                      key="leads-line"
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="leads"
-                      stroke="#165dff"
-                      name="线索数"
-                    />
-                    <Line
-                      key="contracts-line"
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="contracts"
-                      stroke="#00b42a"
-                      name="签约数"
-                    />
-                    <Line
-                      key="amount-line"
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="amount"
-                      stroke="#ff7d00"
-                      name="签约金额(万)"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>销售漏斗分析</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart data={salesFunnelData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="stage" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" fill="#165dff" name="数量" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
               </Card>
-            </Col>
-          </Row>
-        </TabPane>
+            </div>
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>线索来源分布</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={350}>
+                    <PieChart>
+                      <Pie
+                        data={leadSourceData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={(entry) => `${entry.name}: ${entry.value}`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {leadSourceData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
 
-        <TabPane key="performance" title="人员业绩">
-          <Card title="销售人员业绩排行">
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={salesPersonData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="leads" fill="#165dff" name="线索数" />
-                <Bar dataKey="contracts" fill="#00b42a" name="签约数" />
-              </BarChart>
-            </ResponsiveContainer>
+          <Card>
+            <CardHeader>
+              <CardTitle>销售趋势</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={salesTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    key="leads-line"
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="leads"
+                    stroke="#165dff"
+                    name="线索数"
+                  />
+                  <Line
+                    key="contracts-line"
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="contracts"
+                    stroke="#00b42a"
+                    name="签约数"
+                  />
+                  <Line
+                    key="amount-line"
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="amount"
+                    stroke="#ff7d00"
+                    name="签约金额(万)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="performance">
+          <Card>
+            <CardHeader>
+              <CardTitle>销售人员业绩排行</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={salesPersonData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="leads" fill="#165dff" name="线索数" />
+                  <Bar dataKey="contracts" fill="#00b42a" name="签约数" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
           </Card>
 
-          <Card title="销售金额排行" style={{ marginTop: 16 }}>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={salesPersonData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="amount" fill="#ff7d00" name="签约金额(万)" />
-              </BarChart>
-            </ResponsiveContainer>
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>销售金额排行</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={salesPersonData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="amount" fill="#ff7d00" name="签约金额(万)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
           </Card>
-        </TabPane>
+        </TabsContent>
 
-        <TabPane key="project" title="项目成本">
-          <Card title="项目成本与利润分析">
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={projectCostData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="contract" fill="#165dff" name="合同金额(万)" />
-                <Bar dataKey="cost" fill="#f53f3f" name="成本(万)" />
-                <Bar dataKey="profit" fill="#00b42a" name="利润(万)" />
-              </BarChart>
-            </ResponsiveContainer>
+        <TabsContent value="project">
+          <Card>
+            <CardHeader>
+              <CardTitle>项目成本与利润分析</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={projectCostData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="contract" fill="#165dff" name="合同金额(万)" />
+                  <Bar dataKey="cost" fill="#f53f3f" name="成本(万)" />
+                  <Bar dataKey="profit" fill="#00b42a" name="利润(万)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
           </Card>
 
-          <Card title="项目利润率分析" style={{ marginTop: 16 }}>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={projectCostData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="profitRate" fill="#00b42a" name="利润率(%)" />
-              </BarChart>
-            </ResponsiveContainer>
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>项目利润率分析</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={projectCostData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="profitRate" fill="#00b42a" name="利润率(%)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
           </Card>
-        </TabPane>
+        </TabsContent>
       </Tabs>
     </div>
   );

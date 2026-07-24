@@ -1,16 +1,18 @@
 import { useState } from 'react';
-import { Card, Table, Button, Input, Select, DatePicker, Space } from '@arco-design/web-react';
-import { IconSearch, IconPlus } from '@arco-design/web-react/icon';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardAction } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
+import { Search, Plus } from 'lucide-react';
 import { DailyReportDetail } from './daily-report/DailyReportDetail';
 import { DailyReport, DailyReportComment } from './daily-report/types';
-
-const { RangePicker } = DatePicker;
 
 export function DailyReportList() {
   const [searchForm, setSearchForm] = useState({
     keyword: '',
     department: '',
-    dateRange: [],
+    dateRange: [] as string[],
   });
   const [detailVisible, setDetailVisible] = useState(false);
   const [selectedReport, setSelectedReport] = useState<DailyReport | null>(null);
@@ -97,45 +99,6 @@ export function DailyReportList() {
     setComments([...comments, newComment]);
   };
 
-  const columns = [
-    {
-      title: '日报时间',
-      dataIndex: 'reportDate',
-      width: 120,
-      key: 'reportDate',
-    },
-    {
-      title: '汇报人',
-      dataIndex: 'userName',
-      width: 100,
-      key: 'userName',
-    },
-    {
-      title: '部门',
-      dataIndex: 'department',
-      width: 120,
-      key: 'department',
-    },
-    {
-      title: '模板类型',
-      dataIndex: 'templateType',
-      width: 100,
-      key: 'templateType',
-      render: (type: string) => type === 'sales' ? '销售日报' : '通用日报',
-    },
-    {
-      title: '操作',
-      dataIndex: 'op',
-      width: 100,
-      key: 'op',
-      render: (_: any, record: DailyReport) => (
-        <Button type="text" size="small" onClick={() => handleViewDetail(record)}>
-          查看详情
-        </Button>
-      ),
-    },
-  ];
-
   const handleSearch = () => {
     console.log('搜索条件：', searchForm);
   };
@@ -153,62 +116,98 @@ export function DailyReportList() {
     setDetailVisible(true);
   };
 
+  const renderTemplateType = (type: string) => type === 'sales' ? '销售日报' : '通用日报';
+
   return (
     <div>
-      <Card style={{ marginBottom: 16 }}>
-        <Space size="medium" wrap>
-          <Input
-            style={{ width: 200 }}
-            placeholder="搜索汇报人"
-            value={searchForm.keyword}
-            onChange={(value) => setSearchForm({ ...searchForm, keyword: value })}
-            allowClear
-          />
-          <Select
-            style={{ width: 200 }}
-            placeholder="选择部门"
-            value={searchForm.department}
-            onChange={(value) => setSearchForm({ ...searchForm, department: value })}
-            allowClear
-            options={[
-              { label: '销售部', value: '销售部' },
-              { label: '技术部', value: '技术部' },
-              { label: '市场部', value: '市场部' },
-            ]}
-          />
-          <RangePicker
-            style={{ width: 280 }}
-            placeholder={['开始日期', '结束日期']}
-            value={searchForm.dateRange}
-            onChange={(value) => setSearchForm({ ...searchForm, dateRange: value })}
-          />
-          <Button type="primary" icon={<IconSearch />} onClick={handleSearch}>
-            搜索
-          </Button>
-          <Button onClick={handleReset}>
-            重置
-          </Button>
-        </Space>
+      <Card className="mb-4">
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <Input
+              className="w-[200px]"
+              placeholder="搜索汇报人"
+              value={searchForm.keyword}
+              onChange={(e) => setSearchForm({ ...searchForm, keyword: e.target.value })}
+            />
+            <Select
+              value={searchForm.department}
+              onValueChange={(value) => setSearchForm({ ...searchForm, department: value })}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="选择部门" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="销售部">销售部</SelectItem>
+                <SelectItem value="技术部">技术部</SelectItem>
+                <SelectItem value="市场部">市场部</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                className="flex h-10 w-[130px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                value={searchForm.dateRange[0] || ''}
+                onChange={(e) => setSearchForm({ ...searchForm, dateRange: [e.target.value, searchForm.dateRange[1] || ''] })}
+                placeholder="开始日期"
+              />
+              <span className="text-muted-foreground">至</span>
+              <input
+                type="date"
+                className="flex h-10 w-[130px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                value={searchForm.dateRange[1] || ''}
+                onChange={(e) => setSearchForm({ ...searchForm, dateRange: [searchForm.dateRange[0] || '', e.target.value] })}
+                placeholder="结束日期"
+              />
+            </div>
+            <Button variant="default" onClick={handleSearch}>
+              <Search className="mr-2 h-4 w-4" />
+              搜索
+            </Button>
+            <Button variant="outline" onClick={handleReset}>
+              重置
+            </Button>
+          </div>
+        </CardContent>
       </Card>
 
-      <Card
-        title="日报列表"
-        extra={
-          <Button type="primary" icon={<IconPlus />}>
-            新增日报
-          </Button>
-        }
-      >
-        <Table
-          columns={columns}
-          data={mockData}
-          pagination={{
-            total: mockData.length,
-            pageSize: 10,
-            showTotal: true,
-            sizeCanChange: true,
-          }}
-        />
+      <Card>
+        <CardHeader>
+          <CardTitle>日报列表</CardTitle>
+          <CardAction>
+            <Button variant="default">
+              <Plus className="mr-2 h-4 w-4" />
+              新增日报
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead style={{ width: 120 }}>日报时间</TableHead>
+                <TableHead style={{ width: 100 }}>汇报人</TableHead>
+                <TableHead style={{ width: 120 }}>部门</TableHead>
+                <TableHead style={{ width: 100 }}>模板类型</TableHead>
+                <TableHead style={{ width: 100 }}>操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {mockData.map((record) => (
+                <TableRow key={record.id}>
+                  <TableCell>{record.reportDate}</TableCell>
+                  <TableCell>{record.userName}</TableCell>
+                  <TableCell>{record.department}</TableCell>
+                  <TableCell>{renderTemplateType(record.templateType)}</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm" onClick={() => handleViewDetail(record)}>
+                      查看详情
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
       </Card>
 
       <DailyReportDetail

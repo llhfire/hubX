@@ -1,11 +1,10 @@
-import { Button, Card, Empty, Space, Tag, Typography } from '@arco-design/web-react';
 import { useNavigate } from 'react-router';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { useReminders } from '../ReminderContext';
 import type { ReminderItem, ReminderPriority } from '../types';
 import { ReminderSnoozeMenu } from './ReminderSnoozeMenu';
-
-const Text = Typography.Text;
-const Paragraph = Typography.Paragraph;
 
 const PRIORITY_LABEL_MAP: Record<ReminderPriority, string> = {
   high: '高优先级',
@@ -13,10 +12,10 @@ const PRIORITY_LABEL_MAP: Record<ReminderPriority, string> = {
   low: '低优先级',
 };
 
-const PRIORITY_COLOR_MAP: Record<ReminderPriority, 'red' | 'orange' | 'arcoblue'> = {
-  high: 'red',
-  medium: 'orange',
-  low: 'arcoblue',
+const PRIORITY_BADGE_VARIANT: Record<ReminderPriority, 'destructive' | 'default' | 'secondary'> = {
+  high: 'destructive',
+  medium: 'default',
+  low: 'secondary',
 };
 
 export function getReminderPriorityLabel(priority: ReminderPriority): string {
@@ -50,36 +49,43 @@ export function ReminderTodoPanel({ onOpenDailyReport, style }: ReminderTodoPane
   };
 
   return (
-    <Card title="待我处理" style={{ marginBottom: 24, ...style, display: 'flex', flexDirection: 'column' }}>
-      {reminders.length === 0 ? (
-        <Empty description="暂无待处理提醒" />
-      ) : (
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          {reminders.map((reminder) => (
-            <Card key={reminder.id} size="small">
-              <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                <div className="flex items-center justify-between gap-3">
-                  <Text bold>{reminder.title}</Text>
-                  <Tag color={PRIORITY_COLOR_MAP[reminder.priority]}>
-                    {getReminderPriorityLabel(reminder.priority)}
-                  </Tag>
-                </div>
-                {reminder.content ? (
-                  <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                    {reminder.content}
-                  </Paragraph>
-                ) : null}
-                <Space>
-                  <Button type="primary" size="small" onClick={() => openReminder(reminder)}>
-                    {reminder.actionLabel}
-                  </Button>
-                  <ReminderSnoozeMenu reminderId={reminder.id} buttonSize="small" />
-                </Space>
-              </Space>
-            </Card>
-          ))}
-        </Space>
-      )}
+    <Card style={{ marginBottom: 24, ...style, display: 'flex', flexDirection: 'column' }}>
+      <CardHeader>
+        <CardTitle>待我处理</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1">
+        {reminders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            暂无待处理提醒
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 w-full">
+            {reminders.map((reminder) => (
+              <Card key={reminder.id}>
+                <CardContent className="p-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-bold text-sm">{reminder.title}</span>
+                    <Badge variant={PRIORITY_BADGE_VARIANT[reminder.priority]}>
+                      {getReminderPriorityLabel(reminder.priority)}
+                    </Badge>
+                  </div>
+                  {reminder.content ? (
+                    <p className="text-sm text-muted-foreground m-0">
+                      {reminder.content}
+                    </p>
+                  ) : null}
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => openReminder(reminder)}>
+                      {reminder.actionLabel}
+                    </Button>
+                    <ReminderSnoozeMenu reminderId={reminder.id} buttonSize="small" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }

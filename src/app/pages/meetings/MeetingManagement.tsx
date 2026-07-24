@@ -1,47 +1,48 @@
 import { useState, useMemo } from 'react';
 import {
-  Card,
-  Grid,
-  Statistic,
-  Table,
-  Button,
-  Space,
-  Tag,
-  Tabs,
-  Modal,
-  Form,
-  Input,
-  Select,
-  DatePicker,
-  TextArea,
-  Typography,
-  Popconfirm,
-  Avatar,
-  Badge,
-  Timeline,
-  Descriptions,
-  Divider,
-} from '@arco-design/web-react';
+  Calendar,
+  Plus,
+  Edit,
+  Trash2,
+  Clock,
+  User,
+  FileText,
+  CheckCircle,
+  XCircle,
+  MapPin,
+  Users,
+} from 'lucide-react';
+import { Avatar, AvatarFallback } from '../../components/ui/avatar';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import {
-  IconCalendar,
-  IconPlus,
-  IconEdit,
-  IconDelete,
-  IconClockCircle,
-  IconUser,
-  IconFile,
-  IconCheckCircle,
-  IconCloseCircle,
-  IconLocation,
-  IconUserGroup,
-} from '@arco-design/web-react/icon';
-
-const Row = Grid.Row;
-const Col = Grid.Col;
-const TabPane = Tabs.TabPane;
-const Title = Typography.Title;
-const FormItem = Form.Item;
-const SelectOption = Select.Option;
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { Separator } from '../../components/ui/separator';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Textarea } from '../../components/ui/textarea';
 
 // ---------- 类型 ----------
 
@@ -115,6 +116,48 @@ const mockMinutes: MeetingMinute[] = [
   },
 ];
 
+// ---------- 表单数据类型 ----------
+
+interface RoomFormData {
+  name: string;
+  capacity: number;
+  location: string;
+  equipment: string;
+  status: 'available' | 'occupied' | 'maintenance';
+}
+
+interface MeetingFormData {
+  title: string;
+  roomName: string;
+  priority: 'high' | 'normal' | 'low';
+  startTime: string;
+  endTime: string;
+  organizer: string;
+  attendees: string;
+  agenda: string;
+}
+
+// ---------- 状态标签配置 ----------
+
+const roomStatusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  available:   { label: '空闲', variant: 'default' },
+  occupied:    { label: '使用中', variant: 'secondary' },
+  maintenance: { label: '维护中', variant: 'destructive' },
+};
+
+const meetingStatusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  scheduled:  { label: '已预约', variant: 'default' },
+  ongoing:    { label: '进行中', variant: 'secondary' },
+  completed:  { label: '已结束', variant: 'outline' },
+  cancelled:  { label: '已取消', variant: 'destructive' },
+};
+
+const priorityLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  high:   { label: '高', variant: 'destructive' },
+  normal: { label: '普通', variant: 'default' },
+  low:    { label: '低', variant: 'outline' },
+};
+
 // ---------- 主组件 ----------
 
 export function MeetingManagement() {
@@ -125,8 +168,28 @@ export function MeetingManagement() {
   const [meetingModalVisible, setMeetingModalVisible] = useState(false);
   const [editingRoom, setEditingRoom] = useState<MeetingRoom | null>(null);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
-  const [roomForm] = Form.useForm();
-  const [meetingForm] = Form.useForm();
+
+  const [roomFormData, setRoomFormData] = useState<RoomFormData>({
+    name: '',
+    capacity: 10,
+    location: '',
+    equipment: '',
+    status: 'available',
+  });
+
+  const [meetingFormData, setMeetingFormData] = useState<MeetingFormData>({
+    title: '',
+    roomName: '',
+    priority: 'normal',
+    startTime: '',
+    endTime: '',
+    organizer: '',
+    attendees: '',
+    agenda: '',
+  });
+
+  const [roomFormErrors, setRoomFormErrors] = useState<Partial<Record<keyof RoomFormData, string>>>({});
+  const [meetingFormErrors, setMeetingFormErrors] = useState<Partial<Record<keyof MeetingFormData, string>>>({});
 
   const summary = useMemo(() => {
     const totalRooms = rooms.length;
@@ -136,326 +199,578 @@ export function MeetingManagement() {
     return { totalRooms, availableRooms, todayMeetings, upcomingMeetings, totalMeetings: meetings.length, completedMeetings: meetings.filter(m => m.status === 'completed').length };
   }, [rooms, meetings]);
 
-  // 会议室操作
+  // ---------- 会议室表单验证 ----------
+  const validateRoomForm = (): boolean => {
+    const errors: Partial<Record<keyof RoomFormData, string>> = {};
+    if (!roomFormData.name.trim()) errors.name = '请输入名称';
+    if (!roomFormData.capacity || roomFormData.capacity <= 0) errors.capacity = '请输入容量';
+    if (!roomFormData.location.trim()) errors.location = '请输入位置';
+    setRoomFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // ---------- 会议表单验证 ----------
+  const validateMeetingForm = (): boolean => {
+    const errors: Partial<Record<keyof MeetingFormData, string>> = {};
+    if (!meetingFormData.title.trim()) errors.title = '请输入主题';
+    if (!meetingFormData.roomName) errors.roomName = '请选择会议室';
+    if (!meetingFormData.startTime) errors.startTime = '请选择开始时间';
+    if (!meetingFormData.endTime) errors.endTime = '请选择结束时间';
+    if (!meetingFormData.organizer.trim()) errors.organizer = '请输入组织人';
+    setMeetingFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // ---------- 会议室操作 ----------
   const handleAddRoom = () => {
     setEditingRoom(null);
-    roomForm.resetFields();
-    roomForm.setFieldsValue({ capacity: 10, equipment: [], status: 'available' });
+    setRoomFormData({ name: '', capacity: 10, location: '', equipment: '', status: 'available' });
+    setRoomFormErrors({});
     setRoomModalVisible(true);
   };
 
   const handleEditRoom = (room: MeetingRoom) => {
     setEditingRoom(room);
-    roomForm.setFieldsValue(room);
+    setRoomFormData({
+      name: room.name,
+      capacity: room.capacity,
+      location: room.location,
+      equipment: room.equipment.join(', '),
+      status: room.status,
+    });
+    setRoomFormErrors({});
     setRoomModalVisible(true);
   };
 
   const handleDeleteRoom = (id: string) => {
-    setRooms(prev => prev.filter(r => r.id !== id));
+    if (window.confirm('确定删除该会议室吗？')) {
+      setRooms(prev => prev.filter(r => r.id !== id));
+    }
   };
 
   const handleRoomSubmit = () => {
-    roomForm.validate().then(values => {
-      if (editingRoom) {
-        setRooms(prev => prev.map(r => r.id === editingRoom.id ? { ...r, ...values } : r));
-      } else {
-        setRooms(prev => [...prev, { id: `room-${Date.now()}`, ...values }]);
-      }
-      setRoomModalVisible(false);
-    });
+    if (!validateRoomForm()) return;
+    const equipmentArr = roomFormData.equipment
+      .split(',')
+      .map(e => e.trim())
+      .filter(Boolean);
+    const values: Omit<MeetingRoom, 'id'> = {
+      name: roomFormData.name,
+      capacity: Number(roomFormData.capacity),
+      location: roomFormData.location,
+      equipment: equipmentArr,
+      status: roomFormData.status,
+    };
+    if (editingRoom) {
+      setRooms(prev => prev.map(r => r.id === editingRoom.id ? { ...r, ...values } : r));
+    } else {
+      setRooms(prev => [...prev, { id: `room-${Date.now()}`, ...values }]);
+    }
+    setRoomModalVisible(false);
   };
 
-  // 会议操作
+  // ---------- 会议操作 ----------
   const handleAddMeeting = () => {
     setEditingMeeting(null);
-    meetingForm.resetFields();
-    meetingForm.setFieldsValue({ status: 'scheduled', priority: 'normal', attendees: [] });
+    setMeetingFormData({ title: '', roomName: '', priority: 'normal', startTime: '', endTime: '', organizer: '', attendees: '', agenda: '' });
+    setMeetingFormErrors({});
     setMeetingModalVisible(true);
   };
 
   const handleEditMeeting = (meeting: Meeting) => {
     setEditingMeeting(meeting);
-    meetingForm.setFieldsValue(meeting);
+    setMeetingFormData({
+      title: meeting.title,
+      roomName: meeting.roomName,
+      priority: meeting.priority,
+      startTime: meeting.startTime.replace(' ', 'T'),
+      endTime: meeting.endTime.replace(' ', 'T'),
+      organizer: meeting.organizer,
+      attendees: meeting.attendees.join(', '),
+      agenda: meeting.agenda,
+    });
+    setMeetingFormErrors({});
     setMeetingModalVisible(true);
   };
 
   const handleCancelMeeting = (id: string) => {
-    setMeetings(prev => prev.map(m => m.id === id ? { ...m, status: 'cancelled' as const } : m));
+    if (window.confirm('确定取消该会议吗？')) {
+      setMeetings(prev => prev.map(m => m.id === id ? { ...m, status: 'cancelled' as const } : m));
+    }
   };
 
   const handleMeetingSubmit = () => {
-    meetingForm.validate().then(values => {
-      if (editingMeeting) {
-        setMeetings(prev => prev.map(m => m.id === editingMeeting.id ? { ...m, ...values } : m));
-      } else {
-        setMeetings(prev => [...prev, { id: `mt-${Date.now()}`, ...values, status: 'scheduled' }]);
-      }
-      setMeetingModalVisible(false);
-    });
+    if (!validateMeetingForm()) return;
+    const attendeesArr = meetingFormData.attendees
+      .split(',')
+      .map(a => a.trim())
+      .filter(Boolean);
+    const startFormatted = meetingFormData.startTime.replace('T', ' ');
+    const endFormatted = meetingFormData.endTime.replace('T', ' ');
+    const values: Omit<Meeting, 'id' | 'status'> = {
+      title: meetingFormData.title,
+      roomName: meetingFormData.roomName,
+      priority: meetingFormData.priority,
+      startTime: startFormatted,
+      endTime: endFormatted,
+      organizer: meetingFormData.organizer,
+      attendees: attendeesArr,
+      agenda: meetingFormData.agenda,
+    };
+    if (editingMeeting) {
+      setMeetings(prev => prev.map(m => m.id === editingMeeting.id ? { ...m, ...values } : m));
+    } else {
+      setMeetings(prev => [...prev, { id: `mt-${Date.now()}`, ...values, status: 'scheduled' }]);
+    }
+    setMeetingModalVisible(false);
   };
 
-  const roomStatusLabels: Record<string, { label: string; color: string }> = {
-    available:   { label: '空闲', color: 'var(--success-500)' },
-    occupied:    { label: '使用中', color: 'var(--primary)' },
-    maintenance: { label: '维护中', color: 'var(--destructive-500)' },
+  // ---------- 辅助：更新表单字段 ----------
+  const updateRoomField = (field: keyof RoomFormData, value: string | number) => {
+    setRoomFormData(prev => ({ ...prev, [field]: value }));
+    if (roomFormErrors[field]) {
+      setRoomFormErrors(prev => ({ ...prev, [field]: undefined }));
+    }
   };
 
-  const meetingStatusLabels: Record<string, { label: string; color: string }> = {
-    scheduled:  { label: '已预约', color: 'var(--primary)' },
-    ongoing:    { label: '进行中', color: 'var(--success-500)' },
-    completed:  { label: '已结束', color: 'var(--muted-foreground)' },
-    cancelled:  { label: '已取消', color: 'var(--destructive-500)' },
+  const updateMeetingField = (field: keyof MeetingFormData, value: string) => {
+    setMeetingFormData(prev => ({ ...prev, [field]: value }));
+    if (meetingFormErrors[field]) {
+      setMeetingFormErrors(prev => ({ ...prev, [field]: undefined }));
+    }
   };
+
+  // ---------- 渲染 ----------
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <div className="flex flex-col gap-4 w-full">
       {/* 摘要栏 */}
-      <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="会议室" value={summary.totalRooms} suffix="间" icon={<IconLocation style={{ color: 'var(--primary)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="空闲" value={summary.availableRooms} suffix="间" icon={<IconCheckCircle style={{ color: 'var(--success-500)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="今日会议" value={summary.todayMeetings} suffix="场" icon={<IconCalendar style={{ color: 'var(--warning-500)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="待开会议" value={summary.upcomingMeetings} suffix="场" icon={<IconClockCircle style={{ color: 'var(--primary)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="会议总数" value={summary.totalMeetings} suffix="场" icon={<IconFile style={{ color: 'var(--chart-5)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="已完成" value={summary.completedMeetings} suffix="场" icon={<IconCheckCircle style={{ color: 'var(--success-500)' }} />} /></Card></Col>
-      </Row>
+      <div className="grid grid-cols-6 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <MapPin className="size-4 text-primary" />
+              <span className="text-sm text-muted-foreground">会议室</span>
+            </div>
+            <div className="text-2xl font-bold">{summary.totalRooms} <span className="text-sm font-normal text-muted-foreground">间</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle className="size-4 text-green-500" />
+              <span className="text-sm text-muted-foreground">空闲</span>
+            </div>
+            <div className="text-2xl font-bold">{summary.availableRooms} <span className="text-sm font-normal text-muted-foreground">间</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Calendar className="size-4 text-yellow-500" />
+              <span className="text-sm text-muted-foreground">今日会议</span>
+            </div>
+            <div className="text-2xl font-bold">{summary.todayMeetings} <span className="text-sm font-normal text-muted-foreground">场</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="size-4 text-primary" />
+              <span className="text-sm text-muted-foreground">待开会议</span>
+            </div>
+            <div className="text-2xl font-bold">{summary.upcomingMeetings} <span className="text-sm font-normal text-muted-foreground">场</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <FileText className="size-4 text-purple-500" />
+              <span className="text-sm text-muted-foreground">会议总数</span>
+            </div>
+            <div className="text-2xl font-bold">{summary.totalMeetings} <span className="text-sm font-normal text-muted-foreground">场</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle className="size-4 text-green-500" />
+              <span className="text-sm text-muted-foreground">已完成</span>
+            </div>
+            <div className="text-2xl font-bold">{summary.completedMeetings} <span className="text-sm font-normal text-muted-foreground">场</span></div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* 主体 Tab */}
-      <Card bordered={false}>
-        <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="meetings" title={<span><IconCalendar style={{ fontSize: 16 }} /> 会议安排 <Badge count={summary.upcomingMeetings} style={{ background: 'var(--primary)' }} /></span>} />
-          <TabPane key="rooms" title={<span><IconLocation style={{ fontSize: 16 }} /> 会议室管理</span>} />
-          <TabPane key="minutes" title={<span><IconEdit style={{ fontSize: 16 }} /> 会议记录</span>} />
-        </Tabs>
+      <Card>
+        <CardContent className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="meetings" className="gap-1.5">
+                <Calendar className="size-4" />
+                会议安排
+                {summary.upcomingMeetings > 0 && (
+                  <Badge variant="default" className="ml-1 h-5 px-1.5 text-xs">{summary.upcomingMeetings}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="rooms" className="gap-1.5">
+                <MapPin className="size-4" />
+                会议室管理
+              </TabsTrigger>
+              <TabsTrigger value="minutes" className="gap-1.5">
+                <Edit className="size-4" />
+                会议记录
+              </TabsTrigger>
+            </TabsList>
 
-        <div style={{ paddingTop: 16 }}>
-          {/* 会议安排 Tab */}
-          {activeTab === 'meetings' && (
-            <div>
-              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button type="primary" icon={<IconPlus />} onClick={handleAddMeeting}>预约会议</Button>
+            {/* 会议安排 Tab */}
+            <TabsContent value="meetings" className="pt-4">
+              <div className="mb-4 flex justify-end">
+                <Button onClick={handleAddMeeting}>
+                  <Plus className="size-4 mr-1" />
+                  预约会议
+                </Button>
               </div>
-              <Table
-                columns={[
-                  { title: '会议主题', dataIndex: 'title', width: 180, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
-                  {
-                    title: '优先级', dataIndex: 'priority', width: 70,
-                    render: (p: string) => <Tag color={p === 'high' ? 'var(--destructive-500)' : p === 'normal' ? 'var(--primary)' : 'var(--muted-foreground)'}>{p === 'high' ? '高' : p === 'normal' ? '普通' : '低'}</Tag>,
-                  },
-                  { title: '会议室', dataIndex: 'roomName', width: 110 },
-                  { title: '时间', dataIndex: 'startTime', width: 200, render: (_: unknown, row: Meeting) => `${row.startTime} ~ ${row.endTime.slice(11)}` },
-                  { title: '组织人', dataIndex: 'organizer', width: 70 },
-                  { title: '参会人', dataIndex: 'attendees', width: 120, render: (a: string[]) => <Avatar.Group size={24} maxCount={4}>{a.map(u => <Avatar key={u} style={{ background: 'var(--primary)', fontSize: 11 }}>{u.slice(0, 1)}</Avatar>)}</Avatar.Group> },
-                  {
-                    title: '状态', dataIndex: 'status', width: 70,
-                    render: (s: string) => <Tag color={meetingStatusLabels[s]?.color || 'var(--muted-foreground)'}>{meetingStatusLabels[s]?.label || s}</Tag>,
-                  },
-                  {
-                    title: '操作', width: 130,
-                    render: (_: unknown, row: Meeting) => (
-                      <Space>
-                        <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEditMeeting(row)}>编辑</Button>
-                        {row.status === 'scheduled' && (
-                          <Button type="text" size="small" status="danger" icon={<IconCloseCircle />} onClick={() => handleCancelMeeting(row.id)}>取消</Button>
-                        )}
-                      </Space>
-                    ),
-                  },
-                ] as any}
-                data={meetings}
-                rowKey="id"
-                pagination={false}
-              />
-            </div>
-          )}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead style={{ width: 180 }}>会议主题</TableHead>
+                    <TableHead style={{ width: 70 }}>优先级</TableHead>
+                    <TableHead style={{ width: 110 }}>会议室</TableHead>
+                    <TableHead style={{ width: 200 }}>时间</TableHead>
+                    <TableHead style={{ width: 70 }}>组织人</TableHead>
+                    <TableHead style={{ width: 120 }}>参会人</TableHead>
+                    <TableHead style={{ width: 70 }}>状态</TableHead>
+                    <TableHead style={{ width: 130 }}>操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {meetings.map(row => (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-semibold">{row.title}</TableCell>
+                      <TableCell>
+                        <Badge variant={priorityLabels[row.priority]?.variant || 'outline'}>
+                          {priorityLabels[row.priority]?.label || row.priority}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{row.roomName}</TableCell>
+                      <TableCell>{row.startTime} ~ {row.endTime.slice(11)}</TableCell>
+                      <TableCell>{row.organizer}</TableCell>
+                      <TableCell>
+                        <div className="flex -space-x-1">
+                          {row.attendees.slice(0, 4).map(u => (
+                            <Avatar key={u} className="size-6 border-2 border-background">
+                              <AvatarFallback className="text-[11px] bg-primary text-primary-foreground">
+                                {u.slice(0, 1)}
+                              </AvatarFallback>
+                            </Avatar>
+                          ))}
+                          {row.attendees.length > 4 && (
+                            <Avatar className="size-6 border-2 border-background">
+                              <AvatarFallback className="text-[11px] bg-muted text-muted-foreground">
+                                +{row.attendees.length - 4}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={meetingStatusLabels[row.status]?.variant || 'outline'}>
+                          {meetingStatusLabels[row.status]?.label || row.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleEditMeeting(row)}>
+                            <Edit className="size-3.5 mr-1" />
+                            编辑
+                          </Button>
+                          {row.status === 'scheduled' && (
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleCancelMeeting(row.id)}>
+                              <XCircle className="size-3.5 mr-1" />
+                              取消
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
 
-          {/* 会议室管理 Tab */}
-          {activeTab === 'rooms' && (
-            <div>
-              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button type="primary" icon={<IconPlus />} onClick={handleAddRoom}>新增会议室</Button>
+            {/* 会议室管理 Tab */}
+            <TabsContent value="rooms" className="pt-4">
+              <div className="mb-4 flex justify-end">
+                <Button onClick={handleAddRoom}>
+                  <Plus className="size-4 mr-1" />
+                  新增会议室
+                </Button>
               </div>
-              <Row gutter={16}>
+              <div className="grid grid-cols-3 gap-4">
                 {rooms.map(room => (
-                  <Col span={8} key={room.id} style={{ marginBottom: 16 }}>
-                    <Card
-                      size="small"
-                      style={{ borderRadius: 8, borderTop: `3px solid ${roomStatusLabels[room.status].color}` }}
-                      extra={
-                        <Space>
-                          <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEditRoom(room)} />
-                          <Popconfirm title="确定删除?" onOk={() => handleDeleteRoom(room.id)}>
-                            <Button type="text" size="small" status="danger" icon={<IconDelete />} />
-                          </Popconfirm>
-                        </Space>
-                      }
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <span style={{ fontWeight: 600, fontSize: 15 }}>{room.name}</span>
-                        <Tag color={roomStatusLabels[room.status].color}>{roomStatusLabels[room.status].label}</Tag>
+                  <Card key={room.id} className="overflow-hidden" style={{ borderTop: `3px solid ${room.status === 'available' ? 'hsl(var(--primary))' : room.status === 'occupied' ? 'hsl(var(--muted-foreground))' : 'hsl(var(--destructive))'}` }}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold text-[15px]">{room.name}</span>
+                        <Badge variant={roomStatusLabels[room.status]?.variant || 'outline'}>
+                          {roomStatusLabels[room.status]?.label || room.status}
+                        </Badge>
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--color-text-2)', marginBottom: 8 }}>
-                        <div><IconLocation style={{ marginRight: 4 }} /> {room.location}</div>
-                        <div><IconUserGroup style={{ marginRight: 4 }} /> 容量 {room.capacity} 人</div>
+                      <div className="text-xs text-muted-foreground mb-2 space-y-0.5">
+                        <div className="flex items-center gap-1"><MapPin className="size-3" /> {room.location}</div>
+                        <div className="flex items-center gap-1"><Users className="size-3" /> 容量 {room.capacity} 人</div>
                       </div>
-                      <Space size={4} wrap>
-                        {room.equipment.map(e => <Tag key={e} size="small">{e}</Tag>)}
-                      </Space>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            </div>
-          )}
-
-          {/* 会议记录 Tab */}
-          {activeTab === 'minutes' && (
-            <div>
-              {mockMinutes.length === 0 ? (
-                <Typography.Paragraph style={{ textAlign: 'center', color: 'var(--color-text-3)', padding: '40px 0' }}>
-                  暂无会议记录
-                </Typography.Paragraph>
-              ) : (
-                mockMinutes.map(min => (
-                  <Card key={min.id} size="small" style={{ marginBottom: 16 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <Title heading={6} style={{ margin: 0 }}><IconEdit style={{ marginRight: 4 }} /> {min.meetingTitle}</Title>
-                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>{min.date}</Typography.Text>
-                    </div>
-
-                    {min.decisions.length > 0 && (
-                      <div style={{ marginBottom: 12 }}>
-                        <Typography.Text style={{ fontWeight: 600, fontSize: 13 }}>决议事项：</Typography.Text>
-                        <ul style={{ margin: '4px 0 0', paddingLeft: 20 }}>
-                          {min.decisions.map((d, i) => <li key={i} style={{ fontSize: 13 }}>{d}</li>)}
-                        </ul>
+                      <div className="flex flex-wrap gap-1">
+                        {room.equipment.map(e => (
+                          <Badge key={e} variant="secondary" className="text-xs">{e}</Badge>
+                        ))}
                       </div>
-                    )}
-
-                    {min.actionItems.length > 0 && (
-                      <div>
-                        <Typography.Text style={{ fontWeight: 600, fontSize: 13 }}>行动项：</Typography.Text>
-                        <Table
-                          size="small"
-                          columns={[
-                            { title: '任务', dataIndex: 'task', width: 200 },
-                            { title: '负责人', dataIndex: 'owner', width: 70 },
-                            { title: '截止日期', dataIndex: 'deadline', width: 100 },
-                            {
-                              title: '状态', dataIndex: 'done', width: 70,
-                              render: (done: boolean) => done ? <Tag color="var(--success-500)" size="small">已完成</Tag> : <Tag color="var(--warning-500)" size="small">待办</Tag>,
-                            },
-                          ] as any}
-                          data={min.actionItems}
-                          rowKey={(item, idx) => `${min.id}-${idx}`}
-                          pagination={false}
-                          style={{ marginTop: 8 }}
-                        />
+                      <Separator className="my-3" />
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="icon" className="size-8" onClick={() => handleEditRoom(room)}>
+                          <Edit className="size-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive" onClick={() => handleDeleteRoom(room.id)}>
+                          <Trash2 className="size-3.5" />
+                        </Button>
                       </div>
-                    )}
+                    </CardContent>
                   </Card>
-                ))
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* 会议记录 Tab */}
+            <TabsContent value="minutes" className="pt-4">
+              {mockMinutes.length === 0 ? (
+                <p className="text-center text-muted-foreground py-10">暂无会议记录</p>
+              ) : (
+                <div className="space-y-4">
+                  {mockMinutes.map(min => (
+                    <Card key={min.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-semibold text-base flex items-center gap-1">
+                            <Edit className="size-4" />
+                            {min.meetingTitle}
+                          </h3>
+                          <span className="text-xs text-muted-foreground">{min.date}</span>
+                        </div>
+
+                        {min.decisions.length > 0 && (
+                          <div className="mb-3">
+                            <p className="font-semibold text-sm">决议事项：</p>
+                            <ul className="mt-1 ml-5 list-disc text-sm">
+                              {min.decisions.map((d, i) => <li key={i}>{d}</li>)}
+                            </ul>
+                          </div>
+                        )}
+
+                        {min.actionItems.length > 0 && (
+                          <div>
+                            <p className="font-semibold text-sm">行动项：</p>
+                            <Table className="mt-2">
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead style={{ width: 200 }}>任务</TableHead>
+                                  <TableHead style={{ width: 70 }}>负责人</TableHead>
+                                  <TableHead style={{ width: 100 }}>截止日期</TableHead>
+                                  <TableHead style={{ width: 70 }}>状态</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {min.actionItems.map((item, idx) => (
+                                  <TableRow key={`${min.id}-${idx}`}>
+                                    <TableCell>{item.task}</TableCell>
+                                    <TableCell>{item.owner}</TableCell>
+                                    <TableCell>{item.deadline}</TableCell>
+                                    <TableCell>
+                                      <Badge variant={item.done ? 'default' : 'secondary'} className="text-xs">
+                                        {item.done ? '已完成' : '待办'}
+                                      </Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               )}
-            </div>
-          )}
-        </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
 
       {/* 会议室弹窗 */}
-      <Modal
-        title={editingRoom ? '编辑会议室' : '新增会议室'}
-        visible={roomModalVisible}
-        onOk={handleRoomSubmit}
-        onCancel={() => setRoomModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-        style={{ width: 500 }}
-      >
-        <Form form={roomForm} layout="vertical">
-          <FormItem label="名称" field="name" rules={[{ required: true, message: '请输入名称' }]}>
-            <Input placeholder="如：会议室 A" />
-          </FormItem>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="容量" field="capacity" rules={[{ required: true, message: '请输入容量' }]}>
-                <Input type="number" placeholder="人数" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="状态" field="status" rules={[{ required: true }]}>
-                <Select placeholder="选择状态">
-                  <SelectOption value="available">空闲</SelectOption>
-                  <SelectOption value="occupied">使用中</SelectOption>
-                  <SelectOption value="maintenance">维护中</SelectOption>
+      <Dialog open={roomModalVisible} onOpenChange={setRoomModalVisible}>
+        <DialogContent className="max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{editingRoom ? '编辑会议室' : '新增会议室'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>名称 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="如：会议室 A"
+                value={roomFormData.name}
+                onChange={e => updateRoomField('name', e.target.value)}
+              />
+              {roomFormErrors.name && <p className="text-xs text-destructive">{roomFormErrors.name}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>容量 <span className="text-destructive">*</span></Label>
+                <Input
+                  type="number"
+                  placeholder="人数"
+                  value={roomFormData.capacity}
+                  onChange={e => updateRoomField('capacity', Number(e.target.value))}
+                />
+                {roomFormErrors.capacity && <p className="text-xs text-destructive">{roomFormErrors.capacity}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label>状态 <span className="text-destructive">*</span></Label>
+                <Select value={roomFormData.status} onValueChange={v => updateRoomField('status', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="available">空闲</SelectItem>
+                    <SelectItem value="occupied">使用中</SelectItem>
+                    <SelectItem value="maintenance">维护中</SelectItem>
+                  </SelectContent>
                 </Select>
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <FormItem label="位置" field="location" rules={[{ required: true, message: '请输入位置' }]}>
-            <Input placeholder="如：3楼东侧" />
-          </FormItem>
-          <FormItem label="设备" field="equipment">
-            <Select mode="tags" placeholder="输入设备后回车" />
-          </FormItem>
-        </Form>
-      </Modal>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>位置 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="如：3楼东侧"
+                value={roomFormData.location}
+                onChange={e => updateRoomField('location', e.target.value)}
+              />
+              {roomFormErrors.location && <p className="text-xs text-destructive">{roomFormErrors.location}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label>设备</Label>
+              <Input
+                placeholder="输入设备，用逗号分隔"
+                value={roomFormData.equipment}
+                onChange={e => updateRoomField('equipment', e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRoomModalVisible(false)}>取消</Button>
+            <Button onClick={handleRoomSubmit}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 会议弹窗 */}
-      <Modal
-        title={editingMeeting ? '编辑会议' : '预约会议'}
-        visible={meetingModalVisible}
-        onOk={handleMeetingSubmit}
-        onCancel={() => setMeetingModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-        style={{ width: 560 }}
-      >
-        <Form form={meetingForm} layout="vertical">
-          <FormItem label="会议主题" field="title" rules={[{ required: true, message: '请输入主题' }]}>
-            <Input placeholder="会议主题" />
-          </FormItem>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="会议室" field="roomName" rules={[{ required: true, message: '请选择会议室' }]}>
-                <Select placeholder="选择会议室">
-                  {rooms.filter(r => r.status === 'available').map(r => (
-                    <SelectOption key={r.id} value={r.name}>{r.name}（{r.capacity}人）</SelectOption>
-                  ))}
+      <Dialog open={meetingModalVisible} onOpenChange={setMeetingModalVisible}>
+        <DialogContent className="max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>{editingMeeting ? '编辑会议' : '预约会议'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>会议主题 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="会议主题"
+                value={meetingFormData.title}
+                onChange={e => updateMeetingField('title', e.target.value)}
+              />
+              {meetingFormErrors.title && <p className="text-xs text-destructive">{meetingFormErrors.title}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>会议室 <span className="text-destructive">*</span></Label>
+                <Select value={meetingFormData.roomName} onValueChange={v => updateMeetingField('roomName', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择会议室" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rooms.filter(r => r.status === 'available').map(r => (
+                      <SelectItem key={r.id} value={r.name}>{r.name}（{r.capacity}人）</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="优先级" field="priority" initialValue="normal">
-                <Select>
-                  <SelectOption value="high">高</SelectOption>
-                  <SelectOption value="normal">普通</SelectOption>
-                  <SelectOption value="low">低</SelectOption>
+                {meetingFormErrors.roomName && <p className="text-xs text-destructive">{meetingFormErrors.roomName}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label>优先级</Label>
+                <Select value={meetingFormData.priority} onValueChange={v => updateMeetingField('priority', v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">高</SelectItem>
+                    <SelectItem value="normal">普通</SelectItem>
+                    <SelectItem value="low">低</SelectItem>
+                  </SelectContent>
                 </Select>
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="开始时间" field="startTime" rules={[{ required: true }]}>
-                <DatePicker showTime placeholder="选择开始时间" style={{ width: '100%' }} />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="结束时间" field="endTime" rules={[{ required: true }]}>
-                <DatePicker showTime placeholder="选择结束时间" style={{ width: '100%' }} />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <FormItem label="组织人" field="organizer" rules={[{ required: true, message: '请输入组织人' }]}>
-            <Input placeholder="组织人姓名" />
-          </FormItem>
-          <FormItem label="参会人" field="attendees">
-            <Select mode="tags" placeholder="输入参会人后回车" />
-          </FormItem>
-          <FormItem label="议程" field="agenda">
-            <Input.TextArea placeholder="会议议程" autoSize={{ minRows: 3, maxRows: 6 }} />
-          </FormItem>
-        </Form>
-      </Modal>
-    </Space>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>开始时间 <span className="text-destructive">*</span></Label>
+                <Input
+                  type="datetime-local"
+                  value={meetingFormData.startTime}
+                  onChange={e => updateMeetingField('startTime', e.target.value)}
+                />
+                {meetingFormErrors.startTime && <p className="text-xs text-destructive">{meetingFormErrors.startTime}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label>结束时间 <span className="text-destructive">*</span></Label>
+                <Input
+                  type="datetime-local"
+                  value={meetingFormData.endTime}
+                  onChange={e => updateMeetingField('endTime', e.target.value)}
+                />
+                {meetingFormErrors.endTime && <p className="text-xs text-destructive">{meetingFormErrors.endTime}</p>}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>组织人 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="组织人姓名"
+                value={meetingFormData.organizer}
+                onChange={e => updateMeetingField('organizer', e.target.value)}
+              />
+              {meetingFormErrors.organizer && <p className="text-xs text-destructive">{meetingFormErrors.organizer}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label>参会人</Label>
+              <Input
+                placeholder="输入参会人，用逗号分隔"
+                value={meetingFormData.attendees}
+                onChange={e => updateMeetingField('attendees', e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>议程</Label>
+              <Textarea
+                placeholder="会议议程"
+                rows={4}
+                value={meetingFormData.agenda}
+                onChange={e => updateMeetingField('agenda', e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMeetingModalVisible(false)}>取消</Button>
+            <Button onClick={handleMeetingSubmit}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

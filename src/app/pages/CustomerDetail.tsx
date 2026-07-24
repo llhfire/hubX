@@ -1,29 +1,45 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import {
-  Card,
-  Descriptions,
-  Badge,
-  Button,
-  Typography,
-  Space,
-  Table,
-  Tabs,
-  Modal,
-  Form,
-  Input,
-  Message,
-} from '@arco-design/web-react';
-import { IconLeft, IconEdit, IconPlus } from '@arco-design/web-react/icon';
+import { toast } from 'sonner';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { ArrowLeft, Pencil, Plus } from 'lucide-react';
 
-const Title = Typography.Title;
-const TabPane = Tabs.TabPane;
+const statusColorMap: Record<string, string> = {
+  success: 'bg-green-500',
+  error: 'bg-red-500',
+  warning: 'bg-orange-500',
+  processing: 'bg-blue-500',
+  default: 'bg-gray-500',
+};
+
+function StatusDot({ status, text }: { status: string; text: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`h-2 w-2 rounded-full ${statusColorMap[status] || 'bg-gray-500'}`} />
+      <span>{text}</span>
+    </span>
+  );
+}
 
 export function CustomerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [invoiceVisible, setInvoiceVisible] = useState(false);
-  const [form] = Form.useForm();
+  const [formData, setFormData] = useState({
+    invoiceTitle: '北京科技有限公司',
+    taxNumber: '91110000XXXXXXXXXX',
+    bank: '中国工商银行XX支行',
+    bankAccount: '6222 **** **** 1234',
+    invoiceAddress: '北京市朝阳区XX路XX号',
+    invoicePhone: '010-12345678',
+  });
 
   const customerInfo = {
     name: '北京科技有限公司',
@@ -129,259 +145,373 @@ export function CustomerDetail() {
     },
   ];
 
-  const contactColumns = [
-    { title: '姓名', dataIndex: 'name' },
-    { title: '职位', dataIndex: 'position' },
-    { title: '手机号', dataIndex: 'phone' },
-    { title: '微信', dataIndex: 'wechat' },
-    { title: '邮箱', dataIndex: 'email' },
-    {
-      title: '默认联系人',
-      dataIndex: 'isDefault',
-      render: (isDefault: boolean) =>
-        isDefault ? <Badge status="success" text="是" /> : <span>否</span>,
-    },
-    {
-      title: '操作',
-      render: () => (
-        <Space>
-          <Button type="text" size="small">
-            编辑
-          </Button>
-          <Button type="text" size="small" status="danger">
-            删除
-          </Button>
-        </Space>
-      ),
-    },
-  ];
+  const handleInvoiceSave = () => {
+    if (!formData.invoiceTitle || !formData.taxNumber || !formData.bank || !formData.bankAccount || !formData.invoiceAddress || !formData.invoicePhone) {
+      toast.error('请填写所有必填字段');
+      return;
+    }
+    toast.success('开票信息更新成功');
+    setInvoiceVisible(false);
+  };
 
-  const leadColumns = [
-    {
-      title: '线索名称',
-      dataIndex: 'name',
-      render: (name: string, record: any) => (
-        <a style={{ color: 'rgb(var(--primary-6))' }}>{name}</a>
-      ),
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      render: (status: string) => (
-        <Badge
-          status={status === '已签单' ? 'success' : 'processing'}
-          text={status}
-        />
-      ),
-    },
-    { title: '创建时间', dataIndex: 'createTime' },
-    { title: '签约时间', dataIndex: 'signTime' },
-    { title: '签约金额', dataIndex: 'amount' },
-  ];
-
-  const contractColumns = [
-    { title: '合同编号', dataIndex: 'contractNo' },
-    {
-      title: '合同名称',
-      dataIndex: 'name',
-      render: (name: string) => <a style={{ color: 'rgb(var(--primary-6))' }}>{name}</a>,
-    },
-    { title: '合同金额', dataIndex: 'amount' },
-    { title: '签订日期', dataIndex: 'signDate' },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      render: (status: string) => <Badge status="processing" text={status} />,
-    },
-    { title: '已收款', dataIndex: 'received' },
-    { title: '待收款', dataIndex: 'receivable' },
-  ];
+  const resetInvoiceForm = () => {
+    setFormData({
+      invoiceTitle: customerInfo.name,
+      taxNumber: customerInfo.creditCode,
+      bank: '中国工商银行XX支行',
+      bankAccount: '6222 **** **** 1234',
+      invoiceAddress: customerInfo.address,
+      invoicePhone: '010-12345678',
+    });
+  };
 
   return (
     <div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <Button type="text" icon={<IconLeft />} onClick={() => navigate('/customers')}>
+          <Button variant="ghost" onClick={() => navigate('/customers')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
             返回
           </Button>
-          <Title heading={4} style={{ margin: 0 }}>
-            {customerInfo.name}
-          </Title>
-          <Badge
+          <h2 className="text-lg font-semibold m-0">{customerInfo.name}</h2>
+          <StatusDot
             status={customerInfo.level === 'A级' ? 'warning' : 'success'}
             text={customerInfo.level}
           />
         </div>
-        <Space>
-          <Button icon={<IconEdit />}>编辑客户</Button>
-          <Button type="primary" icon={<IconPlus />}>
+        <div className="flex items-center gap-2">
+          <Button variant="outline">
+            <Pencil className="mr-2 h-4 w-4" />
+            编辑客户
+          </Button>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
             新建线索
           </Button>
-        </Space>
+        </div>
       </div>
 
-      <Tabs defaultActiveTab="info">
-        <TabPane key="info" title="客户信息">
-          <Card title="基础信息" style={{ marginBottom: 16 }}>
-            <Descriptions
-              column={3}
-              data={[
-                { label: '客户名称', value: customerInfo.name },
-                { label: '客户类型', value: customerInfo.type },
-                { label: '所属行业', value: customerInfo.industry },
-                { label: '企业规模', value: customerInfo.scale },
-                { label: '注册资本', value: customerInfo.registeredCapital },
-                { label: '统一社会信用代码', value: customerInfo.creditCode },
-                { label: '客户地址', value: customerInfo.address, span: 3 },
-                {
-                  label: '客户等级',
-                  value: (
-                    <Badge
+      <Tabs defaultValue="info">
+        <TabsList>
+          <TabsTrigger value="info">客户信息</TabsTrigger>
+          <TabsTrigger value="leads">线索记录 ({leads.length})</TabsTrigger>
+          <TabsTrigger value="contracts">合同记录 ({contracts.length})</TabsTrigger>
+          <TabsTrigger value="finance">财务信息</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="info">
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>基础信息</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <div className="text-sm text-muted-foreground">客户名称</div>
+                  <div className="text-sm font-medium">{customerInfo.name}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">客户类型</div>
+                  <div className="text-sm font-medium">{customerInfo.type}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">所属行业</div>
+                  <div className="text-sm font-medium">{customerInfo.industry}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">企业规模</div>
+                  <div className="text-sm font-medium">{customerInfo.scale}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">注册资本</div>
+                  <div className="text-sm font-medium">{customerInfo.registeredCapital}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">统一社会信用代码</div>
+                  <div className="text-sm font-medium">{customerInfo.creditCode}</div>
+                </div>
+                <div className="col-span-3">
+                  <div className="text-sm text-muted-foreground">客户地址</div>
+                  <div className="text-sm font-medium">{customerInfo.address}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">客户等级</div>
+                  <div className="text-sm font-medium">
+                    <StatusDot
                       status={customerInfo.level === 'A级' ? 'warning' : 'success'}
                       text={customerInfo.level}
                     />
-                  ),
-                },
-                {
-                  label: '客户状态',
-                  value: <Badge status="success" text={customerInfo.status} />,
-                },
-                { label: '创建时间', value: customerInfo.createTime },
-                { label: '负责人', value: customerInfo.owner },
-              ]}
-            />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">客户状态</div>
+                  <div className="text-sm font-medium">
+                    <StatusDot status="success" text={customerInfo.status} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">创建时间</div>
+                  <div className="text-sm font-medium">{customerInfo.createTime}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">负责人</div>
+                  <div className="text-sm font-medium">{customerInfo.owner}</div>
+                </div>
+              </div>
+            </CardContent>
           </Card>
 
-          <Card
-            title="联系人信息"
-            extra={
-              <Button type="text" icon={<IconPlus />} size="small">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>联系人信息</CardTitle>
+              <Button variant="ghost" size="sm">
+                <Plus className="mr-2 h-4 w-4" />
                 添加联系人
               </Button>
-            }
-          >
-            <Table columns={contactColumns} data={contacts} pagination={false} />
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>姓名</TableHead>
+                    <TableHead>职位</TableHead>
+                    <TableHead>手机号</TableHead>
+                    <TableHead>微信</TableHead>
+                    <TableHead>邮箱</TableHead>
+                    <TableHead>默认联系人</TableHead>
+                    <TableHead>操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contacts.map((record) => (
+                    <TableRow key={record.key}>
+                      <TableCell>{record.name}</TableCell>
+                      <TableCell>{record.position}</TableCell>
+                      <TableCell>{record.phone}</TableCell>
+                      <TableCell>{record.wechat}</TableCell>
+                      <TableCell>{record.email}</TableCell>
+                      <TableCell>
+                        {record.isDefault ? (
+                          <StatusDot status="success" text="是" />
+                        ) : (
+                          <span>否</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-0">
+                          <Button variant="ghost" size="sm">编辑</Button>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">删除</Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
           </Card>
-        </TabPane>
+        </TabsContent>
 
-        <TabPane key="leads" title={`线索记录 (${leads.length})`}>
+        <TabsContent value="leads">
           <Card>
-            <Table columns={leadColumns} data={leads} pagination={false} />
+            <CardContent className="pt-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>线索名称</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead>创建时间</TableHead>
+                    <TableHead>签约时间</TableHead>
+                    <TableHead>签约金额</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {leads.map((record) => (
+                    <TableRow key={record.key}>
+                      <TableCell>
+                        <a className="text-primary cursor-pointer">{record.name}</a>
+                      </TableCell>
+                      <TableCell>
+                        <StatusDot
+                          status={record.status === '已签单' ? 'success' : 'processing'}
+                          text={record.status}
+                        />
+                      </TableCell>
+                      <TableCell>{record.createTime}</TableCell>
+                      <TableCell>{record.signTime}</TableCell>
+                      <TableCell>{record.amount}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
           </Card>
-        </TabPane>
+        </TabsContent>
 
-        <TabPane key="contracts" title={`合同记录 (${contracts.length})`}>
+        <TabsContent value="contracts">
           <Card>
-            <Table columns={contractColumns} data={contracts} pagination={false} />
+            <CardContent className="pt-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>合同编号</TableHead>
+                    <TableHead>合同名称</TableHead>
+                    <TableHead>合同金额</TableHead>
+                    <TableHead>签订日期</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead>已收款</TableHead>
+                    <TableHead>待收款</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contracts.map((record) => (
+                    <TableRow key={record.key}>
+                      <TableCell>{record.contractNo}</TableCell>
+                      <TableCell>
+                        <a className="text-primary cursor-pointer">{record.name}</a>
+                      </TableCell>
+                      <TableCell>{record.amount}</TableCell>
+                      <TableCell>{record.signDate}</TableCell>
+                      <TableCell>
+                        <StatusDot status="processing" text={record.status} />
+                      </TableCell>
+                      <TableCell>{record.received}</TableCell>
+                      <TableCell>{record.receivable}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
           </Card>
-        </TabPane>
+        </TabsContent>
 
-        <TabPane key="finance" title="财务信息">
-          <Card
-            title="开票信息"
-            style={{ marginBottom: 16 }}
-            extra={
+        <TabsContent value="finance">
+          <Card className="mb-4">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>开票信息</CardTitle>
               <Button
-                type="text"
-                size="small"
-                icon={<IconEdit />}
+                variant="ghost"
+                size="sm"
                 onClick={() => setInvoiceVisible(true)}
               >
+                <Pencil className="mr-2 h-4 w-4" />
                 编辑
               </Button>
-            }
-          >
-            <Descriptions
-              column={2}
-              data={[
-                { label: '开票抬头', value: customerInfo.name },
-                { label: '纳税人识别号', value: customerInfo.creditCode },
-                { label: '开户银行', value: '中国工商银行XX支行' },
-                { label: '银行账号', value: '6222 **** **** 1234' },
-                { label: '开票地址', value: customerInfo.address },
-                { label: '开票电话', value: '010-12345678' },
-              ]}
-            />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-muted-foreground">开票抬头</div>
+                  <div className="text-sm font-medium">{customerInfo.name}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">纳税人识别号</div>
+                  <div className="text-sm font-medium">{customerInfo.creditCode}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">开户银行</div>
+                  <div className="text-sm font-medium">中国工商银行XX支行</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">银行账号</div>
+                  <div className="text-sm font-medium">6222 **** **** 1234</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">开票地址</div>
+                  <div className="text-sm font-medium">{customerInfo.address}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">开票电话</div>
+                  <div className="text-sm font-medium">010-12345678</div>
+                </div>
+              </div>
+            </CardContent>
           </Card>
 
-          <Card title="收款信息">
-            <div style={{ lineHeight: 2 }}>
-              <div>累计合同金额：165万</div>
-              <div>已收款金额：135万</div>
-              <div>待收款金额：30万</div>
-              <div>回款率：81.8%</div>
-            </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>收款信息</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1 leading-relaxed">
+                <div>累计合同金额：165万</div>
+                <div>已收款金额：135万</div>
+                <div>待收款金额：30万</div>
+                <div>回款率：81.8%</div>
+              </div>
+            </CardContent>
           </Card>
-        </TabPane>
+        </TabsContent>
       </Tabs>
 
-      <Modal
-        title="编辑开票信息"
-        visible={invoiceVisible}
-        onOk={() => {
-          form.validate().then(() => {
-            Message.success('开票信息更新成功');
-            setInvoiceVisible(false);
-            form.resetFields();
-          });
-        }}
-        onCancel={() => {
+      {/* Invoice Edit Dialog */}
+      <Dialog open={invoiceVisible} onOpenChange={(open) => {
+        if (!open) {
           setInvoiceVisible(false);
-          form.resetFields();
-        }}
-        style={{ width: 600 }}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            label="开票抬头"
-            field="invoiceTitle"
-            rules={[{ required: true, message: '请输入开票抬头' }]}
-            initialValue={customerInfo.name}
-          >
-            <Input placeholder="请输入开票抬头" />
-          </Form.Item>
-          <Form.Item
-            label="纳税人识别号"
-            field="taxNumber"
-            rules={[{ required: true, message: '请输入纳税人识别号' }]}
-            initialValue={customerInfo.creditCode}
-          >
-            <Input placeholder="请输入纳税人识别号" />
-          </Form.Item>
-          <Form.Item
-            label="开户银行"
-            field="bank"
-            rules={[{ required: true, message: '请输入开户银行' }]}
-            initialValue="中国工商银行XX支行"
-          >
-            <Input placeholder="请输入开户银行" />
-          </Form.Item>
-          <Form.Item
-            label="银行账号"
-            field="bankAccount"
-            rules={[{ required: true, message: '请输入银行账号' }]}
-            initialValue="6222 **** **** 1234"
-          >
-            <Input placeholder="请输入银行账号" />
-          </Form.Item>
-          <Form.Item
-            label="开票地址"
-            field="invoiceAddress"
-            rules={[{ required: true, message: '请输入开票地址' }]}
-            initialValue={customerInfo.address}
-          >
-            <Input placeholder="请输入开票地址" />
-          </Form.Item>
-          <Form.Item
-            label="开票电话"
-            field="invoicePhone"
-            rules={[{ required: true, message: '请输入开票电话' }]}
-            initialValue="010-12345678"
-          >
-            <Input placeholder="请输入开票电话" />
-          </Form.Item>
-        </Form>
-      </Modal>
+          resetInvoiceForm();
+        }
+      }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>编辑开票信息</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>开票抬头 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入开票抬头"
+                value={formData.invoiceTitle}
+                onChange={(e) => setFormData((p) => ({ ...p, invoiceTitle: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>纳税人识别号 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入纳税人识别号"
+                value={formData.taxNumber}
+                onChange={(e) => setFormData((p) => ({ ...p, taxNumber: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>开户银行 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入开户银行"
+                value={formData.bank}
+                onChange={(e) => setFormData((p) => ({ ...p, bank: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>银行账号 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入银行账号"
+                value={formData.bankAccount}
+                onChange={(e) => setFormData((p) => ({ ...p, bankAccount: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>开票地址 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入开票地址"
+                value={formData.invoiceAddress}
+                onChange={(e) => setFormData((p) => ({ ...p, invoiceAddress: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>开票电话 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入开票电话"
+                value={formData.invoicePhone}
+                onChange={(e) => setFormData((p) => ({ ...p, invoicePhone: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setInvoiceVisible(false); resetInvoiceForm(); }}>取消</Button>
+            <Button onClick={handleInvoiceSave}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

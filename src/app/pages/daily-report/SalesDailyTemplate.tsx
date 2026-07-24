@@ -1,11 +1,11 @@
 // src/app/pages/daily-report/SalesDailyTemplate.tsx
 
 import { useState, useEffect, useRef } from 'react';
-import { Input, Card, Typography, Tag } from '@arco-design/web-react';
+import { Card, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Textarea } from '../../components/ui/textarea';
 import { LeadTrackingItem, SalesReportContent } from './types';
 import { getSalesDailyLeadsData } from './templateConfig';
-
-const { Text } = Typography;
 
 interface Props {
   userId: string;
@@ -83,46 +83,55 @@ export function SalesDailyTemplate({ userId, date, initialContent, onChange }: P
   };
 
   // 级别颜色映射
-  const getLevelColor = (level: string) => {
-    const colors: Record<string, string> = { S: 'red', A: 'orange', B: 'blue', C: 'green' };
-    return colors[level] || 'default';
+  const getLevelVariant = (level: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+      S: 'destructive',
+      A: 'default',
+      B: 'secondary',
+      C: 'outline',
+    };
+    return variants[level] || 'outline';
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       {/* 线索跟进情况 */}
       <div>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>线索跟进情况</div>
+        <p className="font-semibold mb-2">线索跟进情况</p>
         {leadTracking.length === 0 ? (
-          <Card size="small" style={{ background: 'var(--color-fill-2)' }}>
-            <Text type="secondary">今日暂无线索跟进记录</Text>
+          <Card className="bg-muted">
+            <CardContent className="p-3">
+              <span className="text-muted-foreground text-sm">今日暂无线索跟进记录</span>
+            </CardContent>
           </Card>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="flex flex-col gap-3">
             {leadTracking.map((item, index) => (
-              <Card key={item.leadId} size="small">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <Tag color={getLevelColor(item.level)}>{item.level}</Tag>
-                  <Text strong>{item.leadName}</Text>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>状态变更：</Text>
-                  {item.statusChanges.length > 0 ? (
-                    <span>{item.statusChanges.join(', ')}</span>
-                  ) : (
-                    <span style={{ color: 'var(--color-text-4)' }}>无</span>
-                  )}
-                </div>
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>跟进记录：</Text>
-                  <Input.TextArea
-                    value={item.followRecords.join('\n')}
-                    onChange={(value) => updateLeadItem(index, 'followRecords', value)}
-                    placeholder="请输入跟进记录..."
-                    autoSize={{ minRows: 2, maxRows: 4 }}
-                    style={{ marginTop: 4 }}
-                  />
-                </div>
+              <Card key={item.leadId}>
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant={getLevelVariant(item.level)}>{item.level}</Badge>
+                    <span className="font-semibold text-sm">{item.leadName}</span>
+                  </div>
+                  <div className="mb-2">
+                    <span className="text-muted-foreground text-xs">状态变更：</span>
+                    {item.statusChanges.length > 0 ? (
+                      <span className="text-sm">{item.statusChanges.join(', ')}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">无</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">跟进记录：</span>
+                    <Textarea
+                      value={item.followRecords.join('\n')}
+                      onChange={(e) => updateLeadItem(index, 'followRecords', e.target.value)}
+                      placeholder="请输入跟进记录..."
+                      rows={2}
+                      className="mt-1"
+                    />
+                  </div>
+                </CardContent>
               </Card>
             ))}
           </div>
@@ -131,25 +140,25 @@ export function SalesDailyTemplate({ userId, date, initialContent, onChange }: P
 
       {/* 需协助事项 */}
       <div>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>需协助事项</div>
-        <Input.TextArea
+        <p className="font-semibold mb-2">需协助事项</p>
+        <Textarea
           value={assistanceNeeded}
-          onChange={(value) => setAssistanceNeeded(value)}
+          onChange={(e) => setAssistanceNeeded(e.target.value)}
           placeholder="请输入需要协助的事项..."
-          autoSize={{ minRows: 3, maxRows: 5 }}
+          rows={3}
         />
       </div>
 
       {/* 明日工作计划 */}
       <div>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>
-          明日工作计划 <span style={{ color: 'red' }}>*</span>
-        </div>
-        <Input.TextArea
+        <p className="font-semibold mb-2">
+          明日工作计划 <span className="text-red-500">*</span>
+        </p>
+        <Textarea
           value={tomorrowPlan}
-          onChange={(value) => setTomorrowPlan(value)}
+          onChange={(e) => setTomorrowPlan(e.target.value)}
           placeholder="请输入明日工作计划（必填）..."
-          autoSize={{ minRows: 3, maxRows: 5 }}
+          rows={3}
         />
       </div>
     </div>

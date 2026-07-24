@@ -1,7 +1,16 @@
 // src/app/pages/daily-report/DailyReportModal.tsx
 
 import { useState, useEffect, useRef } from 'react';
-import { Modal, DatePicker, Message, Tag, Space } from '@arco-design/web-react';
+import { toast } from 'sonner';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import { SalesDailyTemplate } from './SalesDailyTemplate';
 import { GeneralDailyTemplate } from './GeneralDailyTemplate';
 import { AdDeliveryDailyTemplate } from './AdDeliveryDailyTemplate';
@@ -79,10 +88,10 @@ function createSessionState(
 }
 
 const TEMPLATE_LABELS: Record<DailyTemplateType, { label: string; color: string }> = {
-  sales:        { label: '销售日报', color: '#165dff' },
-  'ad-delivery': { label: '投放日报', color: '#ff7d00' },
-  dev:          { label: '开发日报', color: '#00b42a' },
-  general:      { label: '通用日报', color: '#7c3aed' },
+  sales:        { label: '销售日报', color: 'bg-blue-500' },
+  'ad-delivery': { label: '投放日报', color: 'bg-orange-500' },
+  dev:          { label: '开发日报', color: 'bg-green-500' },
+  general:      { label: '通用日报', color: 'bg-purple-500' },
 };
 
 export function DailyReportModal({ visible, onCancel, onSubmit, currentUserId = 'user-sales-zhangsan', defaultRole }: Props) {
@@ -117,7 +126,7 @@ export function DailyReportModal({ visible, onCancel, onSubmit, currentUserId = 
 
   const handleSubmit = () => {
     if (!content?.['tomorrow-plan']) {
-      Message.warning('请填写明日工作计划（必填）');
+      toast.error('请填写明日工作计划（必填）');
       return;
     }
 
@@ -144,8 +153,13 @@ export function DailyReportModal({ visible, onCancel, onSubmit, currentUserId = 
     };
 
     onSubmit(report);
-    Message.success('日报提交成功');
+    toast.success('日报提交成功');
     onCancel();
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const date = e.target.value ? new Date(e.target.value) : new Date();
+    setSessionState(prev => ({ ...prev, reportDate: date }));
   };
 
   const renderTemplate = () => {
@@ -164,24 +178,31 @@ export function DailyReportModal({ visible, onCancel, onSubmit, currentUserId = 
   const templateMeta = TEMPLATE_LABELS[currentTemplateType];
 
   return (
-    <Modal
-      title={<Space><Tag color={templateMeta.color}>{templateMeta.label}</Tag><span>填写日报</span></Space>}
-      visible={visible}
-      onCancel={onCancel}
-      onOk={handleSubmit}
-      okText="提交日报"
-      cancelText="取消"
-      style={{ width: 780 }}
-    >
-      <div style={{ marginBottom: 16 }}>
-        <span style={{ fontWeight: 500 }}>日期：</span>
-        <DatePicker
-          value={reportDate}
-          onChange={(date) => date && setSessionState(prev => ({ ...prev, reportDate: date }))}
-          style={{ width: 200 }}
-        />
-      </div>
-      {renderTemplate()}
-    </Modal>
+    <Dialog open={visible} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="max-w-[780px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Badge className={templateMeta.color}>{templateMeta.label}</Badge>
+            <span>填写日报</span>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="mb-4">
+          <span className="font-medium mr-2">日期：</span>
+          <input
+            type="date"
+            value={reportDate.toISOString().split('T')[0]}
+            onChange={handleDateChange}
+            className="border rounded-md px-3 py-1.5 text-sm"
+          />
+        </div>
+        {renderTemplate()}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel}>取消</Button>
+          <Button onClick={handleSubmit}>提交日报</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

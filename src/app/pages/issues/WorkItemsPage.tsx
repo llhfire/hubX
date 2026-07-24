@@ -1,16 +1,14 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { Button, Space, Tabs, Typography } from '@arco-design/web-react';
-import { IconLeft } from '@arco-design/web-react/icon';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { useWorkItems } from './hooks/useWorkItems';
 import { RequirementList } from './components/RequirementList';
 import { TaskList } from './components/TaskList';
 import { DefectList } from './components/DefectList';
 import { getProjectName } from './mockData';
 import { SPACING } from './constants';
-
-const { Title, Text } = Typography;
-const TabPane = Tabs.TabPane;
 
 interface WorkItemsPageProps {
   /** 嵌入模式：不显示返回导航和项目标题 */
@@ -29,70 +27,56 @@ export function WorkItemsPage({ embedded = false, projectId: propProjectId }: Wo
   const projectName = projectId ? getProjectName(projectId) : '所有项目';
 
   return (
-    <div style={{ background: '#fff', minHeight: '100%' }}>
+    <div className="bg-white min-h-full">
       {/* 顶部导航栏 — TAPD 风格 */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: `${SPACING.md}px ${SPACING.lg}px`,
-        borderBottom: '1px solid #e5e6eb',
-      }}>
-        <Space size={SPACING.lg}>
+      <div
+        className="flex items-center justify-between border-b border-[#e5e6eb]"
+        style={{ padding: `${SPACING.md}px ${SPACING.lg}px` }}
+      >
+        <div className="flex items-center gap-4">
           <Button
-            type="text"
-            icon={<IconLeft />}
+            variant="ghost"
+            className="text-[#86909c]"
             onClick={() => projectId ? navigate(`/projects/${projectId}`) : navigate('/projects')}
-            style={{ color: '#86909c' }}
           >
+            <ArrowLeft />
             返回{projectId ? '项目' : '项目列表'}
           </Button>
           <Tabs
-            activeTab={activeTab}
-            onChange={setActiveTab}
-            size="large"
-            style={{ marginBottom: 0 }}
+            value={activeTab}
+            onValueChange={setActiveTab}
           >
-            <TabPane
-              key="requirement"
-              title={
-                <Space size={4}>
-                  <span>需求</span>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    ({workItems.stats.requirement.total})
-                  </Text>
-                </Space>
-              }
-            />
-            <TabPane
-              key="task"
-              title={
-                <Space size={4}>
-                  <span>任务</span>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    ({workItems.stats.task.total})
-                  </Text>
-                </Space>
-              }
-            />
-            <TabPane
-              key="defect"
-              title={
-                <Space size={4}>
-                  <span>缺陷</span>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    ({workItems.stats.defect.total})
-                  </Text>
-                </Space>
-              }
-            />
-            <TabPane key="doc" title="文档" disabled />
-            <TabPane key="wiki" title="Wiki" disabled />
+            <TabsList>
+              <TabsTrigger value="requirement">
+                需求
+                <span className="text-xs text-muted-foreground">
+                  ({workItems.stats.requirement.total})
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="task">
+                任务
+                <span className="text-xs text-muted-foreground">
+                  ({workItems.stats.task.total})
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="defect">
+                缺陷
+                <span className="text-xs text-muted-foreground">
+                  ({workItems.stats.defect.total})
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="doc" disabled>
+                文档
+              </TabsTrigger>
+              <TabsTrigger value="wiki" disabled>
+                Wiki
+              </TabsTrigger>
+            </TabsList>
           </Tabs>
-        </Space>
-        <Space>
-          <Text type="secondary" style={{ fontSize: 13 }}>{projectName}</Text>
-        </Space>
+        </div>
+        <div className="flex items-center">
+          <span className="text-sm text-muted-foreground">{projectName}</span>
+        </div>
       </div>
 
       {/* 内容区域 */}

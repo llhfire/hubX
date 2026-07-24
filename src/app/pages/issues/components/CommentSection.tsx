@@ -1,20 +1,13 @@
 import { useState } from 'react';
-import {
-  Avatar,
-  Button,
-  Input,
-  Space,
-  Typography,
-  List,
-  Select,
-  Tag,
-} from '@arco-design/web-react';
-import { IconAt, IconSend } from '@arco-design/web-react/icon';
+import { AtSign, Send, X } from 'lucide-react';
+import { Avatar, AvatarFallback } from '../../../components/ui/avatar';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { Textarea } from '../../../components/ui/textarea';
+import { Checkbox } from '../../../components/ui/checkbox';
 import type { Comment, WorkItemActions, WorkItemType } from '../types';
 import { getEmployeeName } from '../mockData';
 import { initialEmployees } from '../../employee/mockData';
-
-const { Text, Paragraph } = Typography;
 
 interface CommentSectionProps {
   workItemId: string;
@@ -50,93 +43,110 @@ export function CommentSection({
     }
   };
 
+  const toggleMention = (id: string) => {
+    setSelectedMentions(prev =>
+      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
+    );
+  };
+
+  const removeMention = (id: string) => {
+    setSelectedMentions(prev => prev.filter(m => m !== id));
+  };
+
   return (
-    <Space direction="vertical" style={{ width: '100%' }} size={8}>
+    <div className="flex flex-col gap-2 w-full">
       {/* 评论列表 */}
       {!inputOnly && (
-        <List
-          dataSource={comments}
-          render={(comment: Comment, index: number) => (
-            <List.Item
-              key={comment.id}
-              style={{
-                padding: '12px 0',
-                borderBottom: index < comments.length - 1 ? '1px solid var(--color-neutral-3)' : 'none',
-              }}
-            >
-              <Space direction="vertical" style={{ width: '100%' }} size={4}>
-                <Space>
-                  <Avatar size={28} style={{ backgroundColor: '#165dff' }}>
-                    {getEmployeeName(comment.authorId)[0]}
-                  </Avatar>
-                  <Text style={{ fontWeight: 500, fontSize: 13 }}>{getEmployeeName(comment.authorId)}</Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>{comment.createdAt}</Text>
-                </Space>
-                <Paragraph style={{ marginLeft: 36, marginBottom: 0, fontSize: 13 }}>
-                  {comment.content}
-                </Paragraph>
-              </Space>
-            </List.Item>
+        <div className="flex flex-col">
+          {comments.length === 0 ? (
+            <span className="text-sm text-muted-foreground">暂无评论</span>
+          ) : (
+            comments.map((comment, index) => (
+              <div
+                key={comment.id}
+                className="py-3"
+                style={{
+                  borderBottom: index < comments.length - 1 ? '1px solid var(--color-neutral-3)' : 'none',
+                }}
+              >
+                <div className="flex flex-col gap-1 w-full">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="size-7">
+                      <AvatarFallback className="bg-[#165dff] text-white text-xs">
+                        {getEmployeeName(comment.authorId)[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-[13px] font-medium">{getEmployeeName(comment.authorId)}</span>
+                    <span className="text-xs text-muted-foreground">{comment.createdAt}</span>
+                  </div>
+                  <p className="text-[13px] ml-9 mb-0">
+                    {comment.content}
+                  </p>
+                </div>
+              </div>
+            ))
           )}
-          noDataElement={<Text type="secondary" style={{ fontSize: 13 }}>暂无评论</Text>}
-        />
+        </div>
       )}
 
       {/* 评论输入框 */}
       {!listOnly && (
-        <Space direction="vertical" style={{ width: '100%' }} size={6}>
+        <div className="flex flex-col gap-1.5 w-full">
           {selectedMentions.length > 0 && (
-            <Space size={4}>
+            <div className="flex items-center gap-1">
               {selectedMentions.map(id => (
-                <Tag
-                  key={id}
-                  size="small"
-                  closable
-                  onClose={() => setSelectedMentions(prev => prev.filter(m => m !== id))}
-                >
+                <Badge key={id} variant="secondary" className="gap-1 pr-1">
                   @{getEmployeeName(id)}
-                </Tag>
+                  <button
+                    type="button"
+                    className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                    onClick={() => removeMention(id)}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
               ))}
-            </Space>
+            </div>
           )}
-          <Input.TextArea
+          <Textarea
             placeholder="输入评论... (Ctrl+Enter 发送)"
             value={content}
-            onChange={setContent}
+            onChange={e => setContent(e.target.value)}
             onKeyDown={handleKeyDown}
-            autoSize={{ minRows: 2, maxRows: 4 }}
+            className="min-h-[2.5rem] max-h-[6rem] resize-none"
           />
-          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+          <div className="flex items-center justify-between w-full">
             <Button
-              size="small"
-              icon={<IconAt />}
+              variant="outline"
+              size="sm"
               onClick={() => setShowMentions(!showMentions)}
             >
+              <AtSign className="size-4" />
               @
             </Button>
-            <Button type="primary" size="small" icon={<IconSend />} onClick={handleSubmit}>
+            <Button size="sm" onClick={handleSubmit}>
+              <Send className="size-4" />
               发送
             </Button>
-          </Space>
+          </div>
           {showMentions && (
-            <Select
-              placeholder="选择要 @的人"
-              mode="multiple"
-              value={selectedMentions}
-              onChange={setSelectedMentions}
-              onBlur={() => setShowMentions(false)}
-              style={{ width: '100%' }}
-              showSearch
-            >
+            <div className="border rounded-md p-2 max-h-48 overflow-y-auto">
               {initialEmployees.map(emp => (
-                <Select.Option key={emp.id} value={emp.id}>
+                <label
+                  key={emp.id}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent cursor-pointer text-sm"
+                >
+                  <Checkbox
+                    checked={selectedMentions.includes(emp.id)}
+                    onCheckedChange={() => toggleMention(emp.id)}
+                  />
                   {emp.name} ({emp.position})
-                </Select.Option>
+                </label>
               ))}
-            </Select>
+            </div>
           )}
-        </Space>
+        </div>
       )}
-    </Space>
+    </div>
   );
 }

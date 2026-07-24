@@ -1,9 +1,7 @@
-import { Progress, Typography } from '@arco-design/web-react';
+import { Progress } from '../../../components/ui/progress';
 import type { Task, WorkItemActions } from '../types';
 import { STATUS_OPTIONS } from '../constants';
 import { WorkItemList, type WorkItemColumn, type FilterConfig } from './WorkItemList';
-
-const { Text } = Typography;
 
 const columns: WorkItemColumn<Task>[] = [
   { title: '编号', dataIndex: 'projectNo', width: 100, fixed: 'left' },
@@ -19,9 +17,9 @@ const columns: WorkItemColumn<Task>[] = [
       const done = item.checklist.filter(c => c.done).length;
       const pct = total > 0 ? Math.round((done / total) * 100) : 0;
       return total > 0 ? (
-        <Progress percent={pct} size="small" />
+        <Progress value={pct} className="h-2 w-20" />
       ) : (
-        <Text type="secondary">-</Text>
+        <span className="text-muted-foreground">-</span>
       );
     },
   },
@@ -29,7 +27,7 @@ const columns: WorkItemColumn<Task>[] = [
     title: '工时',
     width: 100,
     render: (_: any, item: Task) => (
-      <Text>{item.actualHours || 0}/{item.estimatedHours || 0}h</Text>
+      <span>{item.actualHours || 0}/{item.estimatedHours || 0}h</span>
     ),
   },
   {

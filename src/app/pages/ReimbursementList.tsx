@@ -1,22 +1,31 @@
 import { useState } from 'react';
-import { Card, Table, Button, Input, Select, DatePicker, Space, Modal, Descriptions, Tag, Message, Form, Divider } from '@arco-design/web-react';
-import { IconSearch, IconPlus, IconDownload, IconCheck, IconClose, IconCheckCircleFill, IconCloseCircleFill, IconClockCircle, IconDown, IconRight } from '@arco-design/web-react/icon';
-
-const { RangePicker } = DatePicker;
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Separator } from '../components/ui/separator';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
+import { Search, Plus, Download, Check, X, CheckCircle, XCircle, Clock, ChevronDown, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function ReimbursementList() {
   const [searchForm, setSearchForm] = useState({
     keyword: '',
     status: '',
     type: '',
-    dateRange: [],
+    startDate: '',
+    endDate: '',
   });
   const [detailVisible, setDetailVisible] = useState(false);
   const [selectedReimbursement, setSelectedReimbursement] = useState<any>(null);
   const [approvalVisible, setApprovalVisible] = useState(false);
   const [approvalAction, setApprovalAction] = useState<'approve' | 'reject'>('approve');
+  const [approvalComment, setApprovalComment] = useState('');
   const [workflowExpanded, setWorkflowExpanded] = useState(false);
-  const [form] = Form.useForm();
 
   // 模拟数据
   const mockData = [
@@ -99,80 +108,6 @@ export function ReimbursementList() {
     },
   ];
 
-  const columns = [
-    {
-      title: '报销单号',
-      dataIndex: 'reimbursementNo',
-      width: 140,
-    },
-    {
-      title: '线索名称',
-      dataIndex: 'leadName',
-      width: 200,
-    },
-    {
-      title: '客户主体',
-      dataIndex: 'customerEntity',
-      width: 200,
-    },
-    {
-      title: '对接主体',
-      dataIndex: 'ourEntity',
-      width: 150,
-    },
-    {
-      title: '申请人',
-      dataIndex: 'applicant',
-      width: 100,
-    },
-    {
-      title: '部门',
-      dataIndex: 'department',
-      width: 120,
-    },
-    {
-      title: '报销类型',
-      dataIndex: 'type',
-      width: 120,
-    },
-    {
-      title: '报销金额',
-      dataIndex: 'amount',
-      width: 120,
-      render: (value: number) => `¥${value.toLocaleString()}`,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 100,
-      render: (status: string) => {
-        const statusMap: Record<string, { color: string; text: string }> = {
-          '待审批': { color: 'orange', text: '待审批' },
-          '已通过': { color: 'green', text: '已通过' },
-          '已拒绝': { color: 'red', text: '已拒绝' },
-        };
-        const config = statusMap[status] || { color: 'gray', text: status };
-        return <Tag color={config.color}>{config.text}</Tag>;
-      },
-    },
-    {
-      title: '创建日期',
-      dataIndex: 'createDate',
-      width: 120,
-    },
-    {
-      title: '操作',
-      dataIndex: 'op',
-      width: 100,
-      fixed: 'right' as const,
-      render: (_: any, record: any) => (
-        <Button type="text" size="small" onClick={() => handleViewDetail(record)}>
-          查看详情
-        </Button>
-      ),
-    },
-  ];
-
   const handleSearch = () => {
     console.log('搜索条件：', searchForm);
   };
@@ -182,7 +117,8 @@ export function ReimbursementList() {
       keyword: '',
       status: '',
       type: '',
-      dateRange: [],
+      startDate: '',
+      endDate: '',
     });
   };
 
@@ -191,378 +127,425 @@ export function ReimbursementList() {
     setDetailVisible(true);
   };
 
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; text: string }> = {
+      '待审批': { variant: 'secondary', text: '待审批' },
+      '已通过': { variant: 'default', text: '已通过' },
+      '已拒绝': { variant: 'destructive', text: '已拒绝' },
+    };
+    const config = statusMap[status] || { variant: 'outline' as const, text: status };
+    return <Badge variant={config.variant}>{config.text}</Badge>;
+  };
+
+  const handleApproval = () => {
+    if (!approvalComment.trim()) {
+      toast.error('请填写审批意见');
+      return;
+    }
+    toast.success(
+      `审批${approvalAction === 'approve' ? '通过' : '不通过'}成功，审批意见：${approvalComment}`
+    );
+    setApprovalVisible(false);
+    setDetailVisible(false);
+    setApprovalComment('');
+  };
+
   return (
-    <div>
-      <Card style={{ marginBottom: 16 }}>
-        <Space size="medium" wrap>
-          <Input
-            key="search-input"
-            style={{ width: 200 }}
-            placeholder="搜索报销单号/线索名称"
-            value={searchForm.keyword}
-            onChange={(value) => setSearchForm({ ...searchForm, keyword: value })}
-            allowClear
-          />
-          <Select
-            key="type-select"
-            style={{ width: 150 }}
-            placeholder="报销类型"
-            value={searchForm.type}
-            onChange={(value) => setSearchForm({ ...searchForm, type: value })}
-            allowClear
-            options={[
-              { label: '差旅费', value: '差旅费' },
-              { label: '业务招待费', value: '业务招待费' },
-              { label: '办公费用', value: '办公费用' },
-            ]}
-          />
-          <Select
-            key="status-select"
-            style={{ width: 150 }}
-            placeholder="选择状态"
-            value={searchForm.status}
-            onChange={(value) => setSearchForm({ ...searchForm, status: value })}
-            allowClear
-            options={[
-              { label: '待审批', value: '待审批' },
-              { label: '已通过', value: '已通过' },
-              { label: '已拒绝', value: '已拒绝' },
-            ]}
-          />
-          <RangePicker
-            key="date-range"
-            style={{ width: 280 }}
-            placeholder={['开始日期', '结束日期']}
-            value={searchForm.dateRange}
-            onChange={(value) => setSearchForm({ ...searchForm, dateRange: value })}
-          />
-          <Button key="search-btn" type="primary" icon={<IconSearch />} onClick={handleSearch}>
-            搜索
-          </Button>
-          <Button key="reset-btn" onClick={handleReset}>
-            重置
-          </Button>
-        </Space>
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <Input
+              className="w-[200px]"
+              placeholder="搜索报销单号/线索名称"
+              value={searchForm.keyword}
+              onChange={(e) => setSearchForm({ ...searchForm, keyword: e.target.value })}
+            />
+            <Select
+              value={searchForm.type}
+              onValueChange={(value) => setSearchForm({ ...searchForm, type: value })}
+            >
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="报销类型" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="差旅费">差旅费</SelectItem>
+                <SelectItem value="业务招待费">业务招待费</SelectItem>
+                <SelectItem value="办公费用">办公费用</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={searchForm.status}
+              onValueChange={(value) => setSearchForm({ ...searchForm, status: value })}
+            >
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="选择状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="待审批">待审批</SelectItem>
+                <SelectItem value="已通过">已通过</SelectItem>
+                <SelectItem value="已拒绝">已拒绝</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              type="date"
+              className="w-[140px]"
+              value={searchForm.startDate}
+              onChange={(e) => setSearchForm({ ...searchForm, startDate: e.target.value })}
+            />
+            <Input
+              type="date"
+              className="w-[140px]"
+              value={searchForm.endDate}
+              onChange={(e) => setSearchForm({ ...searchForm, endDate: e.target.value })}
+            />
+            <Button onClick={handleSearch}>
+              <Search className="mr-2 h-4 w-4" />
+              搜索
+            </Button>
+            <Button variant="outline" onClick={handleReset}>
+              重置
+            </Button>
+          </div>
+        </CardContent>
       </Card>
 
-      <Card
-        title="报销申请列表"
-        extra={
-          <Button type="primary" icon={<IconPlus />}>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>报销申请列表</CardTitle>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
             新增报销申请
           </Button>
-        }
-      >
-        <Table
-          columns={columns}
-          data={mockData}
-          scroll={{ x: 1500 }}
-          pagination={{
-            total: mockData.length,
-            pageSize: 10,
-            showTotal: true,
-            sizeCanChange: true,
-          }}
-        />
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">报销单号</TableHead>
+                  <TableHead className="whitespace-nowrap">线索名称</TableHead>
+                  <TableHead className="whitespace-nowrap">客户主体</TableHead>
+                  <TableHead className="whitespace-nowrap">对接主体</TableHead>
+                  <TableHead className="whitespace-nowrap">申请人</TableHead>
+                  <TableHead className="whitespace-nowrap">部门</TableHead>
+                  <TableHead className="whitespace-nowrap">报销类型</TableHead>
+                  <TableHead className="whitespace-nowrap">报销金额</TableHead>
+                  <TableHead className="whitespace-nowrap">状态</TableHead>
+                  <TableHead className="whitespace-nowrap">创建日期</TableHead>
+                  <TableHead className="whitespace-nowrap sticky right-0 bg-background">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mockData.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell className="whitespace-nowrap">{record.reimbursementNo}</TableCell>
+                    <TableCell className="whitespace-nowrap">{record.leadName}</TableCell>
+                    <TableCell className="whitespace-nowrap">{record.customerEntity}</TableCell>
+                    <TableCell className="whitespace-nowrap">{record.ourEntity}</TableCell>
+                    <TableCell className="whitespace-nowrap">{record.applicant}</TableCell>
+                    <TableCell className="whitespace-nowrap">{record.department}</TableCell>
+                    <TableCell className="whitespace-nowrap">{record.type}</TableCell>
+                    <TableCell className="whitespace-nowrap">{'¥'}{record.amount.toLocaleString()}</TableCell>
+                    <TableCell className="whitespace-nowrap">{getStatusBadge(record.status)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{record.createDate}</TableCell>
+                    <TableCell className="whitespace-nowrap sticky right-0 bg-background">
+                      <Button variant="link" size="sm" onClick={() => handleViewDetail(record)}>
+                        查看详情
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="flex items-center justify-end mt-4 text-sm text-muted-foreground">
+            共 {mockData.length} 条记录
+          </div>
+        </CardContent>
       </Card>
 
-      <Modal
-        title="报销申请详情"
-        visible={detailVisible}
-        onCancel={() => setDetailVisible(false)}
-        footer={null}
-        style={{ width: 900 }}
-      >
-        {selectedReimbursement && (
-          <div>
-            <Descriptions
-              column={2}
-              data={[
-                { label: '报销单号', value: selectedReimbursement.reimbursementNo },
-                { label: '线索名称', value: selectedReimbursement.leadName },
-                { label: '客户主体', value: selectedReimbursement.customerEntity },
-                { label: '对接主体', value: selectedReimbursement.ourEntity },
-                { label: '申请人', value: selectedReimbursement.applicant },
-                { label: '部门', value: selectedReimbursement.department },
-                { label: '报销类型', value: selectedReimbursement.type },
-                { label: '报销金额', value: `¥${selectedReimbursement.amount.toLocaleString()}` },
-                { label: '创建日期', value: selectedReimbursement.createDate },
-                {
-                  label: '状态',
-                  value: (
-                    <Tag color={selectedReimbursement.status === '待审批' ? 'orange' : selectedReimbursement.status === '已通过' ? 'green' : 'red'}>
-                      {selectedReimbursement.status}
-                    </Tag>
-                  ),
-                },
-              ]}
-              style={{ marginBottom: 24 }}
-            />
-
-            {/* 审批流程 */}
-            {selectedReimbursement.approvalFlow && selectedReimbursement.approvalFlow.length > 0 && (
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ fontWeight: 600 }}>审批流程</div>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={workflowExpanded ? <IconDown /> : <IconRight />}
-                    onClick={() => setWorkflowExpanded(!workflowExpanded)}
-                  >
-                    {workflowExpanded ? '收起完整流程' : '查看完整流程'}
-                  </Button>
+      {/* 详情弹窗 */}
+      <Dialog open={detailVisible} onOpenChange={setDetailVisible}>
+        <DialogContent className="max-w-[900px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>报销申请详情</DialogTitle>
+          </DialogHeader>
+          {selectedReimbursement && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm text-muted-foreground">报销单号</span>
+                  <div className="font-medium">{selectedReimbursement.reimbursementNo}</div>
                 </div>
-
-                <div style={{
-                  background: 'var(--color-fill-1)',
-                  borderRadius: 6,
-                  padding: '12px 16px',
-                  border: '1px solid var(--color-border-2)'
-                }}>
-                  {selectedReimbursement.approvalFlow.map((node: any, index: number) => {
-                    const isCurrentNode = node.status === 'pending';
-                    const isRejectedNode = node.status === 'rejected';
-                    const isFirstNode = index === 0;
-
-                    const shouldShowByDefault = isFirstNode || isCurrentNode || isRejectedNode;
-                    const shouldShow = workflowExpanded || shouldShowByDefault;
-
-                    if (!shouldShow) return null;
-
-                    return (
-                      <div
-                        key={index}
-                        style={{
-                          marginBottom: index < selectedReimbursement.approvalFlow.length - 1 ? 12 : 0,
-                          padding: '10px 12px',
-                          background: isCurrentNode ? '#fffbe6' : isRejectedNode ? '#ffece8' : 'var(--color-bg-2)',
-                          borderRadius: 4,
-                          border: isCurrentNode ? '2px solid rgb(var(--orange-6))' : isRejectedNode ? '1px solid rgb(var(--red-3))' : '1px solid var(--color-border-1)',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {node.status === 'approved' && (
-                            <IconCheckCircleFill style={{ fontSize: 18, color: 'rgb(var(--green-6))' }} />
-                          )}
-                          {node.status === 'rejected' && (
-                            <IconCloseCircleFill style={{ fontSize: 18, color: 'rgb(var(--red-6))' }} />
-                          )}
-                          {node.status === 'pending' && (
-                            <IconClockCircle style={{ fontSize: 18, color: 'rgb(var(--orange-6))' }} />
-                          )}
-
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                              <span style={{ fontWeight: 600, fontSize: 14 }}>{node.step}</span>
-                              {isCurrentNode && (
-                                <Tag color="orange" size="small">当前环节</Tag>
-                              )}
-                            </div>
-                            <div style={{ fontSize: 13, color: 'var(--color-text-2)' }}>
-                              审批人：{node.approver}
-                            </div>
-                            {node.time && (
-                              <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginTop: 2 }}>
-                                {node.time}
-                              </div>
-                            )}
-                          </div>
-
-                          <div>
-                            {node.status === 'approved' && (
-                              <Tag color="green" size="small">已通过</Tag>
-                            )}
-                            {node.status === 'rejected' && (
-                              <Tag color="red" size="small">已驳回</Tag>
-                            )}
-                            {node.status === 'pending' && (
-                              <Tag color="orange" size="small">待审批</Tag>
-                            )}
-                          </div>
-                        </div>
-
-                        {isRejectedNode && node.comment && (
-                          <div style={{
-                            marginTop: 8,
-                            padding: '8px 10px',
-                            background: 'rgb(var(--red-1))',
-                            border: '1px solid rgb(var(--red-3))',
-                            borderRadius: 4,
-                          }}>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgb(var(--red-6))', marginBottom: 4 }}>
-                              ⚠️ 驳回理由
-                            </div>
-                            <div style={{ fontSize: 13, color: 'rgb(var(--red-7))' }}>
-                              {node.comment}
-                            </div>
-                          </div>
-                        )}
-
-                        {!isRejectedNode && node.comment && (
-                          <div style={{
-                            marginTop: 8,
-                            padding: '6px 10px',
-                            background: 'var(--color-fill-2)',
-                            borderRadius: 4,
-                            fontSize: 13,
-                            color: 'var(--color-text-2)',
-                          }}>
-                            {node.comment}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div>
+                  <span className="text-sm text-muted-foreground">线索名称</span>
+                  <div className="font-medium">{selectedReimbursement.leadName}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">客户主体</span>
+                  <div className="font-medium">{selectedReimbursement.customerEntity}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">对接主体</span>
+                  <div className="font-medium">{selectedReimbursement.ourEntity}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">申请人</span>
+                  <div className="font-medium">{selectedReimbursement.applicant}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">部门</span>
+                  <div className="font-medium">{selectedReimbursement.department}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">报销类型</span>
+                  <div className="font-medium">{selectedReimbursement.type}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">报销金额</span>
+                  <div className="font-medium">{'¥'}{selectedReimbursement.amount.toLocaleString()}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">创建日期</span>
+                  <div className="font-medium">{selectedReimbursement.createDate}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">状态</span>
+                  <div>{getStatusBadge(selectedReimbursement.status)}</div>
                 </div>
               </div>
-            )}
 
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: 12 }}>报销明细</div>
-              <Table
-                columns={[
-                  { title: '费用类别', dataIndex: 'category', width: 120 },
-                  { title: '说明', dataIndex: 'description' },
-                  { title: '金额', dataIndex: 'amount', width: 150, render: (v: number) => `¥${v.toLocaleString()}` },
-                ]}
-                data={selectedReimbursement.items}
-                pagination={false}
-                size="small"
-                summary={(data) => (
-                  <Table.Summary>
-                    <Table.Summary.Row>
-                      <Table.Summary.Cell colSpan={2} style={{ textAlign: 'right', fontWeight: 600 }}>
-                        合计
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell style={{ fontWeight: 600 }}>
-                        ¥{data.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
-                      </Table.Summary.Cell>
-                    </Table.Summary.Row>
-                  </Table.Summary>
-                )}
-              />
+              {/* 审批流程 */}
+              {selectedReimbursement.approvalFlow && selectedReimbursement.approvalFlow.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="font-semibold">审批流程</div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setWorkflowExpanded(!workflowExpanded)}
+                    >
+                      {workflowExpanded ? <ChevronDown className="h-4 w-4 mr-1" /> : <ChevronRight className="h-4 w-4 mr-1" />}
+                      {workflowExpanded ? '收起完整流程' : '查看完整流程'}
+                    </Button>
+                  </div>
+
+                  <div className="bg-muted rounded-md p-4 border">
+                    {selectedReimbursement.approvalFlow.map((node: any, index: number) => {
+                      const isCurrentNode = node.status === 'pending';
+                      const isRejectedNode = node.status === 'rejected';
+                      const isFirstNode = index === 0;
+
+                      const shouldShowByDefault = isFirstNode || isCurrentNode || isRejectedNode;
+                      const shouldShow = workflowExpanded || shouldShowByDefault;
+
+                      if (!shouldShow) return null;
+
+                      return (
+                        <div
+                          key={index}
+                          className={`mb-3 p-3 rounded-md border ${
+                            isCurrentNode
+                              ? 'bg-yellow-50 border-yellow-400'
+                              : isRejectedNode
+                                ? 'bg-red-50 border-red-300'
+                                : 'bg-background border-border'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            {node.status === 'approved' && (
+                              <CheckCircle className="h-5 w-5 text-green-600" />
+                            )}
+                            {node.status === 'rejected' && (
+                              <XCircle className="h-5 w-5 text-red-600" />
+                            )}
+                            {node.status === 'pending' && (
+                              <Clock className="h-5 w-5 text-orange-600" />
+                            )}
+
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold text-sm">{node.step}</span>
+                                {isCurrentNode && (
+                                  <Badge variant="secondary" className="text-xs">当前环节</Badge>
+                                )}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                审批人：{node.approver}
+                              </div>
+                              {node.time && (
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {node.time}
+                                </div>
+                              )}
+                            </div>
+
+                            <div>
+                              {node.status === 'approved' && (
+                                <Badge variant="default" className="text-xs">已通过</Badge>
+                              )}
+                              {node.status === 'rejected' && (
+                                <Badge variant="destructive" className="text-xs">已驳回</Badge>
+                              )}
+                              {node.status === 'pending' && (
+                                <Badge variant="secondary" className="text-xs">待审批</Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          {isRejectedNode && node.comment && (
+                            <div className="mt-2 p-2 bg-red-50 border border-red-300 rounded-md">
+                              <div className="text-xs font-semibold text-red-600 mb-1">
+                                驳回理由
+                              </div>
+                              <div className="text-sm text-red-700">
+                                {node.comment}
+                              </div>
+                            </div>
+                          )}
+
+                          {!isRejectedNode && node.comment && (
+                            <div className="mt-2 p-2 bg-muted rounded-md text-sm text-muted-foreground">
+                              {node.comment}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <div className="font-semibold mb-3">报销明细</div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="whitespace-nowrap">费用类别</TableHead>
+                      <TableHead className="whitespace-nowrap">说明</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">金额</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedReimbursement.items.map((item: any, index: number) => (
+                      <TableRow key={index}>
+                        <TableCell className="whitespace-nowrap">{item.category}</TableCell>
+                        <TableCell>{item.description}</TableCell>
+                        <TableCell className="whitespace-nowrap text-right">{'¥'}{item.amount.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-right font-semibold">合计</TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {'¥'}{selectedReimbursement.items.reduce((sum: number, item: any) => sum + item.amount, 0).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
 
               {/* 附件列表 */}
               {selectedReimbursement.attachments && selectedReimbursement.attachments.length > 0 && (
-                <div style={{ marginTop: 24 }}>
-                  <div style={{ fontWeight: 600, marginBottom: 12 }}>附件列表</div>
-                  <div style={{
-                    background: 'var(--color-fill-2)',
-                    borderRadius: 6,
-                    padding: '12px 16px',
-                    border: '1px solid var(--color-border-2)'
-                  }}>
-                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                <div>
+                  <div className="font-semibold mb-3">附件列表</div>
+                  <div className="bg-muted rounded-md p-4 border">
+                    <div className="space-y-2">
                       {selectedReimbursement.attachments.map((file: any) => (
                         <div
                           key={file.id}
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '8px 12px',
-                            background: 'var(--color-bg-2)',
-                            borderRadius: 4,
-                            border: '1px solid var(--color-border-1)'
-                          }}
+                          className="flex items-center justify-between p-2 bg-background rounded-md border"
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 13, color: 'var(--color-text-2)' }}>{file.name}</span>
-                            <span style={{ fontSize: 12, color: 'var(--color-text-3)' }}>({file.size})</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">{file.name}</span>
+                            <span className="text-xs text-muted-foreground">({file.size})</span>
                           </div>
                           <Button
-                            type="text"
-                            size="small"
-                            icon={<IconDownload />}
-                            onClick={() => Message.info(`下载附件: ${file.name}`)}
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toast.info(`下载附件: ${file.name}`)}
                           >
+                            <Download className="h-4 w-4 mr-1" />
                             下载
                           </Button>
                         </div>
                       ))}
-                    </Space>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* 审批按钮栏 */}
               {selectedReimbursement.status === '待审批' && (
-                <div style={{ marginTop: 24 }}>
-                  <Divider />
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
+                <>
+                  <Separator />
+                  <div className="flex justify-center gap-4">
                     <Button
-                      type="primary"
-                      status="success"
-                      size="large"
-                      icon={<IconCheck />}
+                      className="bg-green-600 hover:bg-green-700"
+                      size="lg"
                       onClick={() => {
                         setApprovalAction('approve');
                         setApprovalVisible(true);
                       }}
                     >
+                      <Check className="mr-2 h-4 w-4" />
                       通过
                     </Button>
                     <Button
-                      type="primary"
-                      status="danger"
-                      size="large"
-                      icon={<IconClose />}
+                      variant="destructive"
+                      size="lg"
                       onClick={() => {
                         setApprovalAction('reject');
                         setApprovalVisible(true);
                       }}
                     >
+                      <X className="mr-2 h-4 w-4" />
                       不通过
                     </Button>
                   </div>
-                </div>
+                </>
               )}
             </div>
-          </div>
-        )}
-      </Modal>
+          )}
+        </DialogContent>
+      </Dialog>
 
-      {/* 审批意见Modal */}
-      <Modal
-        title={approvalAction === 'approve' ? '审批通过' : '审批不通过'}
-        visible={approvalVisible}
-        onOk={() => {
-          form.validate().then((values) => {
-            Message.success(
-              `审批${approvalAction === 'approve' ? '通过' : '不通过'}成功，审批意见：${values.comment}`
-            );
-            setApprovalVisible(false);
-            setDetailVisible(false);
-            form.resetFields();
-          }).catch(() => {
-            // 验证失败，不做处理，表单会自动显示错误信息
-          });
-        }}
-        onCancel={() => {
-          setApprovalVisible(false);
-          form.resetFields();
-        }}
-        okText="确认"
-        cancelText="取消"
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            label="审批意见"
-            field="comment"
-            rules={[{ required: true, message: '请填写审批意见' }]}
-          >
-            <Input.TextArea
-              placeholder={
-                approvalAction === 'approve'
-                  ? '请填写审批意见（如：费用合理，同意报销）'
-                  : '请填写不通过的理由（如：费用超标，请重新核算）'
-              }
-              rows={4}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {/* 审批意见弹窗 */}
+      <Dialog open={approvalVisible} onOpenChange={setApprovalVisible}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {approvalAction === 'approve' ? '审批通过' : '审批不通过'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>审批意见</Label>
+              <Textarea
+                placeholder={
+                  approvalAction === 'approve'
+                    ? '请填写审批意见（如：费用合理，同意报销）'
+                    : '请填写不通过的理由（如：费用超标，请重新核算）'
+                }
+                rows={4}
+                value={approvalComment}
+                onChange={(e) => setApprovalComment(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setApprovalVisible(false);
+              setApprovalComment('');
+            }}>
+              取消
+            </Button>
+            <Button onClick={handleApproval}>
+              确认
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

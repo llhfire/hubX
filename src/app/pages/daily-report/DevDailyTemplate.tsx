@@ -1,17 +1,25 @@
+import { Plus, Trash2 } from 'lucide-react';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
 import {
   Select,
-  Input,
-  InputNumber,
-  Button,
-  Space,
-  Card,
-  Tag,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import {
   Table,
-} from '@arco-design/web-react';
-import { IconPlus, IconDelete } from '@arco-design/web-react/icon';
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
 import { DevReportContent, ProjectTask, WorkKind, WORK_KIND_LABELS, WORK_KIND_ABILITY_MAP } from './types';
-
-const SelectOption = Select.Option;
 
 interface Props {
   content: DevReportContent;
@@ -52,123 +60,175 @@ export function DevDailyTemplate({ content, onChange }: Props) {
 
   const totalHours = tasks.reduce((s, t) => s + (t.hours || 0), 0);
 
-  const taskColumns = [
-    {
-      title: '项目名称', dataIndex: 'projectName', width: 150,
-      render: (_: unknown, record: ProjectTask) => (
-        <Input placeholder="项目名" value={record.projectName} onChange={v => updateTask(record.id, 'projectName', v)} size="small" />
-      ),
-    },
-    {
-      title: '工种', dataIndex: 'workKind', width: 140,
-      render: (_: unknown, record: ProjectTask) => (
-        <Select
-          value={record.workKind}
-          onChange={v => updateTask(record.id, 'workKind', v as WorkKind)}
-          size="small"
-          style={{ width: '100%' }}
-        >
-          {ALL_WORK_KINDS.map(k => (
-            <SelectOption key={k} value={k}>{WORK_KIND_LABELS[k]}</SelectOption>
-          ))}
-        </Select>
-      ),
-    },
-    {
-      title: '工作描述', dataIndex: 'description',
-      render: (_: unknown, record: ProjectTask) => (
-        <Input placeholder="做了什么" value={record.description} onChange={v => updateTask(record.id, 'description', v)} size="small" />
-      ),
-    },
-    {
-      title: '工时(h)', dataIndex: 'hours', width: 80,
-      render: (_: unknown, record: ProjectTask) => (
-        <InputNumber min={0} max={24} step={0.5} value={record.hours} onChange={v => updateTask(record.id, 'hours', v || 0)} size="small" style={{ width: '100%' }} />
-      ),
-    },
-    {
-      title: '', width: 40,
-      render: (_: unknown, record: ProjectTask) => (
-        <Button type="text" size="small" status="danger" icon={<IconDelete />} onClick={() => removeTask(record.id)} />
-      ),
-    },
-  ];
-
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <div className="flex flex-col gap-4">
       {/* 主要工种 */}
-      <Card size="small" title="今日主要工种" bodyStyle={{ padding: '12px 16px' }}>
-        <Select
-          value={content['work-kind'] || 'dev-coding'}
-          onChange={v => updateField('work-kind', v as WorkKind)}
-          style={{ width: 200 }}
-        >
-          {ALL_WORK_KINDS.map(k => (
-            <SelectOption key={k} value={k}>
-              {WORK_KIND_LABELS[k]}
-              <Tag size="small" style={{ marginLeft: 8, fontSize: 10 }}>
-                {WORK_KIND_ABILITY_MAP[k].dimension} +{WORK_KIND_ABILITY_MAP[k].xpPer8h}/8h
-              </Tag>
-            </SelectOption>
-          ))}
-        </Select>
-        <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-text-3)' }}>
-          工种将映射到能力维度，自动累积经验值（每 8 小时）
-        </div>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">今日主要工种</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Select
+            value={content['work-kind'] || 'dev-coding'}
+            onValueChange={(v) => updateField('work-kind', v as WorkKind)}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ALL_WORK_KINDS.map(k => (
+                <SelectItem key={k} value={k}>
+                  {WORK_KIND_LABELS[k]}
+                  <Badge variant="outline" className="ml-2 text-[10px]">
+                    {WORK_KIND_ABILITY_MAP[k].dimension} +{WORK_KIND_ABILITY_MAP[k].xpPer8h}/8h
+                  </Badge>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="mt-2 text-xs text-muted-foreground">
+            工种将映射到能力维度，自动累积经验值（每 8 小时）
+          </p>
+        </CardContent>
       </Card>
 
       {/* 项目任务 */}
-      <Card
-        size="small"
-        title="项目任务"
-        extra={<Tag color="blue">总工时 {totalHours}h</Tag>}
-        bodyStyle={{ padding: '12px 16px' }}
-      >
-        <Table
-          columns={taskColumns as any}
-          data={tasks}
-          rowKey="id"
-          pagination={false}
-          border
-          scroll={{ x: 600 }}
-        />
-        <Button type="primary" icon={<IconPlus />} size="small" style={{ marginTop: 12 }} onClick={addTask}>
-          添加任务
-        </Button>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>项目任务</span>
+            <Badge variant="secondary">总工时 {totalHours}h</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[150px]">项目名称</TableHead>
+                <TableHead className="w-[140px]">工种</TableHead>
+                <TableHead>工作描述</TableHead>
+                <TableHead className="w-[80px]">工时(h)</TableHead>
+                <TableHead className="w-[40px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tasks.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    暂无任务
+                  </TableCell>
+                </TableRow>
+              ) : (
+                tasks.map((task) => (
+                  <TableRow key={task.id}>
+                    <TableCell>
+                      <Input
+                        placeholder="项目名"
+                        value={task.projectName}
+                        onChange={(e) => updateTask(task.id, 'projectName', e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={task.workKind}
+                        onValueChange={(v) => updateTask(task.id, 'workKind', v as WorkKind)}
+                      >
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ALL_WORK_KINDS.map(k => (
+                            <SelectItem key={k} value={k}>{WORK_KIND_LABELS[k]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        placeholder="做了什么"
+                        value={task.description}
+                        onChange={(e) => updateTask(task.id, 'description', e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={24}
+                        step={0.5}
+                        value={task.hours}
+                        onChange={(e) => updateTask(task.id, 'hours', parseFloat(e.target.value) || 0)}
+                        className="h-8 text-sm"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        onClick={() => removeTask(task.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+          <Button variant="outline" size="sm" className="mt-3" onClick={addTask}>
+            <Plus className="h-4 w-4 mr-1" />
+            添加任务
+          </Button>
+        </CardContent>
       </Card>
 
       {/* 代码进展 */}
-      <Card size="small" title="代码进展" bodyStyle={{ padding: '12px 16px' }}>
-        <Input.TextArea
-          placeholder="今日代码层面的进展（提交、PR、功能完成等）"
-          value={content['code-progress'] || ''}
-          onChange={v => updateField('code-progress', v)}
-          autoSize={{ minRows: 3, maxRows: 6 }}
-          style={{ width: '100%' }}
-        />
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">代码进展</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Textarea
+            placeholder="今日代码层面的进展（提交、PR、功能完成等）"
+            value={content['code-progress'] || ''}
+            onChange={(e) => updateField('code-progress', e.target.value)}
+            rows={3}
+          />
+        </CardContent>
       </Card>
 
       {/* 遇到的问题 */}
-      <Card size="small" title="遇到的问题" bodyStyle={{ padding: '12px 16px' }}>
-        <Input.TextArea
-          placeholder="遇到的问题或阻塞项"
-          value={content['problems-encountered'] || ''}
-          onChange={v => updateField('problems-encountered', v)}
-          autoSize={{ minRows: 2, maxRows: 4 }}
-          style={{ width: '100%' }}
-        />
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">遇到的问题</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Textarea
+            placeholder="遇到的问题或阻塞项"
+            value={content['problems-encountered'] || ''}
+            onChange={(e) => updateField('problems-encountered', e.target.value)}
+            rows={2}
+          />
+        </CardContent>
       </Card>
 
       {/* 明日计划 */}
-      <Card size="small" title="明日工作计划" bodyStyle={{ padding: '12px 16px' }}>
-        <Input.TextArea
-          placeholder="请输入明日工作计划（必填）"
-          value={content['tomorrow-plan'] || ''}
-          onChange={v => updateField('tomorrow-plan', v)}
-          autoSize={{ minRows: 2, maxRows: 4 }}
-          style={{ width: '100%' }}
-        />
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">明日工作计划</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Textarea
+            placeholder="请输入明日工作计划（必填）"
+            value={content['tomorrow-plan'] || ''}
+            onChange={(e) => updateField('tomorrow-plan', e.target.value)}
+            rows={2}
+          />
+        </CardContent>
       </Card>
-    </Space>
+    </div>
   );
 }

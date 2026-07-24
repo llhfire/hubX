@@ -1,10 +1,26 @@
 // src/app/pages/daily-report/DailyReportDetail.tsx
 
 import { useState } from 'react';
-import { Modal, Descriptions, Card, Typography, Input, Button, Avatar, Tag, Table } from '@arco-design/web-react';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
+import { Textarea } from '../../components/ui/textarea';
+import { Avatar, AvatarFallback } from '../../components/ui/avatar';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
 import { DailyReport, DailyReportComment, SalesReportContent, GeneralReportContent, LeadTrackingItem } from './types';
-
-const { Text } = Typography;
 
 interface Props {
   visible: boolean;
@@ -34,49 +50,59 @@ export function DailyReportDetail({ visible, onCancel, report, comments, onAddCo
     return matches.map(m => m.substring(1));
   };
 
+  const getLevelVariant = (level: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+      S: 'destructive',
+      A: 'default',
+      B: 'secondary',
+      C: 'outline',
+    };
+    return variants[level] || 'outline';
+  };
+
   const renderSalesContent = (content: SalesReportContent) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       {content['lead-tracking'] && content['lead-tracking'].length > 0 && (
         <div>
-          <Text strong style={{ fontSize: 16, marginBottom: 8, display: 'block' }}>线索跟进情况</Text>
+          <p className="font-semibold text-base mb-2">线索跟进情况</p>
           {content['lead-tracking'].map((item: LeadTrackingItem) => (
-            <Card key={item.leadId} size="small" style={{ marginBottom: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <Tag color={item.level === 'S' ? 'red' : item.level === 'A' ? 'orange' : item.level === 'B' ? 'blue' : 'green'}>
-                  {item.level}
-                </Tag>
-                <Text strong>{item.leadName}</Text>
-              </div>
-              {item.statusChanges.length > 0 && (
-                <div style={{ marginTop: 4 }}>
-                  <Text type="secondary">状态变更：</Text>
-                  <Text>{item.statusChanges.join(', ')}</Text>
+            <Card key={item.leadId} className="mb-2">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant={getLevelVariant(item.level)}>{item.level}</Badge>
+                  <span className="font-semibold">{item.leadName}</span>
                 </div>
-              )}
-              {item.followRecords.length > 0 && (
-                <div style={{ marginTop: 4 }}>
-                  <Text type="secondary">跟进记录：</Text>
-                  {item.followRecords.map((record, i) => (
-                    <div key={i} style={{ marginLeft: 8 }}>{record}</div>
-                  ))}
-                </div>
-              )}
+                {item.statusChanges.length > 0 && (
+                  <div className="mt-1">
+                    <span className="text-muted-foreground text-sm">状态变更：</span>
+                    <span className="text-sm">{item.statusChanges.join(', ')}</span>
+                  </div>
+                )}
+                {item.followRecords.length > 0 && (
+                  <div className="mt-1">
+                    <span className="text-muted-foreground text-sm">跟进记录：</span>
+                    {item.followRecords.map((record, i) => (
+                      <div key={i} className="ml-2 text-sm">{record}</div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
             </Card>
           ))}
         </div>
       )}
       {content['assistance-needed'] && (
         <div>
-          <Text strong style={{ fontSize: 16, marginBottom: 8, display: 'block' }}>需协助事项</Text>
-          <div style={{ padding: 12, background: 'var(--color-fill-2)', borderRadius: 4 }}>
+          <p className="font-semibold text-base mb-2">需协助事项</p>
+          <div className="p-3 bg-muted rounded-md">
             {content['assistance-needed']}
           </div>
         </div>
       )}
       {content['tomorrow-plan'] && (
         <div>
-          <Text strong style={{ fontSize: 16, marginBottom: 8, display: 'block' }}>明日工作计划</Text>
-          <div style={{ padding: 12, background: 'var(--color-fill-2)', borderRadius: 4 }}>
+          <p className="font-semibold text-base mb-2">明日工作计划</p>
+          <div className="p-3 bg-muted rounded-md">
             {content['tomorrow-plan']}
           </div>
         </div>
@@ -85,42 +111,50 @@ export function DailyReportDetail({ visible, onCancel, report, comments, onAddCo
   );
 
   const renderGeneralContent = (content: GeneralReportContent) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       {content['project-tasks'] && content['project-tasks'].length > 0 && (
         <div>
-          <Text strong style={{ fontSize: 16, marginBottom: 8, display: 'block' }}>项目任务</Text>
-          <Table
-            columns={[
-              { title: '项目名称', dataIndex: 'projectName' },
-              { title: '任务形式', dataIndex: 'taskForm' },
-              { title: '用时（小时）', dataIndex: 'hours' },
-            ]}
-            data={content['project-tasks']}
-            pagination={false}
-            size="small"
-          />
+          <p className="font-semibold text-base mb-2">项目任务</p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>项目名称</TableHead>
+                <TableHead>任务形式</TableHead>
+                <TableHead>用时（小时）</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {content['project-tasks'].map((task: any, index: number) => (
+                <TableRow key={index}>
+                  <TableCell>{task.projectName}</TableCell>
+                  <TableCell>{task.taskForm}</TableCell>
+                  <TableCell>{task.hours}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
       {content['today-summary'] && (
         <div>
-          <Text strong style={{ fontSize: 16, marginBottom: 8, display: 'block' }}>今日总结</Text>
-          <div style={{ padding: 12, background: 'var(--color-fill-2)', borderRadius: 4 }}>
+          <p className="font-semibold text-base mb-2">今日总结</p>
+          <div className="p-3 bg-muted rounded-md">
             {content['today-summary']}
           </div>
         </div>
       )}
       {content['problems-encountered'] && (
         <div>
-          <Text strong style={{ fontSize: 16, marginBottom: 8, display: 'block' }}>遇到的问题</Text>
-          <div style={{ padding: 12, background: 'var(--color-fill-2)', borderRadius: 4 }}>
+          <p className="font-semibold text-base mb-2">遇到的问题</p>
+          <div className="p-3 bg-muted rounded-md">
             {content['problems-encountered']}
           </div>
         </div>
       )}
       {content['tomorrow-plan'] && (
         <div>
-          <Text strong style={{ fontSize: 16, marginBottom: 8, display: 'block' }}>明日工作计划</Text>
-          <div style={{ padding: 12, background: 'var(--color-fill-2)', borderRadius: 4 }}>
+          <p className="font-semibold text-base mb-2">明日工作计划</p>
+          <div className="p-3 bg-muted rounded-md">
             {content['tomorrow-plan']}
           </div>
         </div>
@@ -139,62 +173,62 @@ export function DailyReportDetail({ visible, onCancel, report, comments, onAddCo
   const reportComments = comments.filter(c => c.reportId === report.id);
 
   return (
-    <Modal
-      title="日报详情"
-      visible={visible}
-      onCancel={onCancel}
-      footer={null}
-      style={{ width: 800 }}
-    >
-      <Descriptions
-        column={2}
-        data={[
-          { label: '日报日期', value: report.reportDate },
-          { label: '汇报人', value: report.userName },
-          { label: '部门', value: report.department },
-          { label: '模板类型', value: report.templateType === 'sales' ? '销售日报' : '通用日报' },
-        ]}
-        style={{ marginBottom: 16 }}
-      />
+    <Dialog open={visible} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="max-w-[800px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>日报详情</DialogTitle>
+        </DialogHeader>
 
-      <div style={{ marginBottom: 24 }}>{renderContent()}</div>
-
-      {/* 评论区域 */}
-      <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 16 }}>
-        <Text strong style={{ fontSize: 16, marginBottom: 12, display: 'block' }}>
-          评论 ({reportComments.length})
-        </Text>
-
-        {reportComments.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            {reportComments.map((comment) => (
-              <Card key={comment.id} size="small" style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <Avatar size={24}>{comment.userName[0]}</Avatar>
-                  <Text strong>{comment.userName}</Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    {new Date(comment.createdAt).toLocaleString()}
-                  </Text>
-                </div>
-                <Text>{comment.content}</Text>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Input.TextArea
-            value={commentText}
-            onChange={(value) => setCommentText(value)}
-            placeholder="添加评论... (可使用 @用户名 来提及他人)"
-            style={{ flex: 1 }}
-            autoSize={{ minRows: 2, maxRows: 4 }}
-          />
-          <Button type="primary" onClick={handleSubmitComment}>
-            发送
-          </Button>
+        <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
+          <div><span className="text-muted-foreground">日报日期：</span>{report.reportDate}</div>
+          <div><span className="text-muted-foreground">汇报人：</span>{report.userName}</div>
+          <div><span className="text-muted-foreground">部门：</span>{report.department}</div>
+          <div><span className="text-muted-foreground">模板类型：</span>{report.templateType === 'sales' ? '销售日报' : '通用日报'}</div>
         </div>
-      </div>
-    </Modal>
+
+        <div className="mb-6">{renderContent()}</div>
+
+        {/* 评论区域 */}
+        <div className="border-t pt-4">
+          <p className="font-semibold text-base mb-3">
+            评论 ({reportComments.length})
+          </p>
+
+          {reportComments.length > 0 && (
+            <div className="mb-4">
+              {reportComments.map((comment) => (
+                <Card key={comment.id} className="mb-2">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="text-xs">{comment.userName[0]}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-semibold text-sm">{comment.userName}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {new Date(comment.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm">{comment.content}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="添加评论... (可使用 @用户名 来提及他人)"
+              className="flex-1"
+              rows={2}
+            />
+            <Button onClick={handleSubmitComment}>
+              发送
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

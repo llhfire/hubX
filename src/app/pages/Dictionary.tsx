@@ -1,24 +1,44 @@
 import { useState } from 'react';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import {
-  Card,
-  Grid,
   Table,
-  Button,
-  Space,
-  Modal,
-  Form,
-  Input,
-  InputNumber,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
+import { Badge } from '../components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import {
   Select,
-  Message,
-  Popconfirm,
-  Tag,
-} from '@arco-design/web-react';
-import { IconPlus, IconEdit, IconDelete } from '@arco-design/web-react/icon';
-
-const Row = Grid.Row;
-const Col = Grid.Col;
-const FormItem = Form.Item;
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../components/ui/alert-dialog';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // 模拟字典分类数据
 const mockDictTypes = [
@@ -70,256 +90,384 @@ const mockDictItems: Record<string, any[]> = {
   ],
 };
 
+interface TypeFormData {
+  code: string;
+  name: string;
+  description: string;
+  status: string;
+}
+
+interface ItemFormData {
+  label: string;
+  value: string;
+  sort: number;
+  remark: string;
+  status: string;
+}
+
 export function Dictionary() {
   const [selectedDictType, setSelectedDictType] = useState<string>('1');
   const [typeModalVisible, setTypeModalVisible] = useState(false);
   const [itemModalVisible, setItemModalVisible] = useState(false);
-  const [typeForm] = Form.useForm();
-  const [itemForm] = Form.useForm();
   const [editingType, setEditingType] = useState<any>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
 
-  // 字典分类表格列配置
-  const typeColumns = [
-    { title: '字典编码', dataIndex: 'code', width: 150 },
-    { title: '字典名称', dataIndex: 'name', width: 150 },
-    { title: '描述', dataIndex: 'description' },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 80,
-      render: (status: string) => (
-        <Tag color={status === '启用' ? 'green' : 'red'}>{status}</Tag>
-      ),
-    },
-    { title: '创建时间', dataIndex: 'createTime', width: 120 },
-    {
-      title: '操作',
-      width: 150,
-      render: (_: any, record: any) => (
-        <Space>
-          <Button
-            key="view"
-            type="text"
-            size="small"
-            onClick={() => setSelectedDictType(record.id)}
-          >
-            查看项
-          </Button>
-          <Button
-            key="edit"
-            type="text"
-            size="small"
-            icon={<IconEdit />}
-            onClick={() => handleEditType(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            key="delete"
-            title="确定要删除该字典分类吗?"
-            onOk={() => handleDeleteType(record.id)}
-          >
-            <Button type="text" size="small" status="danger" icon={<IconDelete />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  const [typeForm, setTypeForm] = useState<TypeFormData>({
+    code: '',
+    name: '',
+    description: '',
+    status: '启用',
+  });
 
-  // 字典项表格列配置
-  const itemColumns = [
-    { title: '标签名称', dataIndex: 'label' },
-    { title: '标签值', dataIndex: 'value' },
-    { title: '排序', dataIndex: 'sort', width: 80 },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 80,
-      render: (status: string) => (
-        <Tag color={status === '启用' ? 'green' : 'red'}>{status}</Tag>
-      ),
-    },
-    { title: '备注', dataIndex: 'remark' },
-    {
-      title: '操作',
-      width: 120,
-      render: (_: any, record: any) => (
-        <Space>
-          <Button
-            key="edit"
-            type="text"
-            size="small"
-            icon={<IconEdit />}
-            onClick={() => handleEditItem(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            key="delete"
-            title="确定要删除该字典项吗?"
-            onOk={() => handleDeleteItem(record.id)}
-          >
-            <Button type="text" size="small" status="danger" icon={<IconDelete />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  const [itemForm, setItemForm] = useState<ItemFormData>({
+    label: '',
+    value: '',
+    sort: 1,
+    remark: '',
+    status: '启用',
+  });
 
   const handleAddType = () => {
     setEditingType(null);
-    typeForm.resetFields();
+    setTypeForm({ code: '', name: '', description: '', status: '启用' });
     setTypeModalVisible(true);
   };
 
   const handleEditType = (record: any) => {
     setEditingType(record);
-    typeForm.setFieldsValue(record);
+    setTypeForm({
+      code: record.code,
+      name: record.name,
+      description: record.description,
+      status: record.status,
+    });
     setTypeModalVisible(true);
   };
 
   const handleDeleteType = (id: string) => {
-    Message.success('删除成功');
+    toast.success('删除成功');
   };
 
   const handleTypeSubmit = () => {
-    typeForm.validate().then(() => {
-      Message.success(editingType ? '编辑成功' : '新建成功');
-      setTypeModalVisible(false);
-    });
+    if (!typeForm.code || !typeForm.name) {
+      toast.error('请填写必填项');
+      return;
+    }
+    toast.success(editingType ? '编辑成功' : '新建成功');
+    setTypeModalVisible(false);
   };
 
   const handleAddItem = () => {
     setEditingItem(null);
-    itemForm.resetFields();
+    setItemForm({ label: '', value: '', sort: 1, remark: '', status: '启用' });
     setItemModalVisible(true);
   };
 
   const handleEditItem = (record: any) => {
     setEditingItem(record);
-    itemForm.setFieldsValue(record);
+    setItemForm({
+      label: record.label,
+      value: record.value,
+      sort: record.sort,
+      remark: record.remark,
+      status: record.status,
+    });
     setItemModalVisible(true);
   };
 
   const handleDeleteItem = (id: string) => {
-    Message.success('删除成功');
+    toast.success('删除成功');
   };
 
   const handleItemSubmit = () => {
-    itemForm.validate().then(() => {
-      Message.success(editingItem ? '编辑成功' : '新建成功');
-      setItemModalVisible(false);
-    });
+    if (!itemForm.label || !itemForm.value) {
+      toast.error('请填写必填项');
+      return;
+    }
+    toast.success(editingItem ? '编辑成功' : '新建成功');
+    setItemModalVisible(false);
   };
 
   const currentDictType = mockDictTypes.find(t => t.id === selectedDictType);
   const currentItems = mockDictItems[selectedDictType] || [];
 
   return (
-    <div>
-      <Row gutter={16}>
-        <Col span={24}>
-          <Card
-            bordered={false}
-            title="字典分类"
-            extra={
-              <Button type="primary" icon={<IconPlus />} onClick={handleAddType}>
-                新建分类
-              </Button>
-            }
-            style={{ marginBottom: 16 }}
-          >
-            <Table
-              columns={typeColumns}
-              data={mockDictTypes}
-              rowKey="id"
-              pagination={false}
-            />
-          </Card>
-        </Col>
-        <Col span={24}>
-          <Card
-            bordered={false}
-            title={`字典项 - ${currentDictType?.name || ''}`}
-            extra={
-              <Button type="primary" icon={<IconPlus />} onClick={handleAddItem}>
-                新建字典项
-              </Button>
-            }
-          >
-            <Table
-              columns={itemColumns}
-              data={currentItems}
-              rowKey="id"
-              pagination={false}
-            />
-          </Card>
-        </Col>
-      </Row>
+    <div className="grid grid-cols-1 gap-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>字典分类</CardTitle>
+          <Button onClick={handleAddType}>
+            <Plus className="mr-2 h-4 w-4" />
+            新建分类
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[150px]">字典编码</TableHead>
+                  <TableHead className="w-[150px]">字典名称</TableHead>
+                  <TableHead>描述</TableHead>
+                  <TableHead className="w-[80px]">状态</TableHead>
+                  <TableHead className="w-[120px]">创建时间</TableHead>
+                  <TableHead className="w-[150px]">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mockDictTypes.map((record) => (
+                  <TableRow
+                    key={record.id}
+                    className={selectedDictType === record.id ? 'bg-muted' : ''}
+                  >
+                    <TableCell>{record.code}</TableCell>
+                    <TableCell>{record.name}</TableCell>
+                    <TableCell>{record.description}</TableCell>
+                    <TableCell>
+                      <Badge variant={record.status === '启用' ? 'default' : 'destructive'}>
+                        {record.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{record.createTime}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedDictType(record.id)}>
+                          查看项
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleEditType(record)}>
+                          <Pencil className="mr-1 h-3 w-3" />
+                          编辑
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-destructive">
+                              <Trash2 className="mr-1 h-3 w-3" />
+                              删除
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>确认删除</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                确定要删除该字典分类吗?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>取消</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteType(record.id)}>
+                                确定
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>字典项 - {currentDictType?.name || ''}</CardTitle>
+          <Button onClick={handleAddItem}>
+            <Plus className="mr-2 h-4 w-4" />
+            新建字典项
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>标签名称</TableHead>
+                  <TableHead>标签值</TableHead>
+                  <TableHead className="w-[80px]">排序</TableHead>
+                  <TableHead className="w-[80px]">状态</TableHead>
+                  <TableHead>备注</TableHead>
+                  <TableHead className="w-[120px]">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {currentItems.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      暂无数据
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  currentItems.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.label}</TableCell>
+                      <TableCell>{record.value}</TableCell>
+                      <TableCell>{record.sort}</TableCell>
+                      <TableCell>
+                        <Badge variant={record.status === '启用' ? 'default' : 'destructive'}>
+                          {record.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{record.remark}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => handleEditItem(record)}>
+                            <Pencil className="mr-1 h-3 w-3" />
+                            编辑
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-destructive">
+                                <Trash2 className="mr-1 h-3 w-3" />
+                                删除
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>确认删除</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  确定要删除该字典项吗?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteItem(record.id)}>
+                                  确定
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 字典分类编辑弹窗 */}
-      <Modal
-        title={editingType ? '编辑字典分类' : '新建字典分类'}
-        visible={typeModalVisible}
-        onOk={handleTypeSubmit}
-        onCancel={() => setTypeModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-      >
-        <Form form={typeForm} layout="vertical">
-          <FormItem label="字典编码" field="code" rules={[{ required: true, message: '请输入字典编码' }]}>
-            <Input placeholder="请输入字典编码,如:customer_source" />
-          </FormItem>
-          <FormItem label="字典名称" field="name" rules={[{ required: true, message: '请输入字典名称' }]}>
-            <Input placeholder="请输入字典名称" />
-          </FormItem>
-          <FormItem label="描述" field="description">
-            <Input.TextArea placeholder="请输入描述" rows={3} />
-          </FormItem>
-          <FormItem label="状态" field="status" initialValue="启用">
-            <Select placeholder="请选择状态">
-              <Select.Option value="启用">启用</Select.Option>
-              <Select.Option value="禁用">禁用</Select.Option>
-            </Select>
-          </FormItem>
-        </Form>
-      </Modal>
+      <Dialog open={typeModalVisible} onOpenChange={setTypeModalVisible}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingType ? '编辑字典分类' : '新建字典分类'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>字典编码 *</Label>
+              <Input
+                placeholder="请输入字典编码,如:customer_source"
+                value={typeForm.code}
+                onChange={(e) => setTypeForm({ ...typeForm, code: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>字典名称 *</Label>
+              <Input
+                placeholder="请输入字典名称"
+                value={typeForm.name}
+                onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>描述</Label>
+              <textarea
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                placeholder="请输入描述"
+                rows={3}
+                value={typeForm.description}
+                onChange={(e) => setTypeForm({ ...typeForm, description: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>状态</Label>
+              <Select value={typeForm.status} onValueChange={(value) => setTypeForm({ ...typeForm, status: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="启用">启用</SelectItem>
+                  <SelectItem value="禁用">禁用</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTypeModalVisible(false)}>
+              取消
+            </Button>
+            <Button onClick={handleTypeSubmit}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 字典项编辑弹窗 */}
-      <Modal
-        title={editingItem ? '编辑字典项' : '新建字典项'}
-        visible={itemModalVisible}
-        onOk={handleItemSubmit}
-        onCancel={() => setItemModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-      >
-        <Form form={itemForm} layout="vertical">
-          <FormItem label="标签名称" field="label" rules={[{ required: true, message: '请输入标签名称' }]}>
-            <Input placeholder="请输入标签名称" />
-          </FormItem>
-          <FormItem label="标签值" field="value" rules={[{ required: true, message: '请输入标签值' }]}>
-            <Input placeholder="请输入标签值,如:baidu" />
-          </FormItem>
-          <FormItem label="排序" field="sort" initialValue={1}>
-            <InputNumber placeholder="请输入排序" min={1} style={{ width: '100%' }} />
-          </FormItem>
-          <FormItem label="备注" field="remark">
-            <Input.TextArea placeholder="请输入备注" rows={3} />
-          </FormItem>
-          <FormItem label="状态" field="status" initialValue="启用">
-            <Select placeholder="请选择状态">
-              <Select.Option value="启用">启用</Select.Option>
-              <Select.Option value="禁用">禁用</Select.Option>
-            </Select>
-          </FormItem>
-        </Form>
-      </Modal>
+      <Dialog open={itemModalVisible} onOpenChange={setItemModalVisible}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingItem ? '编辑字典项' : '新建字典项'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>标签名称 *</Label>
+              <Input
+                placeholder="请输入标签名称"
+                value={itemForm.label}
+                onChange={(e) => setItemForm({ ...itemForm, label: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>标签值 *</Label>
+              <Input
+                placeholder="请输入标签值,如:baidu"
+                value={itemForm.value}
+                onChange={(e) => setItemForm({ ...itemForm, value: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>排序</Label>
+              <Input
+                type="number"
+                min={1}
+                placeholder="请输入排序"
+                value={itemForm.sort}
+                onChange={(e) => setItemForm({ ...itemForm, sort: parseInt(e.target.value) || 1 })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>备注</Label>
+              <textarea
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                placeholder="请输入备注"
+                rows={3}
+                value={itemForm.remark}
+                onChange={(e) => setItemForm({ ...itemForm, remark: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>状态</Label>
+              <Select value={itemForm.status} onValueChange={(value) => setItemForm({ ...itemForm, status: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="启用">启用</SelectItem>
+                  <SelectItem value="禁用">禁用</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setItemModalVisible(false)}>
+              取消
+            </Button>
+            <Button onClick={handleItemSubmit}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

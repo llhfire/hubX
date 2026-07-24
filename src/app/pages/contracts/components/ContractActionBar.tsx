@@ -8,23 +8,20 @@
 //   archived      → 关联项目 / 补充扫描件（在归档 Tab 上传）
 //   voided        → 无操作
 
-import {
-  Button,
-  Modal,
-  Space,
-  Input,
-  Form,
-  Message,
-} from '@arco-design/web-react';
-import {
-  IconEdit,
-  IconSend,
-  IconCheck,
-  IconClose,
-  IconLink,
-} from '@arco-design/web-react/icon';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { Button } from '../../../components/ui/button';
+import { Textarea } from '../../../components/ui/textarea';
+import { Label } from '../../../components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../../../components/ui/dialog';
+import { toast } from 'sonner';
+import { Pencil, Send, Check, X, Link } from 'lucide-react';
 import { useContracts } from '../ContractsContext';
 import type { Contract } from '../types';
 
@@ -51,23 +48,23 @@ export function ContractActionBar({ contract }: Props) {
   const onEdit = () => navigate(`/contracts/${contract.id}/edit`);
   const onSubmit = () => {
     submitForApproval(contract.id, contract.current);
-    Message.success('已提交审批');
+    toast.success('已提交审批');
   };
   const onWithdraw = () => {
     withdrawApproval(contract.id);
-    Message.success('已撤回审批');
+    toast.success('已撤回审批');
   };
   const onMailed = () => {
     markMailed(contract.id);
-    Message.success('已标记寄出，进入「待回寄」状态');
+    toast.success('已标记寄出，进入「待回寄」状态');
   };
   const onVoid = () => {
     if (!voidReason.trim()) {
-      Message.error('请填写作废原因');
+      toast.error('请填写作废原因');
       return;
     }
     voidContract(contract.id, voidReason.trim());
-    Message.success('合同已作废');
+    toast.success('合同已作废');
     setVoidModalVisible(false);
   };
 
@@ -75,25 +72,25 @@ export function ContractActionBar({ contract }: Props) {
   const onApproveDemoNext = () => {
     const idx = contract.approvalFlow.findIndex((n) => n.status === 'pending');
     if (idx < 0) {
-      Message.warning('没有待审批节点');
+      toast.warning('没有待审批节点');
       return;
     }
     approveStep(contract.id, idx, '同意（演示）');
-    Message.success(`已通过节点：${contract.approvalFlow[idx].step}`);
+    toast.success(`已通过节点：${contract.approvalFlow[idx].step}`);
   };
 
   const onRejectDemo = () => {
     if (!rejectReason.trim()) {
-      Message.error('请填写驳回原因');
+      toast.error('请填写驳回原因');
       return;
     }
     const idx = contract.approvalFlow.findIndex((n) => n.status === 'pending');
     if (idx < 0) {
-      Message.warning('没有待审批节点');
+      toast.warning('没有待审批节点');
       return;
     }
     rejectStep(contract.id, idx, rejectReason.trim());
-    Message.warning('合同已驳回，回到「草稿」');
+    toast.warning('合同已驳回，回到「草稿」');
     setRejectModalVisible(false);
   };
 
@@ -102,63 +99,69 @@ export function ContractActionBar({ contract }: Props) {
   switch (contract.status) {
     case 'draft':
       buttons.push(
-        <Button key="edit" type="primary" icon={<IconEdit />} onClick={onEdit}>
+        <Button key="edit" onClick={onEdit}>
+          <Pencil className="size-4" />
           编辑
         </Button>,
-        <Button key="submit" type="primary" icon={<IconSend />} onClick={onSubmit}>
+        <Button key="submit" onClick={onSubmit}>
+          <Send className="size-4" />
           提交审批
         </Button>,
-        <Button key="void" status="danger" onClick={() => setVoidModalVisible(true)}>
+        <Button key="void" variant="destructive" onClick={() => setVoidModalVisible(true)}>
           作废
         </Button>,
       );
       break;
     case 'approving':
       buttons.push(
-        <Button key="approve" type="primary" icon={<IconCheck />} onClick={onApproveDemoNext}>
+        <Button key="approve" onClick={onApproveDemoNext}>
+          <Check className="size-4" />
           [演示] 通过下一节点
         </Button>,
-        <Button key="reject" status="danger" icon={<IconClose />} onClick={() => setRejectModalVisible(true)}>
+        <Button key="reject" variant="destructive" onClick={() => setRejectModalVisible(true)}>
+          <X className="size-4" />
           [演示] 驳回
         </Button>,
-        <Button key="withdraw" onClick={onWithdraw}>
+        <Button key="withdraw" variant="outline" onClick={onWithdraw}>
           撤回审批
         </Button>,
       );
       break;
     case 'pending_mail':
       buttons.push(
-        <Button key="mailed" type="primary" icon={<IconSend />} onClick={onMailed}>
+        <Button key="mailed" onClick={onMailed}>
+          <Send className="size-4" />
           标记已寄出
         </Button>,
-        <Button key="void" status="danger" onClick={() => setVoidModalVisible(true)}>
+        <Button key="void" variant="destructive" onClick={() => setVoidModalVisible(true)}>
           作废
         </Button>,
       );
       break;
     case 'pending_return':
       buttons.push(
-        <span key="hint" style={{ color: 'var(--color-text-3)', fontSize: 13 }}>
+        <span key="hint" className="text-muted-foreground text-[13px]">
           请在下方「扫描件归档」Tab 上传客户回寄件
         </span>,
-        <Button key="void" status="danger" onClick={() => setVoidModalVisible(true)}>
+        <Button key="void" variant="destructive" onClick={() => setVoidModalVisible(true)}>
           作废
         </Button>,
       );
       break;
     case 'archived':
       buttons.push(
-        <Button key="link" type="primary" icon={<IconLink />}>
+        <Button key="link">
+          <Link className="size-4" />
           关联项目
         </Button>,
-        <span key="hint" style={{ color: 'var(--color-text-3)', fontSize: 13 }}>
+        <span key="hint" className="text-muted-foreground text-[13px]">
           可在「扫描件归档」Tab 补充上传
         </span>,
       );
       break;
     case 'voided':
       buttons.push(
-        <span key="hint" style={{ color: 'var(--color-danger)', fontSize: 13 }}>
+        <span key="hint" className="text-destructive text-[13px]">
           合同已作废
         </span>,
       );
@@ -167,40 +170,49 @@ export function ContractActionBar({ contract }: Props) {
 
   return (
     <>
-      <Space>{buttons}</Space>
+      <div className="flex gap-2">{buttons}</div>
 
-      <Modal
-        title="作废合同"
-        visible={voidModalVisible}
-        onOk={onVoid}
-        onCancel={() => setVoidModalVisible(false)}
-        okButtonProps={{ status: 'danger' }}
-      >
-        <Form.Item label="作废原因" required>
-          <Input.TextArea
-            rows={3}
-            value={voidReason}
-            onChange={setVoidReason}
-            placeholder="作废后无法恢复，请填写原因"
-          />
-        </Form.Item>
-      </Modal>
+      <Dialog open={voidModalVisible} onOpenChange={setVoidModalVisible}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>作废合同</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>作废原因 <span className="text-destructive">*</span></Label>
+            <Textarea
+              rows={3}
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              placeholder="作废后无法恢复，请填写原因"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVoidModalVisible(false)}>取消</Button>
+            <Button variant="destructive" onClick={onVoid}>确认作废</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <Modal
-        title="驳回审批"
-        visible={rejectModalVisible}
-        onOk={onRejectDemo}
-        onCancel={() => setRejectModalVisible(false)}
-      >
-        <Form.Item label="驳回原因" required>
-          <Input.TextArea
-            rows={3}
-            value={rejectReason}
-            onChange={setRejectReason}
-            placeholder="例如：金额超出审批权限，请下调或申请特批"
-          />
-        </Form.Item>
-      </Modal>
+      <Dialog open={rejectModalVisible} onOpenChange={setRejectModalVisible}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>驳回审批</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>驳回原因 <span className="text-destructive">*</span></Label>
+            <Textarea
+              rows={3}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="例如：金额超出审批权限，请下调或申请特批"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectModalVisible(false)}>取消</Button>
+            <Button variant="destructive" onClick={onRejectDemo}>确认驳回</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

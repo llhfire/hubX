@@ -1,31 +1,29 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Progress } from '../../components/ui/progress';
 import {
-  Card,
-  Tabs,
-  Tag,
-  Button,
-  Space,
-  Typography,
-  Descriptions,
   Table,
-  Statistic,
-  Grid,
-  Divider,
-  Progress,
-  Tooltip,
-} from '@arco-design/web-react';
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
 import {
-  IconLeft,
-  IconUser,
-  IconIdcard,
-  IconCalendar,
-  IconStar,
-  IconEdit,
-  IconTrophy,
-  IconExperiment,
-  IconCheck,
-} from '@arco-design/web-react/icon';
+  ArrowLeft,
+  User,
+  IdCard,
+  CalendarDays,
+  Star,
+  Edit,
+  Trophy,
+  FlaskConical,
+  Check,
+} from 'lucide-react';
 import { useEmployee } from './EmployeeContext';
 import {
   formatCurrency,
@@ -46,11 +44,6 @@ import {
   DISCProfile,
   EnneagramProfile,
 } from './mockData';
-
-const TabPane = Tabs.TabPane;
-const Row = Grid.Row;
-const Col = Grid.Col;
-const Title = Typography.Title;
 
 // ---------- 员工能力雷达图 ----------
 function RadarChart({ scores, size = 240 }: { scores: { tech: number; biz: number; mgmt: number; tool: number; domain: number }; size?: number }) {
@@ -81,11 +74,11 @@ function RadarChart({ scores, size = 240 }: { scores: { tech: number; biz: numbe
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       {gridPolygons.map((pts, i) => <polygon key={i} points={pts} fill="none" stroke="var(--color-border)" strokeWidth={1} strokeOpacity={0.4} />)}
       {dims.map((_, i) => { const a = angleFor(i); return <line key={i} x1={cx} y1={cy} x2={cx + radius * Math.cos(a)} y2={cy + radius * Math.sin(a)} stroke="var(--color-border)" strokeOpacity={0.3} />; })}
-      <polygon points={dataPts} fill="rgb(var(--primary-6))" fillOpacity={0.2} stroke="rgb(var(--primary-6))" strokeWidth={2} />
+      <polygon points={dataPts} fill="var(--primary)" fillOpacity={0.2} stroke="var(--primary)" strokeWidth={2} />
       {dims.map((d, i) => {
         const a = angleFor(i);
         const r = (radius * scores[d]) / 100;
-        return <circle key={d} cx={cx + r * Math.cos(a)} cy={cy + r * Math.sin(a)} r={4} fill="rgb(var(--primary-6))" />;
+        return <circle key={d} cx={cx + r * Math.cos(a)} cy={cy + r * Math.sin(a)} r={4} fill="var(--primary)" />;
       })}
       {labels.map(l => (
         <text key={l.label} x={l.x} y={l.y} textAnchor="middle" dominantBaseline="middle" fontSize={11} fill={l.color} fontWeight={600}>
@@ -99,29 +92,53 @@ function RadarChart({ scores, size = 240 }: { scores: { tech: number; biz: numbe
 // 技能卡
 function SkillCard({ skill, empScore }: { skill: SkillNode; empScore: number }) {
   const dimScore = empScore;
-  const prereqsMet = true; // 简化：只根据能力值判断
+  const prereqsMet = true;
   const scoreMet = skill.requiredScore ? dimScore >= skill.requiredScore : false;
   const unlocked = prereqsMet && scoreMet;
   const mastery = unlocked ? (skill.requiredScore && dimScore / skill.requiredScore >= 1.3 ? '精通' : '入门') : '未解锁';
 
   return (
-    <div style={{
-      padding: '10px 14px',
-      borderRadius: 8,
-      border: `1px solid ${unlocked ? ABILITY_DIMENSION_COLORS[skill.domain] : 'var(--color-border)'}`,
-      borderLeft: `3px solid ${unlocked ? ABILITY_DIMENSION_COLORS[skill.domain] : '#c9cdd4'}`,
-      background: unlocked ? '#fff' : 'var(--color-fill-1)',
-      opacity: unlocked ? 1 : 0.5,
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <span style={{ fontWeight: 600, fontSize: 13 }}>{skill.name}</span>
+    <div
+      className="p-3 rounded-lg border"
+      style={{
+        borderColor: unlocked ? ABILITY_DIMENSION_COLORS[skill.domain] : 'var(--color-border)',
+        borderLeftWidth: 3,
+        borderLeftColor: unlocked ? ABILITY_DIMENSION_COLORS[skill.domain] : '#c9cdd4',
+        background: unlocked ? 'var(--card)' : 'var(--muted)',
+        opacity: unlocked ? 1 : 0.5,
+      }}
+    >
+      <div className="flex justify-between items-center mb-1">
+        <span className="font-semibold text-[13px]">{skill.name}</span>
         {unlocked ? (
-          <Tag color={ABILITY_DIMENSION_COLORS[skill.domain]} size="small">{mastery}</Tag>
+          <Badge className="text-[10px]" style={{ backgroundColor: ABILITY_DIMENSION_COLORS[skill.domain] }}>{mastery}</Badge>
         ) : (
-          <Tag size="small">🔒 {skill.requiredScore}+</Tag>
+          <Badge variant="outline" className="text-[10px]">🔒 {skill.requiredScore}+</Badge>
         )}
       </div>
-      <div style={{ fontSize: 11, color: 'var(--color-text-3)' }}>{skill.description}</div>
+      <div className="text-[11px] text-muted-foreground">{skill.description}</div>
+    </div>
+  );
+}
+
+// 自定义 Progress（支持自定义颜色）
+function ColoredProgress({ value, color, className }: { value: number; color?: string; className?: string }) {
+  return (
+    <div className={`bg-primary/20 relative h-2 w-full overflow-hidden rounded-full ${className || ''}`}>
+      <div
+        className="h-full rounded-full transition-all"
+        style={{ width: `${value}%`, backgroundColor: color || 'var(--primary)' }}
+      />
+    </div>
+  );
+}
+
+// 描述项
+function DescItem({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="py-2">
+      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dd className="text-sm font-medium mt-0.5">{value}</dd>
     </div>
   );
 }
@@ -140,7 +157,7 @@ export function EmployeeDetail() {
   if (!employee) {
     return (
       <Card>
-        <Typography.Paragraph style={{ textAlign: 'center', color: 'var(--color-text-3)' }}>员工不存在</Typography.Paragraph>
+        <CardContent className="py-12 text-center text-muted-foreground">员工不存在</CardContent>
       </Card>
     );
   }
@@ -150,224 +167,339 @@ export function EmployeeDetail() {
   const cap = employee.capability;
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <div className="flex flex-col gap-4 w-full">
       {/* 顶部栏 */}
-      <Card bordered={false}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Space>
-            <Button icon={<IconLeft />} type="text" onClick={() => navigate('/employees')}>返回</Button>
-            <Divider type="vertical" style={{ height: 24 }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{
-                width: 64, height: 64, borderRadius: '50%',
-                background: 'linear-gradient(135deg, rgb(var(--primary-6)), rgb(var(--primary-4)))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 24, fontWeight: 700,
-              }}>
-                {employee.name.slice(0, 1)}
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Title heading={4} style={{ margin: 0 }}>{employee.name}</Title>
-                  <Tag color={getLevelColor(employee.level)} style={{fontWeight: 600 }}>{employee.level}</Tag>
-                  <Tag color={getStatusColor(employee.employmentStatus)}>{employee.employmentStatus}</Tag>
-                  {cap?.promotionEligible && <Tag color="#ff7d00">可晋级</Tag>}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" onClick={() => navigate('/employees')}>
+                <ArrowLeft className="mr-1 size-4" />
+                返回
+              </Button>
+              <div className="h-6 w-px bg-border" />
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-2xl font-bold">
+                  {employee.name.slice(0, 1)}
                 </div>
-                <div style={{ marginTop: 4, color: 'var(--color-text-2)', fontSize: 13 }}>
-                  {employee.jobNumber} · {employee.department} · {employee.position}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xl font-bold m-0">{employee.name}</h4>
+                    <Badge className={getLevelColor(employee.level)} style={{ fontWeight: 600 }}>{employee.level}</Badge>
+                    <Badge className={getStatusColor(employee.employmentStatus)}>{employee.employmentStatus}</Badge>
+                    {cap?.promotionEligible && <Badge className="bg-orange-500">可晋级</Badge>}
+                  </div>
+                  <div className="mt-1 text-muted-foreground text-[13px]">
+                    {employee.jobNumber} · {employee.department} · {employee.position}
+                  </div>
                 </div>
               </div>
             </div>
-          </Space>
-          <Button type="primary" icon={<IconEdit />} onClick={() => navigate('/employees')}>编辑</Button>
-        </div>
+            <Button onClick={() => navigate('/employees')}>
+              <Edit className="mr-1 size-4" />
+              编辑
+            </Button>
+          </div>
+        </CardContent>
       </Card>
 
       {/* 核心指标 */}
-      <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="入职天数" value={workDays} suffix="天" prefix={<IconCalendar style={{ color: 'rgb(var(--primary-6))' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="标准时薪" value={employee.standardHourlyRate} prefix="¥" suffix="/h" valueStyle={{ color: 'rgb(var(--primary-6))' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="最近评级" value={latestPerf ? latestPerf.rank : '—'} valueStyle={{ color: latestPerf ? getRankColor(latestPerf.rank) : undefined }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="加权总分" value={cap ? cap.weightedScore : '—'} suffix="分" prefix={<IconTrophy style={{ color: '#ff7d00' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="已解锁技能" value={cap ? cap.skills.filter(s => s.status === 'unlocked').length : '—'} suffix="个" prefix={<IconCheck style={{ color: '#00b42a' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="累计经验" value={cap ? cap.totalXP : '—'} suffix="XP" prefix={<IconExperiment style={{ color: '#7c3aed' }} />} /></Card></Col>
-      </Row>
+      <div className="grid grid-cols-6 gap-4">
+        {[
+          { title: '入职天数', value: workDays, suffix: '天', icon: <CalendarDays className="text-primary" /> },
+          { title: '标准时薪', value: formatCurrency(employee.standardHourlyRate), prefix: '¥', suffix: '/h', icon: null, valueClass: 'text-primary' },
+          { title: '最近评级', value: latestPerf ? latestPerf.rank : '—', icon: null, valueClass: latestPerf ? getRankColor(latestPerf.rank) : '' },
+          { title: '加权总分', value: cap ? cap.weightedScore : '—', suffix: '分', icon: <Trophy className="text-orange-500" /> },
+          { title: '已解锁技能', value: cap ? cap.skills.filter(s => s.status === 'unlocked').length : '—', suffix: '个', icon: <Check className="text-green-500" /> },
+          { title: '累计经验', value: cap ? cap.totalXP : '—', suffix: 'XP', icon: <FlaskConical className="text-purple-500" /> },
+        ].map((item, i) => (
+          <Card key={i}>
+            <CardContent className="py-3">
+              <div className="text-sm text-muted-foreground">{item.title}</div>
+              <div className="flex items-center gap-1 mt-1">
+                {item.icon}
+                <span className={`text-xl font-bold ${item.valueClass || ''}`}>{item.value}</span>
+                {item.suffix && <span className="text-xs text-muted-foreground">{item.suffix}</span>}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       {/* Tab */}
-      <Card bordered={false}>
-        <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="profile" title="档案" />
-          <TabPane key="capability" title={<span><IconTrophy style={{ color: '#ff7d00' }} /> 能力</span>} />
-          <TabPane key="personality" title={<span><IconStar style={{ color: '#7c3aed' }} /> 性格测评</span>} />
-          <TabPane key="attendance" title="考勤" />
-          <TabPane key="performance" title="绩效" />
-        </Tabs>
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="profile">档案</TabsTrigger>
+              <TabsTrigger value="capability">
+                <Trophy className="size-4 text-orange-500 mr-1" />
+                能力
+              </TabsTrigger>
+              <TabsTrigger value="personality">
+                <Star className="size-4 text-purple-500 mr-1" />
+                性格测评
+              </TabsTrigger>
+              <TabsTrigger value="attendance">考勤</TabsTrigger>
+              <TabsTrigger value="performance">绩效</TabsTrigger>
+            </TabsList>
 
-        <div style={{ paddingTop: 16 }}>
-          {/* 档案 Tab */}
-          {activeTab === 'profile' && (
-            <div>
-              <Title heading={6} style={{ marginBottom: 12 }}><Space><IconUser /> 个人信息</Space></Title>
-              <Descriptions column={3} labelStyle={{ color: 'var(--color-text-2)', fontWeight: 500 }} data={[
-                { label: '姓名', value: employee.name }, { label: '工号', value: employee.jobNumber }, { label: '手机号', value: employee.phone },
-                { label: '邮箱', value: employee.email }, { label: '身份证', value: employee.idCard || '—' }, { label: '紧急联系人', value: employee.emergencyContact || '—' },
-                { label: '最高学历', value: employee.education || '—' }, { label: '毕业院校', value: employee.school || '—' }, { label: '入职前经验', value: employee.previousExperience || '—' },
-              ]} />
-              <Divider style={{ margin: '20px 0' }} />
-              <Title heading={6} style={{ marginBottom: 12 }}><Space><IconIdcard /> 工作信息</Space></Title>
-              <Descriptions column={3} labelStyle={{ color: 'var(--color-text-2)', fontWeight: 500 }} data={[
-                { label: '所属部门', value: employee.department }, { label: '职位', value: employee.position },
-                { label: '职级', value: <Tag color={getLevelColor(employee.level)}>{employee.level}</Tag> },
-                { label: '在职状态', value: <Tag color={getStatusColor(employee.employmentStatus)}>{employee.employmentStatus}</Tag> },
-                { label: '入职日期', value: employee.hireDate }, { label: '转正日期', value: employee.转正Date || '—' },
-                { label: '合同到期日', value: employee.contractEndDate },
-                { label: '标准时薪', value: <span style={{ fontWeight: 700, color: 'rgb(var(--primary-6))' }}>{formatCurrency(employee.standardHourlyRate)}/h</span> },
-                { label: '银行卡', value: employee.bankAccount || '—' },
-              ]} />
-            </div>
-          )}
+            <div className="pt-4">
+              {/* 档案 Tab */}
+              <TabsContent value="profile">
+                <div>
+                  <h6 className="font-semibold mb-3 flex items-center gap-2"><User className="size-4" /> 个人信息</h6>
+                  <dl className="grid grid-cols-3 gap-x-4 gap-y-0">
+                    <DescItem label="姓名" value={employee.name} />
+                    <DescItem label="工号" value={employee.jobNumber} />
+                    <DescItem label="手机号" value={employee.phone} />
+                    <DescItem label="邮箱" value={employee.email} />
+                    <DescItem label="身份证" value={employee.idCard || '—'} />
+                    <DescItem label="紧急联系人" value={employee.emergencyContact || '—'} />
+                    <DescItem label="最高学历" value={employee.education || '—'} />
+                    <DescItem label="毕业院校" value={employee.school || '—'} />
+                    <DescItem label="入职前经验" value={employee.previousExperience || '—'} />
+                  </dl>
+                  <hr className="my-5" />
+                  <h6 className="font-semibold mb-3 flex items-center gap-2"><IdCard className="size-4" /> 工作信息</h6>
+                  <dl className="grid grid-cols-3 gap-x-4 gap-y-0">
+                    <DescItem label="所属部门" value={employee.department} />
+                    <DescItem label="职位" value={employee.position} />
+                    <DescItem label="职级" value={<Badge className={getLevelColor(employee.level)}>{employee.level}</Badge>} />
+                    <DescItem label="在职状态" value={<Badge className={getStatusColor(employee.employmentStatus)}>{employee.employmentStatus}</Badge>} />
+                    <DescItem label="入职日期" value={employee.hireDate} />
+                    <DescItem label="转正日期" value={(employee as any).转正Date || '—'} />
+                    <DescItem label="合同到期日" value={employee.contractEndDate} />
+                    <DescItem label="标准时薪" value={<span className="font-bold text-primary">{formatCurrency(employee.standardHourlyRate)}/h</span>} />
+                    <DescItem label="银行卡" value={employee.bankAccount || '—'} />
+                  </dl>
+                </div>
+              </TabsContent>
 
-          {/* 能力 Tab */}
-          {activeTab === 'capability' && cap && (
-            <div>
-              {/* 雷达图 + 晋级进度 */}
-              <Row gutter={24} style={{ marginBottom: 24 }}>
-                <Col span={10}>
-                  <Card title="能力雷达图" size="small" bodyStyle={{ display: 'flex', justifyContent: 'center', padding: '20px 0' }}>
-                    <RadarChart scores={cap.scores} size={280} />
-                  </Card>
-                </Col>
-                <Col span={14}>
-                  <Card title="五维能力分数" size="small" bodyStyle={{ padding: '16px 20px' }}>
-                    {(Object.keys(cap.scores) as AbilityDimension[]).map(dim => (
-                      <div key={dim} style={{ marginBottom: 12 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontWeight: 600, fontSize: 13, color: ABILITY_DIMENSION_COLORS[dim] }}>
-                            {ABILITY_DIMENSION_LABELS[dim]}
-                          </span>
-                          <span style={{ fontWeight: 700, fontSize: 13 }}>{cap.scores[dim]}/100</span>
-                        </div>
-                        <Progress percent={cap.scores[dim]} color={ABILITY_DIMENSION_COLORS[dim]} size="small" />
-                      </div>
-                    ))}
-                  </Card>
-                  <Card title="晋级评估" size="small" style={{ marginTop: 12 }} bodyStyle={{ padding: '16px 20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <span style={{ fontWeight: 600 }}>当前加权总分</span>
-                      <span style={{ fontSize: 20, fontWeight: 700, color: cap.promotionEligible ? '#00b42a' : 'rgb(var(--primary-6))' }}>
-                        {cap.weightedScore}
-                      </span>
-                    </div>
-                    <div style={{ marginBottom: 8 }}>
-                      <Progress percent={calcPromotionProgress(cap.weightedScore, employee.level)} color={cap.promotionEligible ? '#00b42a' : 'rgb(var(--primary-6))'} />
-                    </div>
-                    {cap.promotionEligible ? (
-                      <Tag color="#00b42a" style={{fontSize: 13, padding: '4px 12px' }}>
-                        <IconTrophy /> 已达标，具备晋升资格！
-                      </Tag>
-                    ) : (
-                      <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-                        未达晋升门槛，继续积累经验即可晋级
-                      </Typography.Text>
-                    )}
-                  </Card>
-                </Col>
-              </Row>
-
-              {/* 技能树 */}
-              <Title heading={6} style={{ marginBottom: 12 }}><Space><IconExperiment style={{ color: '#7c3aed' }} /> 技能树</Space></Title>
-              <Tabs type="card-gutter" defaultActiveTab="tech">
-                {(['tech', 'biz', 'mgmt', 'tool', 'domain'] as AbilityDimension[]).map(domain => (
-                  <TabPane key={domain} title={
-                    <Tag color={ABILITY_DIMENSION_COLORS[domain]}>{ABILITY_DIMENSION_LABELS[domain]}</Tag>
-                  }>
-                    <Row gutter={16}>
-                      {[1, 2, 3].map(layer => {
-                        const skills = skillTrees.filter(s => s.domain === domain && s.layer === layer);
-                        return (
-                          <Col span={8} key={layer}>
-                            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <Tag color={layer === 1 ? '#00b42a' : layer === 2 ? '#165dff' : '#7c3aed'}>
-                                {layer === 1 ? '基础' : layer === 2 ? '进阶' : '专家'}
-                              </Tag>
+              {/* 能力 Tab */}
+              <TabsContent value="capability">
+                {cap ? (
+                  <div>
+                    <div className="grid grid-cols-[10fr_14fr] gap-6 mb-6">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">能力雷达图</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex justify-center py-4">
+                          <RadarChart scores={cap.scores} size={280} />
+                        </CardContent>
+                      </Card>
+                      <div className="flex flex-col gap-3">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">五维能力分数</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            {(Object.keys(cap.scores) as AbilityDimension[]).map(dim => (
+                              <div key={dim}>
+                                <div className="flex justify-between mb-1">
+                                  <span className="font-semibold text-[13px]" style={{ color: ABILITY_DIMENSION_COLORS[dim] }}>
+                                    {ABILITY_DIMENSION_LABELS[dim]}
+                                  </span>
+                                  <span className="font-bold text-[13px]">{cap.scores[dim]}/100</span>
+                                </div>
+                                <ColoredProgress value={cap.scores[dim]} color={ABILITY_DIMENSION_COLORS[dim]} />
+                              </div>
+                            ))}
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">晋级评估</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="font-semibold">当前加权总分</span>
+                              <span className="text-xl font-bold" style={{ color: cap.promotionEligible ? '#00b42a' : 'var(--primary)' }}>
+                                {cap.weightedScore}
+                              </span>
                             </div>
-                            <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                              {skills.map(s => <SkillCard key={s.id} skill={s} empScore={cap.scores[s.domain]} />)}
-                            </Space>
-                          </Col>
-                        );
-                      })}
-                    </Row>
-                  </TabPane>
-                ))}
-              </Tabs>
-            </div>
-          )}
-          {activeTab === 'capability' && !cap && (
-            <Typography.Paragraph style={{ textAlign: 'center', color: 'var(--color-text-3)', padding: '40px 0' }}>
-              该员工尚未录入能力数值
-            </Typography.Paragraph>
-          )}
-
-          {/* 性格测评 Tab */}
-          {activeTab === 'personality' && employee.personality && (
-            <PersonalityView assessment={employee.personality} employeeName={employee.name} />
-          )}
-          {activeTab === 'personality' && !employee.personality && (
-            <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--color-text-3)' }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🧩</div>
-              <Typography.Paragraph>该员工尚未完成性格测评</Typography.Paragraph>
-              <Typography.Paragraph style={{ fontSize: 12 }}>完成 MBTI、大五人格、DISC 九型人格测评后，分析数据将自动显示在此处。</Typography.Paragraph>
-            </div>
-          )}
-
-          {/* 考勤 Tab */}
-          {activeTab === 'attendance' && (
-            <div>
-              <Table
-                columns={[
-                  { title: '类型', dataIndex: 'type', width: 70, render: (t: any) => <Tag>{t}</Tag> },
-                  { title: '开始', dataIndex: 'startDate', width: 110 }, { title: '结束', dataIndex: 'endDate', width: 110 },
-                  { title: '天数', dataIndex: 'days', width: 60 }, { title: '事由', dataIndex: 'reason' },
-                  { title: '状态', dataIndex: 'status', width: 80, render: (s: any) => <Tag color={s === '已批准' ? '#00b42a' : s === '待审批' ? '#ff7d00' : '#f53f3f'}>{s}</Tag> },
-                  { title: '审批人', dataIndex: 'approvedBy', width: 80 },
-                ] as any}
-                data={empAttendance} rowKey="id" pagination={false}
-              />
-              {empAttendance.length === 0 && <Typography.Paragraph style={{ textAlign: 'center', color: 'var(--color-text-3)', marginTop: 24 }}>暂无考勤记录</Typography.Paragraph>}
-            </div>
-          )}
-
-          {/* 绩效 Tab */}
-          {activeTab === 'performance' && (
-            <div>
-              <Row gutter={16} style={{ marginBottom: 16 }}>
-                {[...performance].reverse().slice(0, 4).map(p => (
-                  <Col span={6} key={p.id}>
-                    <Card>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Statistic title={p.periodLabel} value={p.totalScore} suffix="分" />
-                        <Tag color={getRankColor(p.rank)} style={{fontWeight: 700, fontSize: 16 }}>{p.rank}</Tag>
+                            <div className="mb-2">
+                              <ColoredProgress
+                                value={calcPromotionProgress(cap.weightedScore, employee.level)}
+                                color={cap.promotionEligible ? '#00b42a' : 'var(--primary)'}
+                              />
+                            </div>
+                            {cap.promotionEligible ? (
+                              <Badge className="bg-green-500 text-[13px] py-1 px-3">
+                                <Trophy className="mr-1 size-3" /> 已达标，具备晋升资格！
+                              </Badge>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">
+                                未达晋升门槛，继续积累经验即可晋级
+                              </span>
+                            )}
+                          </CardContent>
+                        </Card>
                       </div>
-                      <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-text-3)' }}>KPI {p.kpiScore} · 行为 {p.behaviorScore}</div>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-              <Table
-                columns={[
-                  { title: '周期', dataIndex: 'periodLabel', width: 100 }, { title: 'KPI', dataIndex: 'kpiScore', width: 60 },
-                  { title: '行为', dataIndex: 'behaviorScore', width: 60 }, { title: '综合', dataIndex: 'totalScore', width: 60 },
-                  { title: '评级', dataIndex: 'rank', width: 60, render: (r: any) => <Tag color={getRankColor(r)}>{r}</Tag> },
-                  { title: '考核人', dataIndex: 'evaluator', width: 80 }, { title: '评语', dataIndex: 'comment', ellipsis: true },
-                ] as any}
-                data={[...performance].reverse()} rowKey="id" pagination={false}
-              />
-              {performance.length === 0 && <Typography.Paragraph style={{ textAlign: 'center', color: 'var(--color-text-3)', marginTop: 24 }}>暂无考核记录</Typography.Paragraph>}
+                    </div>
+
+                    {/* 技能树 */}
+                    <h6 className="font-semibold mb-3 flex items-center gap-2">
+                      <FlaskConical className="size-4 text-purple-500" /> 技能树
+                    </h6>
+                    <Tabs defaultValue="tech">
+                      <TabsList>
+                        {(['tech', 'biz', 'mgmt', 'tool', 'domain'] as AbilityDimension[]).map(domain => (
+                          <TabsTrigger key={domain} value={domain}>
+                            <Badge className="mr-1" style={{ backgroundColor: ABILITY_DIMENSION_COLORS[domain] }}>{ABILITY_DIMENSION_LABELS[domain]}</Badge>
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                      {(['tech', 'biz', 'mgmt', 'tool', 'domain'] as AbilityDimension[]).map(domain => (
+                        <TabsContent key={domain} value={domain}>
+                          <div className="grid grid-cols-3 gap-4">
+                            {[1, 2, 3].map(layer => {
+                              const skills = skillTrees.filter(s => s.domain === domain && s.layer === layer);
+                              return (
+                                <div key={layer}>
+                                  <div className="mb-2 flex items-center gap-2">
+                                    <Badge
+                                      className={
+                                        layer === 1 ? 'bg-green-500' :
+                                        layer === 2 ? 'bg-blue-500' :
+                                        'bg-purple-500'
+                                      }
+                                    >
+                                      {layer === 1 ? '基础' : layer === 2 ? '进阶' : '专家'}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex flex-col gap-2">
+                                    {skills.map(s => <SkillCard key={s.id} skill={s} empScore={cap.scores[s.domain]} />)}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </TabsContent>
+                      ))}
+                    </Tabs>
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-10">该员工尚未录入能力数值</p>
+                )}
+              </TabsContent>
+
+              {/* 性格测评 Tab */}
+              <TabsContent value="personality">
+                {employee.personality ? (
+                  <PersonalityView assessment={employee.personality} employeeName={employee.name} />
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <div className="text-5xl mb-4">🧩</div>
+                    <p>该员工尚未完成性格测评</p>
+                    <p className="text-xs">完成 MBTI、大五人格、DISC 九型人格测评后，分析数据将自动显示在此处。</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* 考勤 Tab */}
+              <TabsContent value="attendance">
+                <div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>类型</TableHead>
+                        <TableHead>开始</TableHead>
+                        <TableHead>结束</TableHead>
+                        <TableHead>天数</TableHead>
+                        <TableHead>事由</TableHead>
+                        <TableHead>状态</TableHead>
+                        <TableHead>审批人</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {empAttendance.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">暂无考勤记录</TableCell>
+                        </TableRow>
+                      ) : (
+                        empAttendance.map(record => (
+                          <TableRow key={record.id}>
+                            <TableCell><Badge variant="outline">{record.type}</Badge></TableCell>
+                            <TableCell>{record.startDate}</TableCell>
+                            <TableCell>{record.endDate}</TableCell>
+                            <TableCell>{record.days}</TableCell>
+                            <TableCell>{record.reason}</TableCell>
+                            <TableCell>
+                              <Badge className={
+                                record.status === '已批准' ? 'bg-green-500' :
+                                record.status === '待审批' ? 'bg-orange-500' :
+                                'bg-red-500'
+                              }>{record.status}</Badge>
+                            </TableCell>
+                            <TableCell>{record.approvedBy}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+
+              {/* 绩效 Tab */}
+              <TabsContent value="performance">
+                <div>
+                  <div className="grid grid-cols-4 gap-4 mb-4">
+                    {[...performance].reverse().slice(0, 4).map(p => (
+                      <Card key={p.id}>
+                        <CardContent className="py-3">
+                          <div className="flex justify-between items-center">
+                            <div className="text-sm text-muted-foreground">{p.periodLabel}</div>
+                            <Badge className={getRankColor(p.rank)} style={{ fontWeight: 700, fontSize: 16 }}>{p.rank}</Badge>
+                          </div>
+                          <div className="text-xl font-bold mt-1">{p.totalScore}<span className="text-xs text-muted-foreground ml-1">分</span></div>
+                          <div className="mt-1 text-xs text-muted-foreground">KPI {p.kpiScore} · 行为 {p.behaviorScore}</div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>周期</TableHead>
+                        <TableHead>KPI</TableHead>
+                        <TableHead>行为</TableHead>
+                        <TableHead>综合</TableHead>
+                        <TableHead>评级</TableHead>
+                        <TableHead>考核人</TableHead>
+                        <TableHead>评语</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {performance.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">暂无考核记录</TableCell>
+                        </TableRow>
+                      ) : (
+                        [...performance].reverse().map(p => (
+                          <TableRow key={p.id}>
+                            <TableCell>{p.periodLabel}</TableCell>
+                            <TableCell>{p.kpiScore}</TableCell>
+                            <TableCell>{p.behaviorScore}</TableCell>
+                            <TableCell>{p.totalScore}</TableCell>
+                            <TableCell>
+                              <Badge className={getRankColor(p.rank)}>{p.rank}</Badge>
+                            </TableCell>
+                            <TableCell>{p.evaluator}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">{p.comment}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
             </div>
-          )}
-        </div>
+          </Tabs>
+        </CardContent>
       </Card>
-    </Space>
+    </div>
   );
 }
 
@@ -385,30 +517,34 @@ function PersonalityView({ assessment, employeeName }: PersonalityViewProps) {
   const testCount = [mbti, bigFive, disc, enneagram].filter(Boolean).length;
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <div className="flex flex-col gap-4 w-full">
       {/* 顶部摘要 */}
-      <Card bordered={false} style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.05), rgba(236,72,153,0.05))' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: 40 }}>🧩</div>
-          <div>
-            <Title heading={5} style={{ margin: 0 }}>{employeeName} · 性格测评报告</Title>
-            <Typography.Text type="secondary">已完成 {testCount} 项测评：{[mbti && 'MBTI', bigFive && '大五人格', disc && 'DISC', enneagram && '九型人格'].filter(Boolean).join(' · ')}</Typography.Text>
+      <Card style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.05), rgba(236,72,153,0.05))' }}>
+        <CardContent className="py-4">
+          <div className="flex items-center gap-4">
+            <div className="text-5xl">🧩</div>
+            <div>
+              <h5 className="text-lg font-bold m-0">{employeeName} · 性格测评报告</h5>
+              <p className="text-sm text-muted-foreground">
+                已完成 {testCount} 项测评：{[mbti && 'MBTI', bigFive && '大五人格', disc && 'DISC', enneagram && '九型人格'].filter(Boolean).join(' · ')}
+              </p>
+            </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
 
       {/* MBTI */}
       {mbti && <MBTICard mbti={mbti} />}
 
       {/* 大五 + DISC 并排 */}
-      <Row gutter={16}>
-        <Col span={12}>{bigFive && <BigFiveCard bigFive={bigFive} />}</Col>
-        <Col span={12}>{disc && <DISCCard disc={disc} />}</Col>
-      </Row>
+      <div className="grid grid-cols-2 gap-4">
+        {bigFive && <BigFiveCard bigFive={bigFive} />}
+        {disc && <DISCCard disc={disc} />}
+      </div>
 
       {/* 九型人格 */}
       {enneagram && <EnneagramCard enneagram={enneagram} />}
-    </Space>
+    </div>
   );
 }
 
@@ -423,59 +559,58 @@ function MBTICard({ mbti }: { mbti: MBTIPersonality }) {
   ];
 
   return (
-    <Card title={<span className="flex items-center gap-2"><span style={{ fontSize: 18 }}>🔮</span> MBTI 性格类型</span>}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div style={{
-          width: 100, height: 100, borderRadius: 16,
-          background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: 2,
-        }}>
-          {mbti.type}
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <span className="text-lg">🔮</span> MBTI 性格类型
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-6 mb-5 flex-wrap">
+          <div
+            className="w-[100px] h-[100px] rounded-2xl flex items-center justify-center text-[28px] font-extrabold text-white tracking-widest"
+            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}
+          >
+            {mbti.type}
+          </div>
+          <div>
+            <h4 className="text-lg font-bold m-0">{info.nickname}</h4>
+            <p className="text-sm text-muted-foreground">{info.summary}</p>
+            {mbti.description && (
+              <p className="text-[13px] text-foreground mt-2">💡 {mbti.description}</p>
+            )}
+            <p className="text-[11px] text-muted-foreground">测试日期：{mbti.testDate}</p>
+          </div>
         </div>
-        <div>
-          <Title heading={4} style={{ margin: 0 }}>{info.nickname}</Title>
-          <Typography.Text type="secondary">{info.summary}</Typography.Text>
-          {mbti.description && (
-            <Typography.Paragraph style={{ marginTop: 8, fontSize: 13, color: 'var(--color-text-2)' }}>
-              💡 {mbti.description}
-            </Typography.Paragraph>
-          )}
-          <Typography.Text type="secondary" style={{ fontSize: 11 }}>测试日期：{mbti.testDate}</Typography.Text>
-        </div>
-      </div>
 
-      {/* 四维度 */}
-      <Row gutter={16}>
-        {dimensions.map(d => {
-          const isPos = d.value >= 0;
-          const pct = Math.abs(d.value);
-          return (
-            <Col span={6} key={d.dim}>
-              <div style={{ textAlign: 'center', marginBottom: 8, fontWeight: 600 }}>{d.dim}</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                <span style={{ color: isPos ? '#165dff' : 'var(--color-text-3)' }}>{d.pos}</span>
-                <span style={{ color: !isPos ? '#165dff' : 'var(--color-text-3)' }}>{d.neg}</span>
+        {/* 四维度 */}
+        <div className="grid grid-cols-4 gap-4">
+          {dimensions.map(d => {
+            const isPos = d.value >= 0;
+            const pct = Math.abs(d.value);
+            return (
+              <div key={d.dim}>
+                <div className="text-center mb-2 font-semibold">{d.dim}</div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className={isPos ? 'text-blue-600' : 'text-muted-foreground'}>{d.pos}</span>
+                  <span className={!isPos ? 'text-purple-500' : 'text-muted-foreground'}>{d.neg}</span>
+                </div>
+                <ColoredProgress value={pct} color={isPos ? '#165dff' : '#a855f7'} />
+                <div className="text-center text-[11px] text-muted-foreground mt-1">
+                  {isPos ? d.pos : d.neg} {pct}%
+                </div>
               </div>
-              <Progress
-                percent={pct}
-                color={isPos ? '#165dff' : '#a855f7'}
-                size="small"
-              />
-              <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--color-text-3)', marginTop: 4 }}>
-                {isPos ? d.pos : d.neg} {pct}%
-              </div>
-            </Col>
-          );
-        })}
-      </Row>
+            );
+          })}
+        </div>
+      </CardContent>
     </Card>
   );
 }
 
 function BigFiveCard({ bigFive }: { bigFive: BigFiveProfile }) {
   const traits = [
-    { label: ' openness', cn: '开放性', value: bigFive.openness, color: '#7c3aed', desc: '好奇心、想象力、尝新' },
+    { label: 'openness', cn: '开放性', value: bigFive.openness, color: '#7c3aed', desc: '好奇心、想象力、尝新' },
     { label: 'conscientiousness', cn: '尽责性', value: bigFive.conscientiousness, color: '#00b42a', desc: '组织性、责任感、目标导向' },
     { label: 'extraversion', cn: '外向性', value: bigFive.extraversion, color: '#ff7d00', desc: '社交性、精力充沛、乐观' },
     { label: 'agreeableness', cn: '宜人性', value: bigFive.agreeableness, color: '#165dff', desc: '合作、信任、利他' },
@@ -485,20 +620,25 @@ function BigFiveCard({ bigFive }: { bigFive: BigFiveProfile }) {
   const topTrait = traits.reduce((best, t) => (t.value > best.value ? t : best), traits[0]);
 
   return (
-    <Card title={<span><span style={{ fontSize: 16 }}>🧬</span> 大五人格 OCEAN</span>} bodyStyle={{ paddingBottom: 8 }}>
-      <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 16 }}>
-        最突出特征：<Tag color={topTrait.color} style={{marginLeft: 4 }}>{topTrait.cn} {topTrait.value}</Tag>
-      </Typography.Text>
-      {traits.map(t => (
-        <div key={t.label} style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>{t.cn} <span style={{ color: 'var(--color-text-3)', fontWeight: 400, fontSize: 11 }}>{t.desc}</span></span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: t.color }}>{t.value}</span>
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base"><span className="mr-2">🧬</span> 大五人格 OCEAN</CardTitle>
+      </CardHeader>
+      <CardContent className="pb-2">
+        <p className="text-xs text-muted-foreground mb-4">
+          最突出特征：<Badge className="ml-1" style={{ backgroundColor: topTrait.color }}>{topTrait.cn} {topTrait.value}</Badge>
+        </p>
+        {traits.map(t => (
+          <div key={t.label} className="mb-3">
+            <div className="flex justify-between mb-1">
+              <span className="text-[13px] font-semibold">{t.cn} <span className="text-muted-foreground font-normal text-[11px]">{t.desc}</span></span>
+              <span className="text-[13px] font-bold" style={{ color: t.color }}>{t.value}</span>
+            </div>
+            <ColoredProgress value={t.value} color={t.color} />
           </div>
-          <Progress percent={t.value} color={t.color} size="small" />
-        </div>
-      ))}
-      <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 8 }}>测试日期：{bigFive.testDate}</Typography.Text>
+        ))}
+        <p className="text-[11px] text-muted-foreground mt-2">测试日期：{bigFive.testDate}</p>
+      </CardContent>
     </Card>
   );
 }
@@ -512,40 +652,46 @@ function DISCCard({ disc }: { disc: DISCProfile }) {
   ];
 
   return (
-    <Card title={<span><span style={{ fontSize: 16 }}>🎭</span> DISC 行为风格</span>} bodyStyle={{ paddingBottom: 8 }}>
-      <div style={{ textAlign: 'center', marginBottom: 16 }}>
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>主要风格</Typography.Text>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
-          {all.map(item => (
-            <div key={item.key} style={{
-              width: 48, height: 48, borderRadius: 12,
-              background: item.key === disc.primaryStyle ? item.color : 'var(--color-fill-2)',
-              color: item.key === disc.primaryStyle ? '#fff' : 'var(--color-text-3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, fontWeight: 800,
-            }}>
-              {item.key}
-            </div>
-          ))}
-        </div>
-        <Tag color={all.find(a => a.key === disc.primaryStyle)?.color} style={{marginTop: 8 }}>
-          {all.find(a => a.key === disc.primaryStyle)?.label}型 · {all.find(a => a.key === disc.primaryStyle)?.desc}
-        </Tag>
-      </div>
-
-      {all.map(item => (
-        <div key={item.key} style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>
-              {item.icon} {item.label}
-              <span style={{ color: 'var(--color-text-3)', fontWeight: 400, fontSize: 11, marginLeft: 4 }}>{item.desc}</span>
-            </span>
-            <span style={{ fontSize: 13, fontWeight: 700 }}>{item.value}%</span>
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base"><span className="mr-2">🎭</span> DISC 行为风格</CardTitle>
+      </CardHeader>
+      <CardContent className="pb-2">
+        <div className="text-center mb-4">
+          <p className="text-xs text-muted-foreground">主要风格</p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            {all.map(item => (
+              <div
+                key={item.key}
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-extrabold"
+                style={{
+                  background: item.key === disc.primaryStyle ? item.color : 'var(--muted)',
+                  color: item.key === disc.primaryStyle ? '#fff' : 'var(--muted-foreground)',
+                }}
+              >
+                {item.key}
+              </div>
+            ))}
           </div>
-          <Progress percent={item.value} color={item.color} size="small" />
+          <Badge className="mt-2" style={{ backgroundColor: all.find(a => a.key === disc.primaryStyle)?.color }}>
+            {all.find(a => a.key === disc.primaryStyle)?.label}型 · {all.find(a => a.key === disc.primaryStyle)?.desc}
+          </Badge>
         </div>
-      ))}
-      <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 8 }}>测试日期：{disc.testDate}</Typography.Text>
+
+        {all.map(item => (
+          <div key={item.key} className="mb-3">
+            <div className="flex justify-between mb-1">
+              <span className="text-[13px] font-semibold">
+                {item.icon} {item.label}
+                <span className="text-muted-foreground font-normal text-[11px] ml-1">{item.desc}</span>
+              </span>
+              <span className="text-[13px] font-bold">{item.value}%</span>
+            </div>
+            <ColoredProgress value={item.value} color={item.color} />
+          </div>
+        ))}
+        <p className="text-[11px] text-muted-foreground mt-2">测试日期：{disc.testDate}</p>
+      </CardContent>
     </Card>
   );
 }
@@ -555,36 +701,41 @@ function EnneagramCard({ enneagram }: { enneagram: EnneagramProfile }) {
   const colors = ['#f53f3f', '#ff7d00', '#f7d038', '#00b42a', '#0fc6c2', '#165dff', '#7c3aed', '#eb2f96', '#86909c'];
 
   return (
-    <Card title={<span><span style={{ fontSize: 18 }}>🔢</span> 九型人格</span>}>
-      <Row gutter={16}>
-        <Col span={6}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              width: 80, height: 80, borderRadius: '50%',
-              background: `linear-gradient(135deg, ${colors[enneagram.type - 1]}, ${colors[enneagram.type - 1]}aa)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 36, fontWeight: 800, color: '#fff', margin: '0 auto 8px',
-            }}>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <span className="text-lg">🔢</span> 九型人格
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-[1fr_3fr] gap-4">
+          <div className="text-center">
+            <div
+              className="w-20 h-20 rounded-full mx-auto mb-2 flex items-center justify-center text-4xl font-extrabold text-white"
+              style={{ background: `linear-gradient(135deg, ${colors[enneagram.type - 1]}, ${colors[enneagram.type - 1]}aa)` }}
+            >
               {enneagram.type}
             </div>
-            <Tag color={colors[enneagram.type - 1]} style={{fontSize: 14 }}>{info.name}</Tag>
-            {enneagram.wing && <Tag style={{ marginTop: 4 }}>W{enneagram.wing}</Tag>}
+            <Badge className="text-sm" style={{ backgroundColor: colors[enneagram.type - 1] }}>{info.name}</Badge>
+            {enneagram.wing && <Badge variant="outline" className="mt-1 block w-fit mx-auto">W{enneagram.wing}</Badge>}
           </div>
-        </Col>
-        <Col span={18}>
-          <Typography.Paragraph style={{ marginBottom: 8 }}>{info.summary}</Typography.Paragraph>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {Array.from({ length: 9 }, (_, i) => i + 1).map(t => (
-              <Tag
-                key={t}
-                color={t === enneagram.type ? colors[t - 1] : 'var(--color-fill-2)' as any}
-                style={{ color: t === enneagram.type ? '#fff' : 'var(--color-text-3)' }}
-              >{t}号 · {ENNEAGRAM_DESCRIPTIONS[t].name}</Tag>
-            ))}
+          <div>
+            <p className="mb-2">{info.summary}</p>
+            <div className="flex gap-2 flex-wrap">
+              {Array.from({ length: 9 }, (_, i) => i + 1).map(t => (
+                <Badge
+                  key={t}
+                  variant={t === enneagram.type ? 'default' : 'outline'}
+                  style={t === enneagram.type ? { backgroundColor: colors[t - 1] } : {}}
+                >
+                  {t}号 · {ENNEAGRAM_DESCRIPTIONS[t].name}
+                </Badge>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-3">测试日期：{enneagram.testDate}</p>
           </div>
-          <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 12 }}>测试日期：{enneagram.testDate}</Typography.Text>
-        </Col>
-      </Row>
+        </div>
+      </CardContent>
     </Card>
   );
 }

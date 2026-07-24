@@ -1,25 +1,47 @@
 import { useState } from 'react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Card, CardContent } from '../components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import {
-  Card,
-  Tabs,
   Table,
-  Button,
-  Space,
-  Modal,
-  Form,
-  Input,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../components/ui/table';
+import { Button } from '../components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Badge } from '../components/ui/badge';
+import {
   Select,
-  TreeSelect,
-  Message,
-  Popconfirm,
-  Tag,
-} from '@arco-design/web-react';
-import { IconPlus, IconEdit, IconDelete } from '@arco-design/web-react/icon';
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '../components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '../components/ui/alert-dialog';
 
-const TabPane = Tabs.TabPane;
-const FormItem = Form.Item;
-
-// 模拟部门树形数据
+// 部门树形数据
 const departmentTree = [
   {
     key: '1',
@@ -125,252 +147,418 @@ const mockEmployees = [
   },
 ];
 
+// 递归渲染树形选项
+function renderTreeOptions(nodes: typeof departmentTree, depth = 0): React.ReactNode[] {
+  return nodes.flatMap((node) => [
+    <SelectItem key={node.value} value={node.value}>
+      {'  '.repeat(depth)}{node.title}
+    </SelectItem>,
+    ...(node.children ? renderTreeOptions(node.children, depth + 1) : []),
+  ]);
+}
+
+const initialDepartmentForm = { name: '', parentId: '', leader: '', status: '启用' };
+const initialEmployeeForm = {
+  jobNumber: '',
+  name: '',
+  department: '',
+  position: '',
+  phone: '',
+  email: '',
+  status: '在职',
+  hireDate: '',
+};
+
 export function Organization() {
   const [activeTab, setActiveTab] = useState('department');
   const [departmentModalVisible, setDepartmentModalVisible] = useState(false);
   const [employeeModalVisible, setEmployeeModalVisible] = useState(false);
-  const [departmentForm] = Form.useForm();
-  const [employeeForm] = Form.useForm();
   const [editingDepartment, setEditingDepartment] = useState<any>(null);
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
-
-  // 部门表格列配置
-  const departmentColumns = [
-    { title: '部门名称', dataIndex: 'name' },
-    { title: '上级部门', dataIndex: 'parentName' },
-    { title: '层级', dataIndex: 'level', render: (level: number) => `第${level}级` },
-    { title: '人员数量', dataIndex: 'memberCount', render: (count: number) => `${count}人` },
-    { title: '负责人', dataIndex: 'leader' },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      render: (status: string) => (
-        <Tag color={status === '启用' ? 'green' : 'red'}>{status}</Tag>
-      ),
-    },
-    {
-      title: '操作',
-      render: (_: any, record: any) => (
-        <Space>
-          <Button
-            key="edit"
-            type="text"
-            size="small"
-            icon={<IconEdit />}
-            onClick={() => handleEditDepartment(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            key="delete"
-            title="确定要删除该部门吗?"
-            onOk={() => handleDeleteDepartment(record.id)}
-          >
-            <Button type="text" size="small" status="danger" icon={<IconDelete />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
-  // 员工表格列配置
-  const employeeColumns = [
-    { title: '工号', dataIndex: 'jobNumber' },
-    { title: '姓名', dataIndex: 'name' },
-    { title: '部门', dataIndex: 'department' },
-    { title: '职位', dataIndex: 'position' },
-    { title: '手机号', dataIndex: 'phone' },
-    { title: '邮箱', dataIndex: 'email' },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      render: (status: string) => (
-        <Tag color={status === '在职' ? 'green' : 'gray'}>{status}</Tag>
-      ),
-    },
-    { title: '入职日期', dataIndex: 'hireDate' },
-    {
-      title: '操作',
-      render: (_: any, record: any) => (
-        <Space>
-          <Button
-            key="edit"
-            type="text"
-            size="small"
-            icon={<IconEdit />}
-            onClick={() => handleEditEmployee(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            key="delete"
-            title="确定要删除该员工吗?"
-            onOk={() => handleDeleteEmployee(record.id)}
-          >
-            <Button type="text" size="small" status="danger" icon={<IconDelete />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  const [departmentForm, setDepartmentForm] = useState(initialDepartmentForm);
+  const [employeeForm, setEmployeeForm] = useState(initialEmployeeForm);
 
   const handleAddDepartment = () => {
     setEditingDepartment(null);
-    departmentForm.resetFields();
+    setDepartmentForm(initialDepartmentForm);
     setDepartmentModalVisible(true);
   };
 
   const handleEditDepartment = (record: any) => {
     setEditingDepartment(record);
-    departmentForm.setFieldsValue(record);
+    setDepartmentForm({
+      name: record.name,
+      parentId: record.parentId || '',
+      leader: record.leader,
+      status: record.status,
+    });
     setDepartmentModalVisible(true);
   };
 
-  const handleDeleteDepartment = (id: string) => {
-    Message.success('删除成功');
+  const handleDeleteDepartment = (_id: string) => {
+    toast.success('删除成功');
   };
 
   const handleDepartmentSubmit = () => {
-    departmentForm.validate().then(() => {
-      Message.success(editingDepartment ? '编辑成功' : '新建成功');
-      setDepartmentModalVisible(false);
-    });
+    if (!departmentForm.name.trim()) {
+      toast.error('请输入部门名称');
+      return;
+    }
+    toast.success(editingDepartment ? '编辑成功' : '新建成功');
+    setDepartmentModalVisible(false);
   };
 
   const handleAddEmployee = () => {
     setEditingEmployee(null);
-    employeeForm.resetFields();
+    setEmployeeForm(initialEmployeeForm);
     setEmployeeModalVisible(true);
   };
 
   const handleEditEmployee = (record: any) => {
     setEditingEmployee(record);
-    employeeForm.setFieldsValue(record);
+    setEmployeeForm({
+      jobNumber: record.jobNumber,
+      name: record.name,
+      department: record.department,
+      position: record.position,
+      phone: record.phone,
+      email: record.email,
+      status: record.status,
+      hireDate: record.hireDate,
+    });
     setEmployeeModalVisible(true);
   };
 
-  const handleDeleteEmployee = (id: string) => {
-    Message.success('删除成功');
+  const handleDeleteEmployee = (_id: string) => {
+    toast.success('删除成功');
   };
 
   const handleEmployeeSubmit = () => {
-    employeeForm.validate().then(() => {
-      Message.success(editingEmployee ? '编辑成功' : '新建成功');
-      setEmployeeModalVisible(false);
-    });
+    if (!employeeForm.jobNumber.trim() || !employeeForm.name.trim() || !employeeForm.phone.trim()) {
+      toast.error('请填写必填字段');
+      return;
+    }
+    toast.success(editingEmployee ? '编辑成功' : '新建成功');
+    setEmployeeModalVisible(false);
   };
 
   return (
     <div>
-      <Card bordered={false}>
-        <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="department" title="部门管理">
-            <div style={{ marginBottom: 16 }}>
-              <Button type="primary" icon={<IconPlus />} onClick={handleAddDepartment}>
-                新建部门
-              </Button>
-            </div>
-            <Table
-              columns={departmentColumns}
-              data={mockDepartments}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-            />
-          </TabPane>
-          <TabPane key="employee" title="人员管理">
-            <div style={{ marginBottom: 16 }}>
-              <Button type="primary" icon={<IconPlus />} onClick={handleAddEmployee}>
-                新增员工
-              </Button>
-            </div>
-            <Table
-              columns={employeeColumns}
-              data={mockEmployees}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-            />
-          </TabPane>
-        </Tabs>
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="department">部门管理</TabsTrigger>
+              <TabsTrigger value="employee">人员管理</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="department">
+              <div className="mb-4">
+                <Button onClick={handleAddDepartment}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  新建部门
+                </Button>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>部门名称</TableHead>
+                    <TableHead>上级部门</TableHead>
+                    <TableHead>层级</TableHead>
+                    <TableHead>人员数量</TableHead>
+                    <TableHead>负责人</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead>操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mockDepartments.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.name}</TableCell>
+                      <TableCell>{record.parentName}</TableCell>
+                      <TableCell>第{record.level}级</TableCell>
+                      <TableCell>{record.memberCount}人</TableCell>
+                      <TableCell>{record.leader}</TableCell>
+                      <TableCell>
+                        <Badge variant={record.status === '启用' ? 'default' : 'destructive'}>
+                          {record.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditDepartment(record)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            编辑
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                                删除
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>确认删除</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  确定要删除该部门吗?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteDepartment(record.id)}>
+                                  确定
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
+
+            <TabsContent value="employee">
+              <div className="mb-4">
+                <Button onClick={handleAddEmployee}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  新增员工
+                </Button>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>工号</TableHead>
+                    <TableHead>姓名</TableHead>
+                    <TableHead>部门</TableHead>
+                    <TableHead>职位</TableHead>
+                    <TableHead>手机号</TableHead>
+                    <TableHead>邮箱</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead>入职日期</TableHead>
+                    <TableHead>操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mockEmployees.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.jobNumber}</TableCell>
+                      <TableCell>{record.name}</TableCell>
+                      <TableCell>{record.department}</TableCell>
+                      <TableCell>{record.position}</TableCell>
+                      <TableCell>{record.phone}</TableCell>
+                      <TableCell>{record.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={record.status === '在职' ? 'default' : 'secondary'}>
+                          {record.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{record.hireDate}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditEmployee(record)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            编辑
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                                删除
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>确认删除</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  确定要删除该员工吗?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteEmployee(record.id)}>
+                                  确定
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
 
       {/* 部门编辑弹窗 */}
-      <Modal
-        title={editingDepartment ? '编辑部门' : '新建部门'}
-        visible={departmentModalVisible}
-        onOk={handleDepartmentSubmit}
-        onCancel={() => setDepartmentModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-      >
-        <Form form={departmentForm} layout="vertical">
-          <FormItem label="部门名称" field="name" rules={[{ required: true, message: '请输入部门名称' }]}>
-            <Input placeholder="请输入部门名称" />
-          </FormItem>
-          <FormItem label="上级部门" field="parentId">
-            <TreeSelect
-              placeholder="请选择上级部门"
-              treeData={departmentTree}
-              allowClear
-            />
-          </FormItem>
-          <FormItem label="部门负责人" field="leader">
-            <Input placeholder="请输入负责人姓名" />
-          </FormItem>
-          <FormItem label="状态" field="status" initialValue="启用">
-            <Select placeholder="请选择状态">
-              <Select.Option value="启用">启用</Select.Option>
-              <Select.Option value="禁用">禁用</Select.Option>
-            </Select>
-          </FormItem>
-        </Form>
-      </Modal>
+      <Dialog open={departmentModalVisible} onOpenChange={setDepartmentModalVisible}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingDepartment ? '编辑部门' : '新建部门'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>部门名称 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入部门名称"
+                value={departmentForm.name}
+                onChange={(e) => setDepartmentForm({ ...departmentForm, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>上级部门</Label>
+              <Select
+                value={departmentForm.parentId}
+                onValueChange={(val) => setDepartmentForm({ ...departmentForm, parentId: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择上级部门" />
+                </SelectTrigger>
+                <SelectContent>
+                  {renderTreeOptions(departmentTree)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>部门负责人</Label>
+              <Input
+                placeholder="请输入负责人姓名"
+                value={departmentForm.leader}
+                onChange={(e) => setDepartmentForm({ ...departmentForm, leader: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>状态</Label>
+              <Select
+                value={departmentForm.status}
+                onValueChange={(val) => setDepartmentForm({ ...departmentForm, status: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="启用">启用</SelectItem>
+                  <SelectItem value="禁用">禁用</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDepartmentModalVisible(false)}>
+              取消
+            </Button>
+            <Button onClick={handleDepartmentSubmit}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 员工编辑弹窗 */}
-      <Modal
-        title={editingEmployee ? '编辑员工' : '新增员工'}
-        visible={employeeModalVisible}
-        onOk={handleEmployeeSubmit}
-        onCancel={() => setEmployeeModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-      >
-        <Form form={employeeForm} layout="vertical">
-          <FormItem label="工号" field="jobNumber" rules={[{ required: true, message: '请输入工号' }]}>
-            <Input placeholder="请输入工号" />
-          </FormItem>
-          <FormItem label="姓名" field="name" rules={[{ required: true, message: '请输入姓名' }]}>
-            <Input placeholder="请输入姓名" />
-          </FormItem>
-          <FormItem label="所属部门" field="department" rules={[{ required: true, message: '请选择部门' }]}>
-            <TreeSelect
-              placeholder="请选择部门"
-              treeData={departmentTree}
-            />
-          </FormItem>
-          <FormItem label="职位" field="position">
-            <Input placeholder="请输入职位" />
-          </FormItem>
-          <FormItem label="手机号" field="phone" rules={[{ required: true, message: '请输入手机号' }]}>
-            <Input placeholder="请输入手机号" />
-          </FormItem>
-          <FormItem label="邮箱" field="email">
-            <Input placeholder="请输入邮箱" />
-          </FormItem>
-          <FormItem label="状态" field="status" initialValue="在职">
-            <Select placeholder="请选择状态">
-              <Select.Option value="在职">在职</Select.Option>
-              <Select.Option value="离职">离职</Select.Option>
-            </Select>
-          </FormItem>
-          <FormItem label="入职日期" field="hireDate">
-            <Input placeholder="请选择入职日期" type="date" />
-          </FormItem>
-        </Form>
-      </Modal>
+      <Dialog open={employeeModalVisible} onOpenChange={setEmployeeModalVisible}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingEmployee ? '编辑员工' : '新增员工'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>工号 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入工号"
+                value={employeeForm.jobNumber}
+                onChange={(e) => setEmployeeForm({ ...employeeForm, jobNumber: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>姓名 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入姓名"
+                value={employeeForm.name}
+                onChange={(e) => setEmployeeForm({ ...employeeForm, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>所属部门 <span className="text-destructive">*</span></Label>
+              <Select
+                value={employeeForm.department}
+                onValueChange={(val) => setEmployeeForm({ ...employeeForm, department: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择部门" />
+                </SelectTrigger>
+                <SelectContent>
+                  {renderTreeOptions(departmentTree)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>职位</Label>
+              <Input
+                placeholder="请输入职位"
+                value={employeeForm.position}
+                onChange={(e) => setEmployeeForm({ ...employeeForm, position: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>手机号 <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="请输入手机号"
+                value={employeeForm.phone}
+                onChange={(e) => setEmployeeForm({ ...employeeForm, phone: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>邮箱</Label>
+              <Input
+                placeholder="请输入邮箱"
+                value={employeeForm.email}
+                onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>状态</Label>
+              <Select
+                value={employeeForm.status}
+                onValueChange={(val) => setEmployeeForm({ ...employeeForm, status: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="在职">在职</SelectItem>
+                  <SelectItem value="离职">离职</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>入职日期</Label>
+              <Input
+                type="date"
+                placeholder="请选择入职日期"
+                value={employeeForm.hireDate}
+                onChange={(e) => setEmployeeForm({ ...employeeForm, hireDate: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmployeeModalVisible(false)}>
+              取消
+            </Button>
+            <Button onClick={handleEmployeeSubmit}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

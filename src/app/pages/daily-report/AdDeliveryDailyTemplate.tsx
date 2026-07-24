@@ -1,19 +1,20 @@
 import { useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
 import {
   Table,
-  Input,
-  InputNumber,
-  Button,
-  Space,
-  Card,
-  Typography,
-  Tag,
-} from '@arco-design/web-react';
-import { IconPlus, IconDelete } from '@arco-design/web-react/icon';
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
 import { AdDeliveryRow, AdDeliveryReportContent } from './types';
 import { getAdDeliveryMockData } from './templateConfig';
-
-const Title = Typography.Title;
 
 interface Props {
   content: AdDeliveryReportContent;
@@ -54,110 +55,150 @@ export function AdDeliveryDailyTemplate({ content, onChange }: Props) {
   const avgCTR = totalImpression > 0 ? ((totalClick / totalImpression) * 100).toFixed(2) : '0';
   const avgCPL = totalLeads > 0 ? (totalSpend / totalLeads).toFixed(1) : '0';
 
-  const columns = [
-    {
-      title: '平台', dataIndex: 'platform', width: 120,
-      render: (_: unknown, record: AdDeliveryRow) => (
-        <Input placeholder="如：百度" value={record.platform} onChange={v => updateCell(record.id, 'platform', v)} size="small" />
-      ),
-    },
-    {
-      title: '账户', dataIndex: 'account', width: 120,
-      render: (_: unknown, record: AdDeliveryRow) => (
-        <Input placeholder="账户名" value={record.account} onChange={v => updateCell(record.id, 'account', v)} size="small" />
-      ),
-    },
-    {
-      title: '消耗(元)', dataIndex: 'spend', width: 100,
-      render: (_: unknown, record: AdDeliveryRow) => (
-        <InputNumber min={0} value={record.spend} onChange={v => updateCell(record.id, 'spend', v || 0)} size="small" style={{ width: '100%' }} />
-      ),
-    },
-    {
-      title: '展示', dataIndex: 'impression', width: 90,
-      render: (_: unknown, record: AdDeliveryRow) => (
-        <InputNumber min={0} value={record.impression} onChange={v => updateCell(record.id, 'impression', v || 0)} size="small" style={{ width: '100%' }} />
-      ),
-    },
-    {
-      title: '点击', dataIndex: 'click', width: 80,
-      render: (_: unknown, record: AdDeliveryRow) => (
-        <InputNumber min={0} value={record.click} onChange={v => updateCell(record.id, 'click', v || 0)} size="small" style={{ width: '100%' }} />
-      ),
-    },
-    {
-      title: '线索', dataIndex: 'leads', width: 70,
-      render: (_: unknown, record: AdDeliveryRow) => (
-        <InputNumber min={0} value={record.leads} onChange={v => updateCell(record.id, 'leads', v || 0)} size="small" style={{ width: '100%' }} />
-      ),
-    },
-    {
-      title: 'CTR', width: 70,
-      render: (_: unknown, record: AdDeliveryRow) => (
-        <span style={{ fontSize: 12 }}>
-          {record.impression > 0 ? ((record.click / record.impression) * 100).toFixed(2) : '0.00'}%
-        </span>
-      ),
-    },
-    {
-      title: 'CPL', width: 70,
-      render: (_: unknown, record: AdDeliveryRow) => (
-        <span style={{ fontSize: 12 }}>
-          {record.leads > 0 ? `¥${(record.spend / record.leads).toFixed(1)}` : '—'}
-        </span>
-      ),
-    },
-    {
-      title: '', width: 40,
-      render: (_: unknown, record: AdDeliveryRow) => (
-        <Button type="text" size="small" status="danger" icon={<IconDelete />} onClick={() => removeRow(record.id)} />
-      ),
-    },
-  ];
-
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Card size="small" title="投放数据">
-        <Table
-          columns={columns as any}
-          data={rows}
-          rowKey="id"
-          pagination={false}
-          border
-          scroll={{ x: 700 }}
-        />
-        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Button type="primary" icon={<IconPlus />} size="small" onClick={addRow}>添加平台</Button>
-          <Space size={16}>
-            <Tag color="blue">总消耗 ¥{totalSpend.toLocaleString()}</Tag>
-            <Tag>展示 {totalImpression.toLocaleString()}</Tag>
-            <Tag>点击 {totalClick.toLocaleString()}</Tag>
-            <Tag color="green">线索 {totalLeads}</Tag>
-            <Tag color="orange">CTR {avgCTR}%</Tag>
-            <Tag color="purple">CPL ¥{avgCPL}</Tag>
-          </Space>
-        </div>
+    <div className="flex flex-col gap-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">投放数据</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[120px]">平台</TableHead>
+                <TableHead className="w-[120px]">账户</TableHead>
+                <TableHead className="w-[100px]">消耗(元)</TableHead>
+                <TableHead className="w-[90px]">展示</TableHead>
+                <TableHead className="w-[80px]">点击</TableHead>
+                <TableHead className="w-[70px]">线索</TableHead>
+                <TableHead className="w-[70px]">CTR</TableHead>
+                <TableHead className="w-[70px]">CPL</TableHead>
+                <TableHead className="w-[40px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>
+                    <Input
+                      placeholder="如：百度"
+                      value={row.platform}
+                      onChange={(e) => updateCell(row.id, 'platform', e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      placeholder="账户名"
+                      value={row.account}
+                      onChange={(e) => updateCell(row.id, 'account', e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={row.spend}
+                      onChange={(e) => updateCell(row.id, 'spend', parseFloat(e.target.value) || 0)}
+                      className="h-8 text-sm"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={row.impression}
+                      onChange={(e) => updateCell(row.id, 'impression', parseFloat(e.target.value) || 0)}
+                      className="h-8 text-sm"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={row.click}
+                      onChange={(e) => updateCell(row.id, 'click', parseFloat(e.target.value) || 0)}
+                      className="h-8 text-sm"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={row.leads}
+                      onChange={(e) => updateCell(row.id, 'leads', parseFloat(e.target.value) || 0)}
+                      className="h-8 text-sm"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-xs">
+                      {row.impression > 0 ? ((row.click / row.impression) * 100).toFixed(2) : '0.00'}%
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-xs">
+                      {row.leads > 0 ? `¥${(row.spend / row.leads).toFixed(1)}` : '—'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      onClick={() => removeRow(row.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <div className="mt-3 flex items-center justify-between">
+            <Button variant="outline" size="sm" onClick={addRow}>
+              <Plus className="h-4 w-4 mr-1" />
+              添加平台
+            </Button>
+            <div className="flex gap-2">
+              <Badge variant="secondary">总消耗 ¥{totalSpend.toLocaleString()}</Badge>
+              <Badge variant="outline">展示 {totalImpression.toLocaleString()}</Badge>
+              <Badge variant="outline">点击 {totalClick.toLocaleString()}</Badge>
+              <Badge variant="secondary" className="bg-green-500 text-white">线索 {totalLeads}</Badge>
+              <Badge variant="secondary" className="bg-orange-500 text-white">CTR {avgCTR}%</Badge>
+              <Badge variant="secondary" className="bg-purple-500 text-white">CPL ¥{avgCPL}</Badge>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
-      <Card size="small" title="优化动作" bodyStyle={{ padding: '12px 16px' }}>
-        <Input.TextArea
-          placeholder="今日做了哪些优化操作？（如：调整出价、更换素材、新增关键词等）"
-          value={content['optimization-actions'] || ''}
-          onChange={v => handleFieldChange('optimization-actions', v)}
-          autoSize={{ minRows: 3, maxRows: 6 }}
-          style={{ width: '100%' }}
-        />
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">优化动作</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Textarea
+            placeholder="今日做了哪些优化操作？（如：调整出价、更换素材、新增关键词等）"
+            value={content['optimization-actions'] || ''}
+            onChange={(e) => handleFieldChange('optimization-actions', e.target.value)}
+            rows={3}
+          />
+        </CardContent>
       </Card>
 
-      <Card size="small" title="明日工作计划" bodyStyle={{ padding: '12px 16px' }}>
-        <Input.TextArea
-          placeholder="请输入明日工作计划（必填）"
-          value={content['tomorrow-plan'] || ''}
-          onChange={v => handleFieldChange('tomorrow-plan', v)}
-          autoSize={{ minRows: 2, maxRows: 4 }}
-          style={{ width: '100%' }}
-        />
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">明日工作计划</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Textarea
+            placeholder="请输入明日工作计划（必填）"
+            value={content['tomorrow-plan'] || ''}
+            onChange={(e) => handleFieldChange('tomorrow-plan', e.target.value)}
+            rows={2}
+          />
+        </CardContent>
       </Card>
-    </Space>
+    </div>
   );
 }

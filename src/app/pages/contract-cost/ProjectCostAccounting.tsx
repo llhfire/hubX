@@ -1,27 +1,39 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  Card,
-  Grid,
-  Statistic,
-  Table,
-  Button,
-  Space,
-  Tag,
-  Select,
-  Progress,
-  Typography,
-  Tabs,
-  Tooltip,
-} from '@arco-design/web-react';
+  FileText,
+  FlaskConical,
+  AlertCircle,
+  ArrowRight,
+  Trophy,
+  Calendar,
+} from 'lucide-react';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Progress } from '../../components/ui/progress';
 import {
-  IconFile,
-  IconExperiment,
-  IconExclamationCircle,
-  IconArrowRight,
-  IconTrophy,
-  IconCalendar,
-} from '@arco-design/web-react/icon';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui/tooltip';
 import {
   initialProjects,
   initialDailyReports,
@@ -37,11 +49,6 @@ import {
 } from './contractCostData';
 import { useContracts } from '../contracts/ContractsContext';
 import { formatCurrency } from '../employee/mockData';
-
-const Row = Grid.Row;
-const Col = Grid.Col;
-const TabPane = Tabs.TabPane;
-const Title = Typography.Title;
 
 interface ProjectCostRow {
   projectId: string;
@@ -150,143 +157,192 @@ export function ProjectCostAccounting() {
 
   const statusOptions = Array.from(new Set(initialProjects.map(p => p.status)));
 
-  const columns = [
-    {
-      title: '项目', dataIndex: 'projectName', width: 160, fixed: 'left' as const,
-      render: (_: unknown, row: ProjectCostRow) => (
-        <Button type="text" size="small" style={{ fontWeight: 600, padding: 0 }} onClick={() => navigate(`/projects/${row.projectId}`)}>
-          {row.projectName}
-        </Button>
-      ),
-    },
-    {
-      title: '状态', dataIndex: 'status', width: 80,
-      render: (s: string) => {
-        const colors: Record<string, string> = { '进行中': '#165dff', '已完成': '#00b42a', '验收中': '#0fc6c2', '未开始': '#86909c', '延迟': '#f53f3f', '搁置': '#c9cdd4', '催款中': '#ff7d00' };
-        return <Tag color={colors[s] || '#86909c'}>{s}</Tag>;
-      },
-    },
-    {
-      title: '进度', dataIndex: 'progress', width: 90,
-      render: (p: number) => <Progress percent={p} size="small" />,
-    },
-    {
-      title: '合同额', dataIndex: 'contractAmount', width: 100,
-      render: (v: number) => <span style={{ fontWeight: 600 }}>{formatCurrency(v)}</span>,
-      sorter: (a: ProjectCostRow, b: ProjectCostRow) => a.contractAmount - b.contractAmount,
-    },
-    {
-      title: '总工时', dataIndex: 'totalHours', width: 80,
-      render: (v: number) => `${v}h`,
-    },
-    {
-      title: '研发成本', dataIndex: 'rdCost', width: 100,
-      render: (v: number) => formatCurrency(v),
-    },
-    {
-      title: '运营分摊', dataIndex: 'opCost', width: 100,
-      render: (v: number) => formatCurrency(v),
-    },
-    {
-      title: '总成本', dataIndex: 'totalCost', width: 100,
-      render: (v: number) => <span style={{ fontWeight: 700, color: '#f53f3f' }}>{formatCurrency(v)}</span>,
-      sorter: (a: ProjectCostRow, b: ProjectCostRow) => a.totalCost - b.totalCost,
-    },
-    {
-      title: '利润', dataIndex: 'profit', width: 100,
-      render: (v: number) => <span style={{ fontWeight: 700, color: v >= 0 ? '#00b42a' : '#f53f3f' }}>{formatCurrency(v)}</span>,
-      sorter: (a: ProjectCostRow, b: ProjectCostRow) => a.profit - b.profit,
-    },
-    {
-      title: '利润率', dataIndex: 'profitMargin', width: 90,
-      render: (v: number, row: ProjectCostRow) => (
-        <Tooltip content={row.budgetAlert === 'danger' ? '亏损预警' : row.budgetAlert === 'warning' ? '利润率偏低' : '健康'}>
-          <Tag color={row.budgetAlert === 'danger' ? '#f53f3f' : row.budgetAlert === 'warning' ? '#ff7d00' : '#00b42a'}>
-            {v}%
-          </Tag>
-        </Tooltip>
-      ),
-      sorter: (a: ProjectCostRow, b: ProjectCostRow) => a.profitMargin - b.profitMargin,
-    },
-  ];
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      '进行中': 'bg-blue-500',
+      '已完成': 'bg-green-500',
+      '验收中': 'bg-teal-500',
+      '未开始': 'bg-gray-400',
+      '延迟': 'bg-red-500',
+      '搁置': 'bg-gray-300',
+      '催款中': 'bg-orange-500',
+    };
+    return colors[status] || 'bg-gray-400';
+  };
+
+  const getAlertVariant = (alert: 'ok' | 'warning' | 'danger') => {
+    if (alert === 'danger') return 'destructive';
+    if (alert === 'warning') return 'default';
+    return 'default';
+  };
+
+  const getAlertColor = (alert: 'ok' | 'warning' | 'danger') => {
+    if (alert === 'danger') return 'bg-red-500';
+    if (alert === 'warning') return 'bg-orange-500';
+    return 'bg-green-500';
+  };
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      {/* 摘要栏 */}
-      <Row gutter={16}>
-        <Col span={4}>
+    <TooltipProvider>
+      <div className="flex flex-col gap-4">
+        {/* 摘要栏 */}
+        <div className="grid grid-cols-6 gap-4">
           <Card>
-            <Statistic title="项目总数" value={summary.projectCount} suffix="个" prefix={<IconFile style={{ color: 'rgb(var(--primary-6))' }} />} />
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <FileText className="h-4 w-4 text-primary" />
+                项目总数
+              </div>
+              <p className="text-2xl font-semibold mt-1">{summary.projectCount} <span className="text-sm font-normal">个</span></p>
+            </CardContent>
           </Card>
-        </Col>
-        <Col span={4}>
           <Card>
-            <Statistic title="合同总额" value={summary.contractAmount} prefix={<IconFile style={{ color: '#165dff' }} />} />
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <FileText className="h-4 w-4 text-blue-500" />
+                合同总额
+              </div>
+              <p className="text-2xl font-semibold mt-1">{formatCurrency(summary.contractAmount)}</p>
+            </CardContent>
           </Card>
-        </Col>
-        <Col span={4}>
           <Card>
-            <Statistic title="总成本" value={summary.totalCost} prefix={<IconExperiment style={{ color: '#f53f3f' }} />} />
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <FlaskConical className="h-4 w-4 text-red-500" />
+                总成本
+              </div>
+              <p className="text-2xl font-semibold mt-1">{formatCurrency(summary.totalCost)}</p>
+            </CardContent>
           </Card>
-        </Col>
-        <Col span={4}>
           <Card>
-            <Statistic title="总利润" value={summary.profit} prefix={<IconTrophy style={{ color: '#00b42a' }} />} />
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <Trophy className="h-4 w-4 text-green-500" />
+                总利润
+              </div>
+              <p className="text-2xl font-semibold mt-1">{formatCurrency(summary.profit)}</p>
+            </CardContent>
           </Card>
-        </Col>
-        <Col span={4}>
           <Card>
-            <Statistic title="平均利润率" value={summary.avgMargin} suffix="%" prefix={<IconCalendar style={{ color: '#ff7d00' }} />} />
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <Calendar className="h-4 w-4 text-orange-500" />
+                平均利润率
+              </div>
+              <p className="text-2xl font-semibold mt-1">{summary.avgMargin}%</p>
+            </CardContent>
           </Card>
-        </Col>
-        <Col span={4}>
           <Card>
-            <Statistic
-              title="预警项目"
-              value={summary.alertCount}
-              suffix="个"
-              prefix={<IconExclamationCircle style={{ color: '#f53f3f' }} />}
-              valueStyle={{ color: summary.alertCount > 0 ? '#f53f3f' : '#00b42a' }}
-            />
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <AlertCircle className="h-4 w-4 text-red-500" />
+                预警项目
+              </div>
+              <p className={`text-2xl font-semibold mt-1 ${summary.alertCount > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                {summary.alertCount} <span className="text-sm font-normal">个</span>
+              </p>
+            </CardContent>
           </Card>
-        </Col>
-      </Row>
+        </div>
 
-      {/* 成本明细 Tab */}
-      <Card bordered={false}>
-        <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="overview" title={<span><IconFile /> 项目成本总览</span>} />
-          <TabPane key="rd" title={<span><IconExperiment /> 研发成本明细</span>} />
-        </Tabs>
+        {/* 成本明细 Tab */}
+        <Card>
+          <CardContent className="pt-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList>
+                <TabsTrigger value="overview">
+                  <FileText className="h-4 w-4 mr-1" />
+                  项目成本总览
+                </TabsTrigger>
+                <TabsTrigger value="rd">
+                  <FlaskConical className="h-4 w-4 mr-1" />
+                  研发成本明细
+                </TabsTrigger>
+              </TabsList>
 
-        {activeTab === 'overview' && (
-          <div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '16px 0' }}>
-              <Select
-                style={{ width: 130 }}
-                placeholder="全部状态"
-                allowClear
-                value={filterStatus}
-                onChange={setFilterStatus}
-              >
-                {statusOptions.map(s => <Select.Option key={s} value={s}>{s}</Select.Option>)}
-              </Select>
-            </div>
-            <Table
-              columns={columns as any}
-              data={filteredData}
-              rowKey="projectId"
-              pagination={{ pageSize: 10, showTotal: true }}
-              scroll={{ x: 1200 }}
-            />
-          </div>
-        )}
+              {activeTab === 'overview' && (
+                <TabsContent value="overview">
+                  <div className="flex flex-wrap gap-3 my-4">
+                    <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v === '__all__' ? '' : v)}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="全部状态" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">全部状态</SelectItem>
+                        {statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[160px]">项目</TableHead>
+                        <TableHead className="w-[80px]">状态</TableHead>
+                        <TableHead className="w-[90px]">进度</TableHead>
+                        <TableHead className="w-[100px]">合同额</TableHead>
+                        <TableHead className="w-[80px]">总工时</TableHead>
+                        <TableHead className="w-[100px]">研发成本</TableHead>
+                        <TableHead className="w-[100px]">运营分摊</TableHead>
+                        <TableHead className="w-[100px]">总成本</TableHead>
+                        <TableHead className="w-[100px]">利润</TableHead>
+                        <TableHead className="w-[90px]">利润率</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredData.map((row) => (
+                        <TableRow key={row.projectId}>
+                          <TableCell>
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto font-semibold"
+                              onClick={() => navigate(`/projects/${row.projectId}`)}
+                            >
+                              {row.projectName}
+                            </Button>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(row.status)}>{row.status}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Progress value={row.progress} className="h-2" />
+                          </TableCell>
+                          <TableCell className="font-semibold">{formatCurrency(row.contractAmount)}</TableCell>
+                          <TableCell>{row.totalHours}h</TableCell>
+                          <TableCell>{formatCurrency(row.rdCost)}</TableCell>
+                          <TableCell>{formatCurrency(row.opCost)}</TableCell>
+                          <TableCell className="font-bold text-red-500">{formatCurrency(row.totalCost)}</TableCell>
+                          <TableCell className={`font-bold ${row.profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {formatCurrency(row.profit)}
+                          </TableCell>
+                          <TableCell>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge className={getAlertColor(row.budgetAlert)}>
+                                  {row.profitMargin}%
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {row.budgetAlert === 'danger' ? '亏损预警' : row.budgetAlert === 'warning' ? '利润率偏低' : '健康'}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TabsContent>
+              )}
 
-        {activeTab === 'rd' && (
-          <RDCostDetailTable projectCostData={projectCostData} />
-        )}
-      </Card>
-    </Space>
+              {activeTab === 'rd' && (
+                <TabsContent value="rd">
+                  <RDCostDetailTable projectCostData={projectCostData} />
+                </TabsContent>
+              )}
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -303,43 +359,42 @@ function RDCostDetailTable({ projectCostData }: { projectCostData: ProjectCostRo
     return result;
   }, [projectCostData]);
 
+  const totalHours = rows.reduce((s: number, r: any) => s + (r.hours || 0), 0);
+  const totalCost = rows.reduce((s: number, r: any) => s + (r.cost || 0), 0);
+
   return (
-    <div style={{ marginTop: 16 }}>
-      <Table
-        columns={[
-          { title: '项目', dataIndex: 'projectName', width: 140 },
-          { title: '姓名', dataIndex: 'employeeName', width: 80 },
-          { title: '角色', dataIndex: 'position', width: 80, render: (v: string) => <Tag>{v}</Tag> },
-          { title: '工时', dataIndex: 'hours', width: 70, render: (v: number) => `${v}h` },
-          { title: '时薪', dataIndex: 'hourlyRate', width: 80, render: (v: number) => formatCurrency(v) },
-          {
-            title: '成本', dataIndex: 'cost', width: 100,
-            render: (v: number) => <span style={{ fontWeight: 600, color: '#f53f3f' }}>{formatCurrency(v)}</span>,
-            sorter: (a: any, b: any) => a.cost - b.cost,
-          },
-        ] as any}
-        data={rows}
-        rowKey={r => `${r.projectName}-${r.employeeName}`}
-        pagination={{ pageSize: 15, showTotal: true }}
-        summary={() => {
-          const totalHours = rows.reduce((s: number, r: any) => s + (r.hours || 0), 0);
-          const totalCost = rows.reduce((s: number, r: any) => s + (r.cost || 0), 0);
-          return (
-            <Table.Summary.Row>
-              <Table.Summary.Cell colSpan={3}>
-                <span style={{ fontWeight: 600 }}>合计</span>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell>
-                <span style={{ fontWeight: 600 }}>{totalHours}h</span>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell>—</Table.Summary.Cell>
-              <Table.Summary.Cell>
-                <span style={{ fontWeight: 700, color: '#f53f3f' }}>{formatCurrency(totalCost)}</span>
-              </Table.Summary.Cell>
-            </Table.Summary.Row>
-          );
-        }}
-      />
+    <div className="mt-4">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[140px]">项目</TableHead>
+            <TableHead className="w-[80px]">姓名</TableHead>
+            <TableHead className="w-[80px]">角色</TableHead>
+            <TableHead className="w-[70px]">工时</TableHead>
+            <TableHead className="w-[80px]">时薪</TableHead>
+            <TableHead className="w-[100px]">成本</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row, index) => (
+            <TableRow key={`${row.projectName}-${row.employeeName}-${index}`}>
+              <TableCell>{row.projectName}</TableCell>
+              <TableCell>{row.employeeName}</TableCell>
+              <TableCell><Badge variant="outline">{row.position}</Badge></TableCell>
+              <TableCell>{row.hours}h</TableCell>
+              <TableCell>{formatCurrency(row.hourlyRate)}</TableCell>
+              <TableCell className="font-semibold text-red-500">{formatCurrency(row.cost)}</TableCell>
+            </TableRow>
+          ))}
+          {/* 合计行 */}
+          <TableRow className="font-semibold bg-muted">
+            <TableCell colSpan={3}>合计</TableCell>
+            <TableCell>{totalHours}h</TableCell>
+            <TableCell>—</TableCell>
+            <TableCell className="font-bold text-red-500">{formatCurrency(totalCost)}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     </div>
   );
 }

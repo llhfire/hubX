@@ -1,22 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Checkbox,
-  Divider,
-  Form,
-  Modal,
-  Select,
-  Space,
-  Typography,
-} from '@arco-design/web-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Button } from '../../components/ui/button';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Separator } from '../../components/ui/separator';
 import type { DeliveryType, DeliveryConfig } from './types';
 import { DELIVERY_TYPES } from './types';
 import { SOP_PHASES, DELIVERY_TYPE_PHASE4_STEPS } from './constants';
 import { SOP_STEP_TEMPLATES } from './sopTemplate';
-
-const FormItem = Form.Item;
-const { Text } = Typography;
 
 /** 中文数字映射，用于板块显示 */
 const PHASE_NO_CN: Record<number, string> = {
@@ -97,123 +89,125 @@ export function DeliveryConfigModal({
     });
   };
 
-  const handlePhaseChange = (values: number[]) => {
-    setSelectedPhases(values);
+  const handlePhaseToggle = (phaseNo: number) => {
+    setSelectedPhases((prev) =>
+      prev.includes(phaseNo) ? prev.filter((p) => p !== phaseNo) : [...prev, phaseNo],
+    );
   };
 
   return (
-    <Modal
-      title="生成交付计划"
-      visible={visible}
-      onCancel={onCancel}
-      autoFocus={false}
-      focusLock
-      style={{ width: 600 }}
-      footer={
-        <Space>
-          <Button onClick={onCancel}>取消</Button>
+    <Dialog open={visible} onOpenChange={(open) => { if (!open) onCancel(); }}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>生成交付计划</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4">
+          {/* 项目开始日期缺失警告 */}
+          {startDateMissing && (
+            <Alert variant="destructive">
+              <AlertDescription>请先在项目基础信息中填写开始日期</AlertDescription>
+            </Alert>
+          )}
+
+          {/* 合同信息（有合同时展示） */}
+          {hasContract && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium">合同编号</span>
+                <span className="text-sm">{contractId}</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium">交付类型</span>
+                <span className="text-sm">{deliveryType}</span>
+              </div>
+            </>
+          )}
+
+          {/* 交付类型选择（无合同时） */}
+          {!hasContract && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">
+                交付类型 <span className="text-destructive">*</span>
+              </span>
+              <Select
+                value={selectedDeliveryType}
+                onValueChange={(val: DeliveryType) => setSelectedDeliveryType(val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择交付类型" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DELIVERY_TYPES.map((dt) => (
+                    <SelectItem key={dt} value={dt}>
+                      {dt}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <Separator />
+
+          {/* 板块选择 */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">选择交付板块</span>
+            <div className="flex flex-col gap-2">
+              {SOP_PHASES.map((phase) => {
+                const disabled = !hasContract && phase.phaseNo === 1;
+                return (
+                  <label key={phase.phaseNo} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={selectedPhases.includes(phase.phaseNo)}
+                      onCheckedChange={() => handlePhaseToggle(phase.phaseNo)}
+                      disabled={disabled}
+                    />
+                    <span className="text-sm">
+                      {PHASE_NO_CN[phase.phaseNo]}、{phase.phaseName}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 板块四步骤预览 */}
+          {effectiveDeliveryType && (
+            <>
+              <Separator />
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium">
+                  板块四预览（{effectiveDeliveryType}）
+                </span>
+                <div className="rounded bg-muted p-3">
+                  {phase4PreviewSteps.length === 0 ? (
+                    <span className="text-sm text-muted-foreground">无匹配步骤</span>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      {phase4PreviewSteps.map((step) => (
+                        <span key={step.stepNo} className="text-sm">
+                          {step.stepNo} {step.stepName}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel}>取消</Button>
           <Button
-            type="primary"
             onClick={handleConfirm}
             disabled={startDateMissing || !effectiveDeliveryType || selectedPhases.length === 0}
           >
             确认生成
           </Button>
-        </Space>
-      }
-    >
-      <Form layout="vertical">
-        {/* 项目开始日期缺失警告 */}
-        {startDateMissing && (
-          <Alert
-            type="warning"
-            content="请先在项目基础信息中填写开始日期"
-            style={{ marginBottom: 16 }}
-          />
-        )}
-
-        {/* 合同信息（有合同时展示） */}
-        {hasContract && (
-          <>
-            <FormItem label="合同编号">
-              <Text>{contractId}</Text>
-            </FormItem>
-            <FormItem label="交付类型">
-              <Text>{deliveryType}</Text>
-            </FormItem>
-          </>
-        )}
-
-        {/* 交付类型选择（无合同时） */}
-        {!hasContract && (
-          <FormItem label="交付类型" required>
-            <Select
-              placeholder="请选择交付类型"
-              value={selectedDeliveryType}
-              onChange={(val: DeliveryType) => setSelectedDeliveryType(val)}
-            >
-              {DELIVERY_TYPES.map((dt) => (
-                <Select.Option key={dt} value={dt}>
-                  {dt}
-                </Select.Option>
-              ))}
-            </Select>
-          </FormItem>
-        )}
-
-        <Divider style={{ margin: '8px 0 16px' }} />
-
-        {/* 板块选择 */}
-        <FormItem label="选择交付板块">
-          <Checkbox.Group
-            value={selectedPhases}
-            onChange={handlePhaseChange as (values: (string | number)[]) => void}
-          >
-            <Space direction="vertical">
-              {SOP_PHASES.map((phase) => {
-                const disabled = !hasContract && phase.phaseNo === 1;
-                return (
-                  <Checkbox
-                    key={phase.phaseNo}
-                    value={phase.phaseNo}
-                    disabled={disabled}
-                  >
-                    {PHASE_NO_CN[phase.phaseNo]}、{phase.phaseName}
-                  </Checkbox>
-                );
-              })}
-            </Space>
-          </Checkbox.Group>
-        </FormItem>
-
-        {/* 板块四步骤预览 */}
-        {effectiveDeliveryType && (
-          <>
-            <Divider style={{ margin: '8px 0 16px' }} />
-            <FormItem label={`板块四预览（${effectiveDeliveryType}）`}>
-              <div
-                style={{
-                  background: 'var(--color-fill-1)',
-                  borderRadius: 4,
-                  padding: '8px 12px',
-                }}
-              >
-                {phase4PreviewSteps.length === 0 ? (
-                  <Text type="secondary">无匹配步骤</Text>
-                ) : (
-                  <Space direction="vertical" size={4}>
-                    {phase4PreviewSteps.map((step) => (
-                      <Text key={step.stepNo}>
-                        {step.stepNo} {step.stepName}
-                      </Text>
-                    ))}
-                  </Space>
-                )}
-              </div>
-            </FormItem>
-          </>
-        )}
-      </Form>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

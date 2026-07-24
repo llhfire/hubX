@@ -1,8 +1,18 @@
 // src/app/pages/daily-report/GeneralDailyTemplate.tsx
 
 import { useState, useEffect, useRef } from 'react';
-import { Input, Button, Table, InputNumber } from '@arco-design/web-react';
-import { IconPlus, IconDelete } from '@arco-design/web-react/icon';
+import { Plus, Trash2 } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
 import { ProjectTask, GeneralReportContent } from './types';
 
 interface Props {
@@ -79,83 +89,82 @@ export function GeneralDailyTemplate({ initialContent, onChange }: Props) {
     setProjectTasks(newTasks);
   };
 
-  const taskColumns = [
-    {
-      title: '项目名称',
-      dataIndex: 'projectName',
-      width: 200,
-      render: (_: string, __: ProjectTask, index: number) => (
-        <Input
-          value={projectTasks[index]?.projectName || ''}
-          onChange={(v) => updateProjectTask(index, 'projectName', v)}
-          placeholder="请输入项目名称"
-        />
-      ),
-    },
-    {
-      title: '任务形式',
-      dataIndex: 'taskForm',
-      width: 120,
-      render: (_: string, __: ProjectTask, index: number) => (
-        <Input
-          value={projectTasks[index]?.taskForm || ''}
-          onChange={(v) => updateProjectTask(index, 'taskForm', v)}
-          placeholder="如：需求沟通"
-        />
-      ),
-    },
-    {
-      title: '用时（小时）',
-      dataIndex: 'hours',
-      width: 100,
-      render: (_: number, __: ProjectTask, index: number) => (
-        <InputNumber
-          value={projectTasks[index]?.hours || 0}
-          onChange={(v) => updateProjectTask(index, 'hours', v || 0)}
-          min={0}
-          placeholder="0"
-        />
-      ),
-    },
-    {
-      title: '',
-      width: 50,
-      render: (_: any, __: any, index: number) => (
-        <Button
-          type="text"
-          icon={<IconDelete />}
-          onClick={() => removeProjectTask(index)}
-          status="danger"
-        />
-      ),
-    },
-  ];
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       {/* 项目任务 */}
       <div>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>项目任务</div>
-        <Table
-          columns={taskColumns}
-          data={projectTasks}
-          pagination={false}
-          size="small"
-          noDataElement={
-            <div style={{ padding: 16 }}>
-              <Button type="dashed" icon={<IconPlus />} onClick={addProjectTask}>
-                添加项目任务
-              </Button>
-            </div>
-          }
-        />
+        <p className="font-semibold mb-2">项目任务</p>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[200px]">项目名称</TableHead>
+              <TableHead className="w-[120px]">任务形式</TableHead>
+              <TableHead className="w-[100px]">用时（小时）</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {projectTasks.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8">
+                  <Button variant="outline" onClick={addProjectTask}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    添加项目任务
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ) : (
+              projectTasks.map((task, index) => (
+                <TableRow key={task.id || index}>
+                  <TableCell>
+                    <Input
+                      value={task.projectName || ''}
+                      onChange={(e) => updateProjectTask(index, 'projectName', e.target.value)}
+                      placeholder="请输入项目名称"
+                      className="h-8 text-sm"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={task.taskForm || ''}
+                      onChange={(e) => updateProjectTask(index, 'taskForm', e.target.value)}
+                      placeholder="如：需求沟通"
+                      className="h-8 text-sm"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      value={task.hours || 0}
+                      onChange={(e) => updateProjectTask(index, 'hours', parseFloat(e.target.value) || 0)}
+                      min={0}
+                      placeholder="0"
+                      className="h-8 text-sm"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      onClick={() => removeProjectTask(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
         {projectTasks.length > 0 && (
           <Button
-            type="dashed"
-            icon={<IconPlus />}
+            variant="outline"
+            size="sm"
             onClick={addProjectTask}
-            style={{ marginTop: 8 }}
+            className="mt-2"
           >
+            <Plus className="h-4 w-4 mr-1" />
             添加一行
           </Button>
         )}
@@ -163,36 +172,36 @@ export function GeneralDailyTemplate({ initialContent, onChange }: Props) {
 
       {/* 今日总结 */}
       <div>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>今日总结</div>
-        <Input.TextArea
+        <p className="font-semibold mb-2">今日总结</p>
+        <Textarea
           value={todaySummary}
-          onChange={(value) => setTodaySummary(value)}
+          onChange={(e) => setTodaySummary(e.target.value)}
           placeholder="请输入今日工作总结..."
-          autoSize={{ minRows: 3, maxRows: 5 }}
+          rows={3}
         />
       </div>
 
       {/* 遇到的问题 */}
       <div>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>遇到的问题</div>
-        <Input.TextArea
+        <p className="font-semibold mb-2">遇到的问题</p>
+        <Textarea
           value={problemsEncountered}
-          onChange={(value) => setProblemsEncountered(value)}
+          onChange={(e) => setProblemsEncountered(e.target.value)}
           placeholder="请输入遇到的问题..."
-          autoSize={{ minRows: 3, maxRows: 5 }}
+          rows={3}
         />
       </div>
 
       {/* 明日工作计划 */}
       <div>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>
-          明日工作计划 <span style={{ color: 'red' }}>*</span>
-        </div>
-        <Input.TextArea
+        <p className="font-semibold mb-2">
+          明日工作计划 <span className="text-red-500">*</span>
+        </p>
+        <Textarea
           value={tomorrowPlan}
-          onChange={(value) => setTomorrowPlan(value)}
+          onChange={(e) => setTomorrowPlan(e.target.value)}
           placeholder="请输入明日工作计划（必填）..."
-          autoSize={{ minRows: 3, maxRows: 5 }}
+          rows={3}
         />
       </div>
     </div>

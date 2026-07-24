@@ -1,37 +1,32 @@
 import { useState, useMemo } from 'react';
 import {
-  Card,
-  Grid,
-  Statistic,
-  Table,
-  Button,
-  Space,
-  Tag,
-  Progress,
-  Typography,
-  Tabs,
-  Tooltip,
-  Badge,
-  Alert,
-  Divider,
-} from '@arco-design/web-react';
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  FlaskConical,
+  User,
+  Pencil,
+  Headphones,
+  ArrowUp,
+  ArrowDown,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+import { cn } from '../../components/ui/utils';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { Separator } from '../../components/ui/separator';
 import {
-  IconCustomerService,
-  IconExclamationCircle,
-  IconCheckCircle,
-  IconCloseCircle,
-  IconClockCircle,
-  IconExperiment,
-  IconUser,
-  IconCalendar,
-  IconArrowRight,
-  IconEdit,
-} from '@arco-design/web-react/icon';
-
-const Row = Grid.Row;
-const Col = Grid.Col;
-const TabPane = Tabs.TabPane;
-const Title = Typography.Title;
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 // ---------- 类型 ----------
 
@@ -161,11 +156,53 @@ function calcSalesGovernance(salesName: string): SalesGovernance {
   };
 }
 
+// ---------- 辅助函数 ----------
+
+function ComplianceProgress({ value }: { value: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+        <div
+          className={cn(
+            'h-full rounded-full transition-all',
+            value >= 80 ? 'bg-green-500' : value >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+          )}
+          style={{ width: `${value}%` }}
+        />
+      </div>
+      <span className="text-xs font-semibold w-9">{value}%</span>
+    </div>
+  );
+}
+
+const violationTypeMap: Record<string, string> = {
+  overdue_followup: '逾期未跟进',
+  no_followup_record: '无跟进记录',
+  status_not_updated: '状态未更新',
+  exceed_hold_days: '超期持有',
+};
+
+const statusColorMap: Record<string, string> = {
+  '未联系': 'bg-gray-400 hover:bg-gray-500',
+  '未接通': 'bg-yellow-500 hover:bg-yellow-600',
+  '初步沟通': 'bg-blue-500 hover:bg-blue-600',
+  '需求调研': 'bg-sky-500 hover:bg-sky-600',
+  '方案报价': 'bg-purple-500 hover:bg-purple-600',
+  '合同洽谈': 'bg-orange-500 hover:bg-orange-600',
+  '已签单': 'bg-green-500 hover:bg-green-600',
+  '已终止': 'bg-red-500 hover:bg-red-600',
+};
+
 // ---------- 主组件 ----------
 
 export function LeadGovernance() {
   const [activeTab, setActiveTab] = useState('overview');
   const [rules, setRules] = useState(defaultRules);
+  const [leadsPage, setLeadsPage] = useState(1);
+  const [sortField, setSortField] = useState<string>('salesName');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const leadsPageSize = 10;
 
   const salesList = useMemo(() => {
     const names = [...new Set(mockLeads.map(l => l.owner))];
@@ -189,171 +226,357 @@ export function LeadGovernance() {
     setRules(prev => prev.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r));
   };
 
+  const sortedSalesList = useMemo(() => {
+    const sorted = [...salesList];
+    sorted.sort((a, b) => {
+      const aVal = (a as Record<string, unknown>)[sortField] as number;
+      const bVal = (b as Record<string, unknown>)[sortField] as number;
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      const aStr = String(aVal);
+      const bStr = String(bVal);
+      return sortDir === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+    });
+    return sorted;
+  }, [salesList, sortField, sortDir]);
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
+
+  const leadsTotalPages = Math.ceil(mockLeads.length / leadsPageSize);
+  const pagedLeads = mockLeads.slice((leadsPage - 1) * leadsPageSize, leadsPage * leadsPageSize);
+
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <div className="flex flex-col gap-4 w-full">
       {/* 摘要栏 */}
-      <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="线索总数" value={summary.total} suffix="条" prefix={<IconCustomerService style={{ color: 'var(--primary)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="活跃线索" value={summary.active} suffix="条" icon={<IconExperiment style={{ color: 'var(--primary)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="逾期未跟进" value={summary.overdue} suffix="条" prefix={<IconExclamationCircle style={{ color: 'var(--destructive-500)' }} />} valueStyle={{ color: summary.overdue > 0 ? 'var(--destructive-500)' : 'var(--success-500)' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="违规记录" value={summary.violations} suffix="条" prefix={<IconCloseCircle style={{ color: 'var(--warning-500)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="平均合规率" value={summary.avgCompliance} suffix="%" prefix={<IconCheckCircle style={{ color: 'var(--success-500)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="已转化" value={summary.conversions} suffix="条" prefix={<IconUser style={{ color: 'var(--chart-5)' }} />} /></Card></Col>
-      </Row>
+      <div className="grid grid-cols-6 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <Headphones className="h-4 w-4" /> 线索总数
+            </div>
+            <div className="text-2xl font-bold">{summary.total} 条</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <FlaskConical className="h-4 w-4" /> 活跃线索
+            </div>
+            <div className="text-2xl font-bold">{summary.active} 条</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <AlertTriangle className="h-4 w-4" /> 逾期未跟进
+            </div>
+            <div className={cn('text-2xl font-bold', summary.overdue > 0 ? 'text-red-500' : 'text-green-500')}>
+              {summary.overdue} 条
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <XCircle className="h-4 w-4" /> 违规记录
+            </div>
+            <div className="text-2xl font-bold">{summary.violations} 条</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <CheckCircle className="h-4 w-4" /> 平均合规率
+            </div>
+            <div className="text-2xl font-bold">{summary.avgCompliance} %</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <User className="h-4 w-4" /> 已转化
+            </div>
+            <div className="text-2xl font-bold">{summary.conversions} 条</div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* 主体 Tab */}
-      <Card bordered={false}>
-        <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="overview" title={<span><IconUser /> 人员合规看板</span>} />
-          <TabPane key="violations" title={<span><IconExclamationCircle /> 违规记录</span>} />
-          <TabPane key="rules" title={<span><IconEdit /> 治理规则</span>} />
-          <TabPane key="leads" title={<span><IconCustomerService /> 线索明细</span>} />
-        </Tabs>
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="overview"><User className="h-4 w-4 mr-1" /> 人员合规看板</TabsTrigger>
+              <TabsTrigger value="violations"><AlertTriangle className="h-4 w-4 mr-1" /> 违规记录</TabsTrigger>
+              <TabsTrigger value="rules"><Pencil className="h-4 w-4 mr-1" /> 治理规则</TabsTrigger>
+              <TabsTrigger value="leads"><Headphones className="h-4 w-4 mr-1" /> 线索明细</TabsTrigger>
+            </TabsList>
 
-        <div style={{ paddingTop: 16 }}>
-          {/* 人员合规 Tab */}
-          {activeTab === 'overview' && (
-            <Table
-              columns={[
-                { title: '销售', dataIndex: 'salesName', width: 80, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
-                { title: '活跃线索', dataIndex: 'activeLeads', width: 80, render: (v: number) => `${v}条` },
-                { title: '今日跟进', dataIndex: 'followedToday', width: 80, render: (v: number) => `${v}次` },
-                { title: '本周跟进', dataIndex: 'followedThisWeek', width: 90, render: (v: number) => `${v}次` },
-                { title: '逾期线索', dataIndex: 'overdueCount', width: 80, render: (v: number) => v > 0 ? <Tag color="red">{v}条</Tag> : <Tag color="green">0</Tag> },
-                { title: '平均响应', dataIndex: 'avgResponseHours', width: 90, render: (v: number) => `${v}h` },
-                { title: '已转化', dataIndex: 'conversionCount', width: 70, render: (v: number) => `${v}条` },
-                {
-                  title: '合规率', dataIndex: 'complianceRate', width: 140,
-                  render: (v: number) => (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Progress percent={v} size="small" color={v >= 80 ? 'var(--success-500)' : v >= 60 ? 'var(--warning-500)' : 'var(--destructive-500)'} style={{ flex: 1 }} />
-                      <span style={{ fontSize: 12, fontWeight: 600, width: 36 }}>{v}%</span>
-                    </div>
-                  ),
-                  sorter: (a: SalesGovernance, b: SalesGovernance) => a.complianceRate - b.complianceRate,
-                },
-                {
-                  title: '违规', dataIndex: 'violations', width: 60,
-                  render: (_: unknown, row: SalesGovernance) => row.violations.length > 0
-                    ? <Badge count={row.violations.length} style={{ background: 'var(--destructive-500)' }} />
-                    : <Tag color="green">无</Tag>,
-                },
-              ] as any}
-              data={salesList}
-              rowKey="salesName"
-              pagination={false}
-            />
-          )}
+            <div className="pt-4">
+              {/* 人员合规 Tab */}
+              <TabsContent value="overview">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-20">销售</TableHead>
+                      <TableHead className="w-20 cursor-pointer" onClick={() => handleSort('activeLeads')}>
+                        <span className="inline-flex items-center gap-1">
+                          活跃线索
+                          {sortField === 'activeLeads' && (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+                        </span>
+                      </TableHead>
+                      <TableHead className="w-20">今日跟进</TableHead>
+                      <TableHead className="w-24 cursor-pointer" onClick={() => handleSort('followedThisWeek')}>
+                        <span className="inline-flex items-center gap-1">
+                          本周跟进
+                          {sortField === 'followedThisWeek' && (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+                        </span>
+                      </TableHead>
+                      <TableHead className="w-20 cursor-pointer" onClick={() => handleSort('overdueCount')}>
+                        <span className="inline-flex items-center gap-1">
+                          逾期线索
+                          {sortField === 'overdueCount' && (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+                        </span>
+                      </TableHead>
+                      <TableHead className="w-24">平均响应</TableHead>
+                      <TableHead className="w-20">已转化</TableHead>
+                      <TableHead className="w-36 cursor-pointer" onClick={() => handleSort('complianceRate')}>
+                        <span className="inline-flex items-center gap-1">
+                          合规率
+                          {sortField === 'complianceRate' && (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+                        </span>
+                      </TableHead>
+                      <TableHead className="w-16">违规</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedSalesList.map(row => (
+                      <TableRow key={row.salesName}>
+                        <TableCell className="font-semibold">{row.salesName}</TableCell>
+                        <TableCell>{row.activeLeads}条</TableCell>
+                        <TableCell>{row.followedToday}次</TableCell>
+                        <TableCell>{row.followedThisWeek}次</TableCell>
+                        <TableCell>
+                          {row.overdueCount > 0 ? (
+                            <Badge variant="destructive">{row.overdueCount}条</Badge>
+                          ) : (
+                            <Badge className="bg-green-500 hover:bg-green-600">0</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>{row.avgResponseHours}h</TableCell>
+                        <TableCell>{row.conversionCount}条</TableCell>
+                        <TableCell>
+                          <ComplianceProgress value={row.complianceRate} />
+                        </TableCell>
+                        <TableCell>
+                          {row.violations.length > 0 ? (
+                            <span className="inline-flex items-center justify-center h-5 min-w-5 rounded-full bg-destructive px-1.5 text-xs text-white font-medium">
+                              {row.violations.length}
+                            </span>
+                          ) : (
+                            <Badge className="bg-green-500 hover:bg-green-600">无</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TabsContent>
 
-          {/* 违规记录 Tab */}
-          {activeTab === 'violations' && (
-            <div>
-              {mockViolations.filter(v => v.severity === 'high').length > 0 && (
-                <Alert
-                  type="error"
-                  content={`当前有 ${mockViolations.filter(v => v.severity === 'high').length} 条高严重性违规，建议立即处理。`}
-                  style={{ marginBottom: 16 }}
-                  icon={<IconExclamationCircle />}
-                />
-              )}
-              <Table
-                columns={[
-                  {
-                    title: '严重度', dataIndex: 'severity', width: 80,
-                    render: (s: string) => (
-                      <Tag color={s === 'high' ? 'var(--destructive-500)' : s === 'medium' ? 'var(--warning-500)' : 'var(--muted-foreground)'}>
-                        {s === 'high' ? '高' : s === 'medium' ? '中' : '低'}
-                      </Tag>
-                    ),
-                  },
-                  { title: '销售', dataIndex: 'salesName', width: 70 },
-                  { title: '违规类型', dataIndex: 'type', width: 130, render: (t: string) => {
-                    const map: Record<string, string> = { overdue_followup: '逾期未跟进', no_followup_record: '无跟进记录', status_not_updated: '状态未更新', exceed_hold_days: '超期持有' };
-                    return <Tag>{map[t] || t}</Tag>;
-                  }},
-                  { title: '描述', dataIndex: 'description' },
-                  { title: '相关线索', dataIndex: 'leadName', width: 130 },
-                  { title: '日期', dataIndex: 'date', width: 100 },
-                  {
-                    title: '自动处置', dataIndex: 'autoAction', width: 140,
-                    render: (a: string) => a ? <Tag color="orange">{a}</Tag> : <span style={{ color: 'var(--color-text-3)' }}>—</span>,
-                  },
-                ] as any}
-                data={mockViolations}
-                rowKey="id"
-                pagination={false}
-              />
-            </div>
-          )}
+              {/* 违规记录 Tab */}
+              <TabsContent value="violations">
+                {mockViolations.filter(v => v.severity === 'high').length > 0 && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      当前有 {mockViolations.filter(v => v.severity === 'high').length} 条高严重性违规，建议立即处理。
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-20">严重度</TableHead>
+                      <TableHead className="w-20">销售</TableHead>
+                      <TableHead className="w-32">违规类型</TableHead>
+                      <TableHead>描述</TableHead>
+                      <TableHead className="w-32">相关线索</TableHead>
+                      <TableHead className="w-24">日期</TableHead>
+                      <TableHead className="w-36">自动处置</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockViolations.map(row => (
+                      <TableRow key={row.id}>
+                        <TableCell>
+                          <Badge
+                            className={cn(
+                              row.severity === 'high'
+                                ? 'bg-red-500 hover:bg-red-600'
+                                : row.severity === 'medium'
+                                  ? 'bg-orange-500 hover:bg-orange-600'
+                                  : 'bg-gray-400 hover:bg-gray-500'
+                            )}
+                          >
+                            {row.severity === 'high' ? '高' : row.severity === 'medium' ? '中' : '低'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{row.salesName}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{violationTypeMap[row.type] || row.type}</Badge>
+                        </TableCell>
+                        <TableCell>{row.description}</TableCell>
+                        <TableCell>{row.leadName}</TableCell>
+                        <TableCell>{row.date}</TableCell>
+                        <TableCell>
+                          {row.autoAction ? (
+                            <Badge className="bg-orange-500 hover:bg-orange-600">{row.autoAction}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">&mdash;</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TabsContent>
 
-          {/* 治理规则 Tab */}
-          {activeTab === 'rules' && (
-            <div>
-              <Row gutter={16}>
-                {rules.map(rule => (
-                  <Col span={8} key={rule.id} style={{ marginBottom: 16 }}>
-                    <Card size="small" style={{ borderColor: rule.enabled ? 'var(--primary)' : 'var(--color-border)', borderWidth: rule.enabled ? 2 : 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>{rule.name}</span>
-                        <Tag color={rule.enabled ? 'var(--primary)' : 'default'}>
-                          {rule.enabled ? '已启用' : '已禁用'}
-                        </Tag>
-                      </div>
-                      <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>{rule.description}</Typography.Text>
-                      <Divider style={{ margin: '8px 0' }} />
-                      <div style={{ fontSize: 12 }}>
-                        <div><span style={{ color: 'var(--color-text-3)' }}>阈值：</span>{rule.threshold}</div>
-                        <div><span style={{ color: 'var(--color-text-3)' }}>处置：</span>{rule.action}</div>
-                      </div>
-                      <Button
-                        type={rule.enabled ? 'secondary' : 'primary'}
-                        size="small"
-                        long
-                        style={{ marginTop: 12 }}
-                        onClick={() => toggleRule(rule.id)}
-                      >
-                        {rule.enabled ? '禁用规则' : '启用规则'}
-                      </Button>
+              {/* 治理规则 Tab */}
+              <TabsContent value="rules">
+                <div className="grid grid-cols-3 gap-4">
+                  {rules.map(rule => (
+                    <Card key={rule.id} className={cn(rule.enabled ? 'border-primary border-2' : 'border')}>
+                      <CardContent className="pt-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-semibold text-sm">{rule.name}</span>
+                          <Badge variant={rule.enabled ? 'default' : 'secondary'}>
+                            {rule.enabled ? '已启用' : '已禁用'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">{rule.description}</p>
+                        <Separator className="my-2" />
+                        <div className="text-xs space-y-1">
+                          <div><span className="text-muted-foreground">阈值：</span>{rule.threshold}</div>
+                          <div><span className="text-muted-foreground">处置：</span>{rule.action}</div>
+                        </div>
+                        <Button
+                          variant={rule.enabled ? 'secondary' : 'default'}
+                          size="sm"
+                          className="w-full mt-3"
+                          onClick={() => toggleRule(rule.id)}
+                        >
+                          {rule.enabled ? '禁用规则' : '启用规则'}
+                        </Button>
+                      </CardContent>
                     </Card>
-                  </Col>
-                ))}
-              </Row>
-            </div>
-          )}
+                  ))}
+                </div>
+              </TabsContent>
 
-          {/* 线索明细 Tab */}
-          {activeTab === 'leads' && (
-            <Table
-              columns={[
-                { title: '线索名称', dataIndex: 'name', width: 160 },
-                { title: '来源', dataIndex: 'source', width: 90, render: (v: string) => <Tag>{v}</Tag> },
-                { title: '等级', dataIndex: 'level', width: 60, render: (v: string) => <Tag color={v === '高' ? 'var(--destructive-500)' : v === '中' ? 'var(--warning-500)' : 'var(--muted-foreground)'}>{v}</Tag> },
-                {
-                  title: '状态', dataIndex: 'status', width: 90,
-                  render: (s: string) => {
-                    const map: Record<string, string> = { '未联系': 'var(--muted-foreground)', '未接通': 'var(--warning-500)', '初步沟通': 'var(--primary)', '需求调研': 'var(--info-500)', '方案报价': 'var(--chart-5)', '合同洽谈': 'var(--warning-500)', '已签单': 'var(--success-500)', '已终止': 'var(--destructive-500)' };
-                    return <Tag color={map[s] || 'var(--muted-foreground)'}>{s}</Tag>;
-                  },
-                },
-                { title: '负责人', dataIndex: 'owner', width: 70 },
-                { title: '跟进次数', dataIndex: 'followCount', width: 80, render: (v: number) => `${v}次` },
-                { title: '持有天数', dataIndex: 'daysHeld', width: 80, render: (v: number) => <span style={{ color: v > 20 ? 'var(--destructive-500)' : v > 14 ? 'var(--warning-500)' : 'inherit' }}>{v}天</span> },
-                {
-                  title: '下次跟进', dataIndex: 'nextFollowTime', width: 100,
-                  render: (v: string, row: LeadRecord) => {
-                    if (!v || ['已签单', '已终止'].includes(row.status)) return '—';
-                    const isOverdue = new Date(v) < new Date('2026-07-02');
-                    return <span style={{ color: isOverdue ? 'var(--destructive-500)' : 'inherit', fontWeight: isOverdue ? 600 : 400 }}>{v}{isOverdue ? ' ' : ''}{isOverdue && <IconExclamationCircle style={{ color: 'var(--warning-500)' }} />}</span>;
-                  },
-                },
-              ] as any}
-              data={mockLeads}
-              rowKey="id"
-              pagination={{ pageSize: 10, showTotal: true }}
-            />
-          )}
-        </div>
+              {/* 线索明细 Tab */}
+              <TabsContent value="leads">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-40">线索名称</TableHead>
+                      <TableHead className="w-24">来源</TableHead>
+                      <TableHead className="w-16">等级</TableHead>
+                      <TableHead className="w-24">状态</TableHead>
+                      <TableHead className="w-20">负责人</TableHead>
+                      <TableHead className="w-20">跟进次数</TableHead>
+                      <TableHead className="w-20">持有天数</TableHead>
+                      <TableHead className="w-24">下次跟进</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pagedLeads.map(row => (
+                      <TableRow key={row.id}>
+                        <TableCell>{row.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{row.source}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={cn(
+                              row.level === '高'
+                                ? 'bg-red-500 hover:bg-red-600'
+                                : row.level === '中'
+                                  ? 'bg-orange-500 hover:bg-orange-600'
+                                  : 'bg-gray-400 hover:bg-gray-500'
+                            )}
+                          >
+                            {row.level}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={cn(statusColorMap[row.status] || 'bg-gray-400 hover:bg-gray-500')}>
+                            {row.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{row.owner}</TableCell>
+                        <TableCell>{row.followCount}次</TableCell>
+                        <TableCell>
+                          <span className={cn(
+                            row.daysHeld > 20 ? 'text-red-500' : row.daysHeld > 14 ? 'text-orange-500' : ''
+                          )}>
+                            {row.daysHeld}天
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            if (!row.nextFollowTime || ['已签单', '已终止'].includes(row.status)) return <span>&mdash;</span>;
+                            const isOverdue = new Date(row.nextFollowTime) < new Date('2026-07-02');
+                            return (
+                              <span className={cn(isOverdue ? 'text-red-500 font-semibold' : '')}>
+                                {row.nextFollowTime}
+                                {isOverdue && (
+                                  <AlertTriangle className="inline h-3 w-3 ml-1 text-orange-500" />
+                                )}
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {/* 分页 */}
+                <div className="flex items-center justify-between mt-4">
+                  <span className="text-sm text-muted-foreground">
+                    共 {mockLeads.length} 条记录，第 {leadsPage}/{leadsTotalPages} 页
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={leadsPage <= 1}
+                      onClick={() => setLeadsPage(p => Math.max(1, p - 1))}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={leadsPage >= leadsTotalPages}
+                      onClick={() => setLeadsPage(p => Math.min(leadsTotalPages, p + 1))}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+            </div>
+          </Tabs>
+        </CardContent>
       </Card>
-    </Space>
+    </div>
   );
 }

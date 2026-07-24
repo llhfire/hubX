@@ -1,4 +1,10 @@
-import { Button, Dropdown, Menu } from '@arco-design/web-react';
+import { Button } from '../../components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
 import type { SnoozeOptionId } from '../types';
 import { useReminders } from '../ReminderContext';
 
@@ -23,6 +29,18 @@ interface ReminderSnoozeMenuProps {
   buttonSize?: 'mini' | 'small' | 'default' | 'large';
 }
 
+function mapButtonSize(size: 'mini' | 'small' | 'default' | 'large'): 'sm' | 'default' | 'lg' {
+  switch (size) {
+    case 'mini':
+    case 'small':
+      return 'sm';
+    case 'large':
+      return 'lg';
+    default:
+      return 'default';
+  }
+}
+
 export function ReminderSnoozeMenu({
   reminderId,
   buttonText = '稍后处理',
@@ -30,19 +48,23 @@ export function ReminderSnoozeMenu({
 }: ReminderSnoozeMenuProps) {
   const { snoozeReminder } = useReminders();
 
-  const droplist = (
-    <Menu onClickMenuItem={(key) => snoozeReminder(reminderId, key as SnoozeOptionId)}>
-      {SNOOZE_OPTIONS.map((option) => (
-        <Menu.Item key={option.id}>{option.label}</Menu.Item>
-      ))}
-    </Menu>
-  );
-
   return (
-    <Dropdown position="bl" trigger="click" droplist={droplist}>
-      <Button size={buttonSize} type="secondary">
-        {buttonText}
-      </Button>
-    </Dropdown>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size={mapButtonSize(buttonSize)} variant="secondary">
+          {buttonText}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        {SNOOZE_OPTIONS.map((option) => (
+          <DropdownMenuItem
+            key={option.id}
+            onSelect={() => snoozeReminder(reminderId, option.id as SnoozeOptionId)}
+          >
+            {option.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -1,8 +1,16 @@
-import { Tag } from '@arco-design/web-react';
+import { Badge } from '../../../components/ui/badge';
 import type { Defect, WorkItemActions } from '../types';
 import { STATUS_OPTIONS, SEVERITY_OPTIONS, SEVERITY_COLOR_MAP } from '../constants';
 import { getEmployeeName } from '../mockData';
 import { WorkItemList, type WorkItemColumn, type FilterConfig } from './WorkItemList';
+
+// Map Arco color names to Badge variants and Tailwind classes
+const SEVERITY_BADGE_MAP: Record<string, { variant?: 'default' | 'secondary' | 'destructive' | 'outline'; className?: string }> = {
+  'red': { variant: 'destructive' },
+  'orange': { variant: 'outline', className: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
+  'blue': { variant: 'default' },
+  'gray': { variant: 'secondary' },
+};
 
 const columns: WorkItemColumn<Defect>[] = [
   { title: '编号', dataIndex: 'projectNo', width: 100, fixed: 'left' },
@@ -12,9 +20,11 @@ const columns: WorkItemColumn<Defect>[] = [
     title: '严重程度',
     dataIndex: 'severity',
     width: 100,
-    render: (s: string) => (
-      <Tag color={SEVERITY_COLOR_MAP[s as keyof typeof SEVERITY_COLOR_MAP]}>{s}</Tag>
-    ),
+    render: (s: string) => {
+      const color = SEVERITY_COLOR_MAP[s as keyof typeof SEVERITY_COLOR_MAP];
+      const badgeStyle = SEVERITY_BADGE_MAP[color] || { variant: 'secondary' };
+      return <Badge variant={badgeStyle.variant} className={badgeStyle.className}>{s}</Badge>;
+    },
   },
   { title: '优先级', dataIndex: 'priority', width: 80 },
   {

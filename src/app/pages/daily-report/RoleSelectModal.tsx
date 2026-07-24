@@ -1,9 +1,13 @@
 // src/app/pages/daily-report/RoleSelectModal.tsx
 
-import { Modal, Button, Space, Typography, Card } from '@arco-design/web-react';
-import { IconCustomerService, IconExperiment, IconEdit, IconApps } from '@arco-design/web-react/icon';
-
-const { Text } = Typography;
+import { Headphones, FlaskConical, PenLine, LayoutGrid } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 
 interface Props {
   visible: boolean;
@@ -12,44 +16,47 @@ interface Props {
 }
 
 const REPORT_TYPES = [
-  { key: 'sales' as const,        label: '销售日报',  desc: '线索跟进、客户沟通',     icon: <IconCustomerService />, color: '#165dff' },
-  { key: 'ad-delivery' as const,  label: '投放日报',  desc: '平台投放数据、优化动作',  icon: <IconExperiment />,       color: '#ff7d00' },
-  { key: 'dev' as const,          label: '开发日报',  desc: '工种/项目/工时/代码进展', icon: <IconEdit />,            color: '#00b42a' },
-  { key: 'general' as const,      label: '通用日报',  desc: '项目任务、总结、计划',     icon: <IconApps />,             color: '#7c3aed' },
+  { key: 'sales' as const,        label: '销售日报',  desc: '线索跟进、客户沟通',     icon: Headphones, color: 'text-blue-500' },
+  { key: 'ad-delivery' as const,  label: '投放日报',  desc: '平台投放数据、优化动作',  icon: FlaskConical, color: 'text-orange-500' },
+  { key: 'dev' as const,          label: '开发日报',  desc: '工种/项目/工时/代码进展', icon: PenLine, color: 'text-green-500' },
+  { key: 'general' as const,      label: '通用日报',  desc: '项目任务、总结、计划',     icon: LayoutGrid, color: 'text-purple-500' },
 ];
 
 export function RoleSelectModal({ visible, onCancel, onSelect }: Props) {
   return (
-    <Modal
-      title="选择日报类型"
-      visible={visible}
-      onCancel={onCancel}
-      footer={null}
-      style={{ width: 420 }}
-    >
-      <div style={{ padding: '16px 0' }}>
-        <Text style={{ display: 'block', marginBottom: 16, textAlign: 'center' }}>
-          请选择您当前要填写的日报类型：
-        </Text>
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          {REPORT_TYPES.map(rt => (
-            <Button
-              key={rt.key}
-              size="large"
-              style={{ width: '100%', height: 64, textAlign: 'left', padding: '0 20px' }}
-              onClick={() => onSelect(rt.key)}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 22, color: rt.color }}>{rt.icon}</span>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 15 }}>{rt.label}</div>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-3)' }}>{rt.desc}</div>
-                </div>
-              </div>
-            </Button>
-          ))}
-        </Space>
-      </div>
-    </Modal>
+    <Dialog open={visible} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>选择日报类型</DialogTitle>
+        </DialogHeader>
+
+        <div className="py-4">
+          <p className="text-center text-muted-foreground mb-4">
+            请选择您当前要填写的日报类型：
+          </p>
+          <div className="flex flex-col gap-3">
+            {REPORT_TYPES.map(rt => {
+              const Icon = rt.icon;
+              return (
+                <Button
+                  key={rt.key}
+                  variant="outline"
+                  className="w-full h-16 justify-start px-5"
+                  onClick={() => onSelect(rt.key)}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={`h-5 w-5 ${rt.color}`} />
+                    <div className="text-left">
+                      <div className="font-semibold text-sm">{rt.label}</div>
+                      <div className="text-xs text-muted-foreground">{rt.desc}</div>
+                    </div>
+                  </div>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

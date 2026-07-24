@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Grid } from '@arco-design/web-react';
 import { KpiCards } from './components/KpiCards';
 import { FollowTrendChart } from './components/FollowTrendChart';
 import { SabcGradingCard } from './components/SabcGradingCard';
@@ -11,8 +10,7 @@ import { TasksAndFeedPanel } from './components/TasksAndFeedPanel';
 import { ReminderTodoPanel } from '../../reminders/components/ReminderTodoPanel';
 import { DailyReportModal } from '../daily-report/DailyReportModal';
 import type { DailyReport } from '../daily-report/types';
-import { useReminders } from '../../reminders/ReminderContext';const Row = Grid.Row;
-const Col = Grid.Col;
+import { useReminders } from '../../reminders/ReminderContext';
 
 /**
  * 工作台主页（重新策划 2026-07）。
@@ -27,17 +25,10 @@ export default function Dashboard() {
   const currentUserId = 'user-sales-zhangsan';
 
   return (
-    <div style={{ padding: '0 0 32px' }}>
+    <div className="pb-8">
       {/* Page label — subtle, not a giant heading（沿用现有 Dashboard 约定） */}
       <div
-        style={{
-          fontSize: 13,
-          fontWeight: 500,
-          color: 'hsl(220, 8%, 55%)',
-          marginBottom: 24,
-          letterSpacing: '0.025em',
-          textTransform: 'uppercase',
-        }}
+        className="text-[13px] font-medium text-muted-foreground mb-6 tracking-wide uppercase"
       >
         工作台
       </div>
@@ -46,47 +37,47 @@ export default function Dashboard() {
       <KpiCards />
 
       {/* §2 中部核心业务流与效能（4 块） */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+      <div className="grid grid-cols-3 gap-4 mb-4">
         {/* 左：跟进趋势折线（LIVE） */}
-        <Col span={8} style={{ display: 'flex' }}>
+        <div className="flex">
           <FollowTrendChart />
-        </Col>
+        </div>
         {/* 中：SABC 线索分级 + 流失预警 */}
-        <Col span={8} style={{ display: 'flex' }}>
+        <div className="flex">
           <SabcGradingCard />
-        </Col>
+        </div>
         {/* 右：S/A 级线索深度追踪 */}
-        <Col span={8} style={{ display: 'flex' }}>
+        <div className="flex">
           <SaLeadsTrackingPanel />
-        </Col>
-      </Row>
+        </div>
+      </div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+      <div className="grid grid-cols-2 gap-4 mb-4">
         {/* 左：跟进过程漏斗 */}
-        <Col span={12} style={{ display: 'flex' }}>
+        <div className="flex">
           <LeadStageFunnel />
-        </Col>
+        </div>
         {/* 右：效率健康度看板 */}
-        <Col span={12} style={{ display: 'flex' }}>
+        <div className="flex">
           <EfficiencyBoard />
-        </Col>
-      </Row>
+        </div>
+      </div>
 
       {/* §4 左下：销售人员线索分类分析 */}
       <SalesLeadAnalysisPanel />
 
       {/* 右下：日常协同与智能提醒 + 复用现有 ReminderTodoPanel */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col span={12} style={{ display: 'flex' }}>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="flex">
           <ReminderTodoPanel
             onOpenDailyReport={() => setDailyReportVisible(true)}
             style={{ height: '100%', marginBottom: 0, flex: 1 }}
           />
-        </Col>
-        <Col span={12} style={{ display: 'flex' }}>
+        </div>
+        <div className="flex">
           <TasksAndFeedPanel onOpenDailyReport={() => setDailyReportVisible(true)} />
-        </Col>
-      </Row>
+        </div>
+      </div>
 
       <DailyReportModal
         visible={dailyReportVisible}

@@ -1,4 +1,4 @@
-import { Card } from '@arco-design/web-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { efficiencyMetrics, efficiencySuggestion } from '../efficiency.mock';
 
 const brandColors = {
@@ -16,97 +16,57 @@ const brandColors = {
  */
 export function EfficiencyBoard() {
   return (
-    <Card
-      title={
-        <span style={{ fontSize: 14, fontWeight: 500, color: 'hsl(220, 15%, 25%)' }}>
-          效率健康度
-        </span>
-      }
-      style={{
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-xs)',
-        border: '1px solid hsl(220, 12%, 88%)',
-        height: '100%',
-        flex: 1,
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-      bodyStyle={{ padding: '16px 20px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}
-    >
-      {/* 4 个指标卡 */}
-      <div className="grid grid-cols-4 gap-3" style={{ marginBottom: 16 }}>
-        {efficiencyMetrics.map((metric, i) => {
-          const dotColors = [brandColors.blue, brandColors.green, brandColors.amber, brandColors.red];
-          return (
-            <div
-              key={metric.key}
-              style={{
-                background: 'hsl(220, 14%, 96%)',
-                borderRadius: 'var(--radius-md)',
-                padding: '12px 14px',
-              }}
-            >
-              <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: dotColors[i % dotColors.length],
-                  }}
-                />
-                <span style={{ fontSize: 12, color: 'hsl(220, 8%, 55%)' }}>{metric.label}</span>
-              </div>
+    <Card className="h-full flex-1 w-full flex flex-col">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">效率健康度</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col">
+        {/* 4 个指标卡 */}
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          {efficiencyMetrics.map((metric, i) => {
+            const dotColors = [brandColors.blue, brandColors.green, brandColors.amber, brandColors.red];
+            return (
               <div
-                style={{
-                  fontSize: 22,
-                  fontWeight: 700,
-                  color: 'hsl(220, 20%, 10%)',
-                  lineHeight: 1.1,
-                }}
+                key={metric.key}
+                className="bg-muted/50 rounded-lg p-3"
               >
-                {metric.value}
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: dotColors[i % dotColors.length] }}
+                  />
+                  <span className="text-xs text-muted-foreground">{metric.label}</span>
+                </div>
+                <div className="text-[22px] font-bold text-foreground leading-tight">
+                  {metric.value}
+                </div>
+                {metric.delta ? (
+                  <div className="text-[11px] text-red-500 mt-1">
+                    {metric.delta} 环比
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-muted-foreground mt-1">
+                    — 基准期
+                  </div>
+                )}
               </div>
-              {metric.delta ? (
-                <div style={{ fontSize: 11, color: 'hsl(0, 78%, 50%)', marginTop: 4 }}>
-                  {metric.delta} 环比
-                </div>
-              ) : (
-                <div style={{ fontSize: 11, color: 'hsl(220, 8%, 55%)', marginTop: 4 }}>
-                  — 基准期
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* 智能建议 */}
-      <div
-        style={{
-          padding: '10px 14px',
-          background: 'hsl(221 83% 53% / 0.06)',
-          border: `1px solid hsl(221 83% 53% / 0.22)`,
-          borderRadius: 'var(--radius-md)',
-        }}
-      >
-        <div className="flex items-center gap-2" style={{ marginBottom: 4 }}>
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: 'hsl(221, 83%, 53%)',
-            }}
-          >
-            💡 系统智能建议
-          </span>
-          {/* TODO：未来接入规则引擎根据漏斗数据动态生成建议 */}
+            );
+          })}
         </div>
-        <p style={{ fontSize: 12, color: 'hsl(220, 12%, 30%)', margin: 0, lineHeight: 1.6 }}>
-          {efficiencySuggestion}
-        </p>
-      </div>
+
+        {/* 智能建议 */}
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-semibold text-blue-600">
+              💡 系统智能建议
+            </span>
+            {/* TODO：未来接入规则引擎根据漏斗数据动态生成建议 */}
+          </div>
+          <p className="text-xs text-foreground m-0 leading-relaxed">
+            {efficiencySuggestion}
+          </p>
+        </div>
+      </CardContent>
     </Card>
   );
 }

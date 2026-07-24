@@ -1,18 +1,12 @@
-import { Card, Tag, Progress } from '@arco-design/web-react';
-import { IconUser } from '@arco-design/web-react/icon';
+import { Card, CardContent } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
+import { Progress } from '../../../components/ui/progress';
+import { User } from 'lucide-react';
 import type { Contract, PaymentStatus } from '../types';
 import { computePaymentStatus, getReceivedAmount, getLatestDunning } from '../paymentUtils';
 import { BLOCKER_TYPE_LABELS } from '../types';
 
 const STATUS_COLORS: Record<PaymentStatus, string> = {
-  normal: '#3b82f6',
-  upcoming: '#f59e0b',
-  overdue: '#ef4444',
-  blocked: '#dc2626',
-  settled: '#10b981',
-};
-
-const STATUS_BORDER_COLORS: Record<PaymentStatus, string> = {
   normal: '#3b82f6',
   upcoming: '#f59e0b',
   overdue: '#ef4444',
@@ -41,63 +35,55 @@ export function PaymentKanbanCard({ contract, onClick }: Props) {
 
   return (
     <Card
-      size="small"
-      hoverable
+      className="mb-3 cursor-pointer hover:shadow-md transition-shadow border-l-[3px]"
+      style={{ borderLeftColor: STATUS_COLORS[status] }}
       onClick={() => onClick(contract)}
-      style={{
-        marginBottom: 12,
-        borderLeft: `3px solid ${STATUS_BORDER_COLORS[status]}`,
-        cursor: 'pointer',
-      }}
     >
-      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
-        {contract.contractNo}
-      </div>
-      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
-        {contract.current.customerName}
-      </div>
-
-      <div style={{ marginBottom: 8 }}>
-        <Progress
-          percent={pct}
-          color={STATUS_COLORS[status]}
-          size="small"
-          showText={false}
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginTop: 2 }}>
-          <span style={{ color: STATUS_COLORS[status], fontWeight: 600 }}>
-            ¥{(received / 10000).toFixed(1)}万 / ¥{(total / 10000).toFixed(1)}万
-          </span>
-          <span style={{ color: '#94a3b8' }}>{pct}%</span>
+      <CardContent className="pt-4 pb-3 space-y-2">
+        <div className="font-semibold text-[13px]">
+          {contract.contractNo}
         </div>
-      </div>
-
-      {pendingPlan && status !== 'settled' && (
-        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>
-          下期：¥{(pendingPlan.amount / 10000).toFixed(1)}万  {pendingPlan.expectedDate}
+        <div className="text-xs text-muted-foreground">
+          {contract.current.customerName}
         </div>
-      )}
 
-      {activeBlockers.length > 0 && (
-        <div style={{ marginBottom: 6 }}>
-          {activeBlockers.map(b => (
-            <Tag key={b.id} color="red" style={{ fontSize: 10, marginBottom: 2 }}>
-              {BLOCKER_TYPE_LABELS[b.type]}
-            </Tag>
-          ))}
+        <div>
+          <Progress value={pct} className="h-1.5" />
+          <div className="flex justify-between text-[11px] mt-0.5">
+            <span style={{ color: STATUS_COLORS[status] }} className="font-semibold">
+              &yen;{(received / 10000).toFixed(1)}万 / &yen;{(total / 10000).toFixed(1)}万
+            </span>
+            <span className="text-muted-foreground">{pct}%</span>
+          </div>
         </div>
-      )}
 
-      {latestDunning && (
-        <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4 }}>
-          上次催款：{latestDunning.date}  {latestDunning.method}
+        {pendingPlan && status !== 'settled' && (
+          <div className="text-[11px] text-muted-foreground">
+            下期：&yen;{(pendingPlan.amount / 10000).toFixed(1)}万  {pendingPlan.expectedDate}
+          </div>
+        )}
+
+        {activeBlockers.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {activeBlockers.map(b => (
+              <Badge key={b.id} variant="destructive" className="text-[10px]">
+                {BLOCKER_TYPE_LABELS[b.type]}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        {latestDunning && (
+          <div className="text-[10px] text-muted-foreground">
+            上次催款：{latestDunning.date}  {latestDunning.method}
+          </div>
+        )}
+
+        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+          <User className="size-3" />
+          {contract.createdBy}
         </div>
-      )}
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#64748b' }}>
-        <IconUser style={{ fontSize: 12 }} />
-        {contract.createdBy}
-      </div>
+      </CardContent>
     </Card>
   );
 }

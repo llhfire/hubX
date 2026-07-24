@@ -1,5 +1,6 @@
-import { Card } from '@arco-design/web-react';
 import { useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
 import { FUNNEL_STAGES } from '../types';
 
 const brandColors = {
@@ -31,115 +32,56 @@ export function LeadStageFunnel() {
   const maxCount = Math.max(...mainStages.map((s) => s.count));
 
   return (
-    <Card
-      title={
+    <Card className="h-full flex-1 w-full flex flex-col">
+      <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 14, fontWeight: 500, color: 'hsl(220, 15%, 25%)' }}>
-            跟进过程漏斗
-          </span>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 500,
-              color: 'hsl(221, 83%, 53%)',
-              padding: '2px 8px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'hsl(221 83% 53% / 0.10)',
-            }}
-          >
+          <CardTitle className="text-sm font-medium">跟进过程漏斗</CardTitle>
+          <Badge variant="secondary" className="text-[11px] font-medium bg-blue-100 text-blue-600">
             Stage Monitoring Active
-          </span>
+          </Badge>
         </div>
-      }
-      style={{
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-xs)',
-        border: '1px solid hsl(220, 12%, 88%)',
-        height: '100%',
-        flex: 1,
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-      bodyStyle={{ padding: '16px 20px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}
-    >
-      {/* 横向漏斗主体：4 段递减条形 */}
-      <div className="flex flex-col gap-2" style={{ marginBottom: 16 }}>
-        {mainStages.map((stage) => {
-          const widthPercent = maxCount > 0 ? (stage.count / maxCount) * 100 : 0;
-          const isHighlighted = !!stage.highlight;
-          return (
-            <div key={stage.stage} className="flex items-center gap-3">
-              <span
-                style={{
-                  width: 64,
-                  fontSize: 12,
-                  color: 'hsl(220, 8%, 55%)',
-                  flexShrink: 0,
-                  textAlign: 'right',
-                }}
-              >
-                {stage.label}
-              </span>
-              <div style={{ flex: 1, height: 28, borderRadius: 4, overflow: 'hidden' }}>
-                <div
-                  style={{
-                    width: `${widthPercent}%`,
-                    minWidth: 32,
-                    height: '100%',
-                    background: isHighlighted
-                      ? brandColors[stage.stage]
-                      : `${brandColors[stage.stage]}CC`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    paddingLeft: 10,
-                    borderRadius: 4,
-                    color: '#fff',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    transition: 'width 0.3s ease',
-                  }}
-                >
-                  {stage.count}
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col">
+        {/* 横向漏斗主体：4 段递减条形 */}
+        <div className="flex flex-col gap-2 mb-4">
+          {mainStages.map((stage) => {
+            const widthPercent = maxCount > 0 ? (stage.count / maxCount) * 100 : 0;
+            const isHighlighted = !!stage.highlight;
+            return (
+              <div key={stage.stage} className="flex items-center gap-3">
+                <span className="w-16 text-xs text-muted-foreground flex-shrink-0 text-right">
+                  {stage.label}
+                </span>
+                <div className="flex-1 h-7 rounded overflow-hidden">
+                  <div
+                    className="h-full flex items-center pl-2.5 rounded text-white text-xs font-semibold transition-all duration-300"
+                    style={{
+                      width: `${widthPercent}%`,
+                      minWidth: 32,
+                      background: isHighlighted
+                        ? brandColors[stage.stage as keyof typeof brandColors]
+                        : `${brandColors[stage.stage as keyof typeof brandColors]}CC`,
+                    }}
+                  >
+                    {stage.count}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      {/* 已流失单列并列（参考图样：独立成一行，与漏斗主体脱离） */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '10px 14px',
-          background: 'hsl(0 78% 50% / 0.06)',
-          border: `1px solid hsl(0 78% 50% / 0.22)`,
-          borderRadius: 'var(--radius-md)',
-        }}
-      >
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 500,
-            color: 'hsl(0, 60%, 40%)',
-          }}
-        >
-          {lostStage.label}
-        </span>
-        <span
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: 'hsl(0, 78%, 50%)',
-          }}
-        >
-          {lostStage.count}
-        </span>
-        <span style={{ fontSize: 12, color: 'hsl(220, 8%, 55%)' }}>已入垃圾线索池累计</span>
-      </div>
+        {/* 已流失单列并列（参考图样：独立成一行，与漏斗主体脱离） */}
+        <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <span className="text-xs font-medium text-red-700">
+            {lostStage.label}
+          </span>
+          <span className="text-xl font-bold text-red-500">
+            {lostStage.count}
+          </span>
+          <span className="text-xs text-muted-foreground">已入垃圾线索池累计</span>
+        </div>
+      </CardContent>
     </Card>
   );
 }

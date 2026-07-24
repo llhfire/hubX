@@ -1,4 +1,3 @@
-import { Card, Grid, Tag } from '@arco-design/web-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ResponsiveContainer,
@@ -9,11 +8,10 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts';
+import { Badge } from '../../../components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { useReminders } from '../../../reminders/ReminderContext';
 import { followTrend, todayTrendDelta } from '../efficiency.mock';
-
-const Row = Grid.Row;
-const Col = Grid.Col;
 
 const brandColors = {
   thisWeek: 'hsl(221, 83%, 53%)',
@@ -56,87 +54,56 @@ export function FollowTrendChart() {
   }, [todayDrift]);
 
   return (
-    <Card
-      title={
-        <div className="flex items-center gap-2">
-          <span style={{ fontSize: 14, fontWeight: 500, color: 'hsl(220, 15%, 25%)' }}>
-            跟进客户趋势
+    <Card className="h-full flex-1 w-full flex flex-col">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm font-medium">跟进客户趋势</CardTitle>
+            <Badge className="bg-blue-500 text-white text-[11px] font-semibold">LIVE</Badge>
+          </div>
+          <span className="text-[13px] text-muted-foreground">
+            今日环比{' '}
+            <span className="text-amber-600 font-medium">{todayTrendDelta}</span>
           </span>
-          <Tag color="arcoblue" size="small" style={{ fontSize: 11, fontWeight: 600 }}>
-            LIVE
-          </Tag>
         </div>
-      }
-      extra={
-        <span style={{ fontSize: 13, color: 'hsl(220, 8%, 55%)' }}>
-          今日环比{' '}
-          <span style={{ color: brandColors.amber, fontWeight: 500 }}>{todayTrendDelta}</span>
-        </span>
-      }
-      style={{
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-xs)',
-        border: '1px solid hsl(220, 12%, 88%)',
-        height: '100%',
-        flex: 1,
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-      bodyStyle={{ padding: '16px 20px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}
-    >
-      <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 90%)" />
-          <XAxis dataKey="day" tick={{ fontSize: 12, fill: 'hsl(220, 8%, 55%)' }} />
-          <YAxis tick={{ fontSize: 12, fill: 'hsl(220, 8%, 55%)' }} domain={[0, 24]} />
-          <Tooltip
-            contentStyle={{
-              fontSize: 12,
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid hsl(220, 12%, 88%)',
-            }}
-          />
-          <Line
-            type="monotone"
-            dataKey="上周"
-            stroke={brandColors.lastWeek}
-            strokeWidth={2}
-            strokeDasharray="4 4"
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="本周"
-            stroke={brandColors.thisWeek}
-            strokeWidth={2.5}
-            dot={{ r: 3 }}
-            activeDot={{ r: 5 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-      <div
-        style={{
-          marginTop: 8,
-          fontSize: 12,
-          color: 'hsl(220, 8%, 55%)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-        }}
-      >
-        <span
-          style={{
-            display: 'inline-block',
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: brandColors.green,
-          }}
-        />
-        {/* TODO：未来接入规则引擎——点击异常指标自动展开下钻 */}
-        点击异常指标可下钻；当前趋势表现良好。
-      </div>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col">
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 90%)" />
+            <XAxis dataKey="day" tick={{ fontSize: 12, fill: 'hsl(220, 8%, 55%)' }} />
+            <YAxis tick={{ fontSize: 12, fill: 'hsl(220, 8%, 55%)' }} domain={[0, 24]} />
+            <Tooltip
+              contentStyle={{
+                fontSize: 12,
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid hsl(220, 12%, 88%)',
+              }}
+            />
+            <Line
+              type="monotone"
+              dataKey="上周"
+              stroke={brandColors.lastWeek}
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              dot={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="本周"
+              stroke={brandColors.thisWeek}
+              strokeWidth={2.5}
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+        <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1.5">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-600" />
+          {/* TODO：未来接入规则引擎——点击异常指标自动展开下钻 */}
+          点击异常指标可下钻；当前趋势表现良好。
+        </div>
+      </CardContent>
     </Card>
   );
 }

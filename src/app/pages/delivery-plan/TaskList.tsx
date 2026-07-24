@@ -1,10 +1,9 @@
 import React, { useCallback } from 'react';
-import { Badge, Tag, Button, Typography, Space } from '@arco-design/web-react';
-import { IconPlus, IconEdit, IconCaretDown, IconCaretRight } from '@arco-design/web-react/icon';
+import { Plus, Edit, ChevronDown, ChevronRight } from 'lucide-react';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
 import { format } from 'date-fns';
 import type { DeliveryPlan, SopStep, SopStepStatus, SopMilestone } from './types';
-
-const { Text } = Typography;
 
 /* ---------- Props ---------- */
 
@@ -22,18 +21,21 @@ export interface TaskListProps {
 
 /* ---------- Status badge helper ---------- */
 
-type BadgeStatus = 'default' | 'processing' | 'success' | 'warning';
-
-const STATUS_MAP: Record<SopStepStatus, { badge: BadgeStatus; text: string }> = {
-  pending: { badge: 'default', text: '待开始' },
-  in_progress: { badge: 'processing', text: '进行中' },
-  completed: { badge: 'success', text: '已完成' },
-  skipped: { badge: 'warning', text: '已跳过' },
+const STATUS_MAP: Record<SopStepStatus, { color: string; text: string }> = {
+  pending: { color: 'bg-gray-400', text: '待开始' },
+  in_progress: { color: 'bg-blue-500', text: '进行中' },
+  completed: { color: 'bg-green-500', text: '已完成' },
+  skipped: { color: 'bg-amber-500', text: '已跳过' },
 };
 
 function statusBadge(status: SopStepStatus) {
-  const { badge, text } = STATUS_MAP[status];
-  return <Badge status={badge} text={text} />;
+  const { color, text } = STATUS_MAP[status];
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs">
+      <span className={`inline-block h-2 w-2 rounded-full ${color}`} />
+      <span className="text-muted-foreground">{text}</span>
+    </span>
+  );
 }
 
 /* ---------- Phase progress ---------- */
@@ -81,22 +83,14 @@ function StepDetailPanel({ step }: { step: SopStep }) {
   }
 
   return (
-    <div
-      style={{
-        padding: '10px 16px 10px 56px',
-        background: '#fafbfc',
-        borderTop: '1px solid #f0f0f0',
-        fontSize: 13,
-        color: '#86909c',
-      }}
-    >
+    <div className="border-t border-border bg-muted/50 px-4 py-2.5 pl-14 text-[13px] text-muted-foreground">
       {sections.map(
         (sec) =>
           sec.value && (
-            <div key={sec.label} style={{ marginBottom: 4 }}>
-              <Text bold style={{ color: '#86909c', marginRight: 8, fontSize: 12 }}>
+            <div key={sec.label} className="mb-1">
+              <span className="mr-2 text-xs font-semibold text-muted-foreground">
                 {sec.label}:
-              </Text>
+              </span>
               <span>{sec.value}</span>
             </div>
           ),
@@ -154,12 +148,7 @@ const TaskList: React.FC<TaskListProps> = ({
   return (
     <div
       ref={scrollRef}
-      style={{
-        height: '100%',
-        overflowY: 'auto',
-        borderRight: '1px solid #e5e6eb',
-        background: '#fff',
-      }}
+      className="h-full overflow-y-auto border-r border-border bg-background"
     >
       {sortedPhases.map((phase) => {
         const isPhaseExpanded = expandedPhaseIds.includes(phase.id);
@@ -173,54 +162,50 @@ const TaskList: React.FC<TaskListProps> = ({
             {/* ---- Phase row ---- */}
             <div
               onClick={() => togglePhase(phase.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '10px 12px',
-                background: '#f7f8fa',
-                borderBottom: '1px solid #e5e6eb',
-                cursor: 'pointer',
-                userSelect: 'none',
-                gap: 8,
-              }}
+              className="flex cursor-pointer select-none items-center gap-2 border-b border-border bg-muted/50 px-3 py-2.5"
             >
               {/* Collapse arrow */}
-              <span style={{ flexShrink: 0, width: 16, textAlign: 'center', color: '#86909c' }}>
-                {isPhaseExpanded ? <IconCaretDown /> : <IconCaretRight />}
+              <span className="w-4 shrink-0 text-center text-muted-foreground">
+                {isPhaseExpanded ? (
+                  <ChevronDown className="inline-block h-4 w-4" />
+                ) : (
+                  <ChevronRight className="inline-block h-4 w-4" />
+                )}
               </span>
 
               {/* Phase name */}
-              <Text bold style={{ fontSize: 14, flexShrink: 0, marginRight: 4 }}>
+              <span className="shrink-0 text-sm font-semibold">
                 {cnOrdinal(phase.phaseNo)}、{phase.phaseName}
-              </Text>
+              </span>
 
               {/* Spacer */}
-              <span style={{ flex: 1 }} />
+              <span className="flex-1" />
 
               {/* Manager */}
-              <Text style={{ fontSize: 12, color: '#86909c', flexShrink: 0 }}>
+              <span className="shrink-0 text-xs text-muted-foreground">
                 {phase.manager}
-              </Text>
+              </span>
 
               {/* Status badge */}
-              <span style={{ flexShrink: 0 }}>{statusBadge(phase.status)}</span>
+              <span className="shrink-0">{statusBadge(phase.status)}</span>
 
               {/* Progress */}
-              <Text style={{ fontSize: 12, color: '#86909c', flexShrink: 0 }}>
+              <span className="shrink-0 text-xs text-muted-foreground">
                 {phaseProgress(phaseSteps)}
-              </Text>
+              </span>
 
               {/* Add custom step button */}
               <Button
-                type="text"
-                size="mini"
-                icon={<IconPlus />}
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0 text-muted-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   onAddCustomStep(phase.id, phase.phaseNo);
                 }}
-                style={{ flexShrink: 0, color: '#86909c' }}
-              />
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
 
             {/* ---- Expanded content: steps + milestones ---- */}
@@ -235,48 +220,39 @@ const TaskList: React.FC<TaskListProps> = ({
                       <div
                         onClick={() => toggleStep(step.id)}
                         onDoubleClick={() => handleStepDoubleClick(step)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          padding: '8px 12px 8px 36px',
-                          background: '#fff',
-                          borderBottom: '1px solid #f0f0f0',
-                          cursor: 'pointer',
-                          userSelect: 'none',
-                          gap: 8,
-                          minHeight: 40,
-                        }}
+                        className="flex min-h-[40px] cursor-pointer select-none items-center gap-2 border-b border-border/50 bg-background px-3 py-2 pl-9"
                       >
                         {/* Step number + name */}
-                        <span style={{ fontSize: 13, flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                          <Text style={{ marginRight: 4 }}>{step.stepNo}</Text>
-                          <Text>{step.stepName}</Text>
+                        <span className="flex-1 overflow-hidden text-[13px]">
+                          <span className="mr-1">{step.stepNo}</span>
+                          <span>{step.stepName}</span>
                           {step.isCustom && (
-                            <Tag color="orange" size="small" style={{ marginLeft: 6 }}>
+                            <Badge variant="outline" className="ml-1.5 border-orange-300 bg-orange-50 text-orange-600">
                               自
-                            </Tag>
+                            </Badge>
                           )}
                         </span>
 
                         {/* Assignee */}
-                        <Text style={{ fontSize: 12, color: '#86909c', flexShrink: 0 }}>
+                        <span className="shrink-0 text-xs text-muted-foreground">
                           {step.assignee}
-                        </Text>
+                        </span>
 
                         {/* Status badge */}
-                        <span style={{ flexShrink: 0 }}>{statusBadge(step.status)}</span>
+                        <span className="shrink-0">{statusBadge(step.status)}</span>
 
                         {/* Edit icon */}
                         <Button
-                          type="text"
-                          size="mini"
-                          icon={<IconEdit />}
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0 text-muted-foreground/50"
                           onClick={(e) => {
                             e.stopPropagation();
                             onStepEdit(step);
                           }}
-                          style={{ flexShrink: 0, color: '#c9cdd4' }}
-                        />
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
 
                       {/* Step detail panel */}
@@ -289,22 +265,14 @@ const TaskList: React.FC<TaskListProps> = ({
                 {phaseMilestones.map((milestone) => (
                   <div
                     key={milestone.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '8px 12px 8px 36px',
-                      background: '#f0f7ff',
-                      borderBottom: '1px solid #e5e6eb',
-                      gap: 8,
-                      fontSize: 13,
-                    }}
+                    className="flex items-center gap-2 border-b border-border bg-blue-50/50 px-3 py-2 pl-9 text-[13px]"
                   >
-                    <span style={{ flexShrink: 0 }}>💎</span>
-                    <Text style={{ flex: 1 }}>{milestone.name}</Text>
-                    <Text style={{ fontSize: 12, color: '#86909c', flexShrink: 0 }}>
+                    <span className="shrink-0">💎</span>
+                    <span className="flex-1">{milestone.name}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {format(new Date(milestone.date), 'yyyy-MM-dd')}
-                    </Text>
-                    <span style={{ flexShrink: 0 }}>{milestone.completed ? '✅' : '⏳'}</span>
+                    </span>
+                    <span className="shrink-0">{milestone.completed ? '✅' : '⏳'}</span>
                   </div>
                 ))}
               </div>

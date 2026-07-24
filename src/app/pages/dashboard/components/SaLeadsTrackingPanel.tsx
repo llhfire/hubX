@@ -1,4 +1,5 @@
-import { Card, Tag } from '@arco-design/web-react';
+import { Badge } from '../../../components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { trackedSaLeads } from '../mentalModel.mock';
 import { LEAD_STAGE_LABELS } from '../types';
 
@@ -25,107 +26,62 @@ export function SaLeadsTrackingPanel() {
     LEAD_STAGE_LABELS.find((s) => s.stage === stage)?.label ?? stage;
 
   return (
-    <Card
-      title={
-        <span style={{ fontSize: 14, fontWeight: 500, color: 'hsl(220, 15%, 25%)' }}>
-          S/A 级线索深度追踪
-        </span>
-      }
-      style={{
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-xs)',
-        border: '1px solid hsl(220, 12%, 88%)',
-        height: '100%',
-        flex: 1,
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-      bodyStyle={{ padding: '16px 20px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}
-    >
-      <div className="flex flex-col gap-3">
-        {trackedSaLeads.map((lead) => {
-          const intent = intentTone[lead.intentLevel];
-          const entityToShow = lead.entity ?? lead.name;
-          return (
-            <div
-              key={lead.id}
-              style={{
-                padding: '12px 14px',
-                border: '1px solid hsl(220, 12%, 88%)',
-                borderRadius: 'var(--radius-md)',
-                background: 'hsl(220, 14%, 98%)',
-              }}
-            >
-              {/* 标题行：客户主体名 + 进展阶段 */}
-              <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'hsl(220, 20%, 10%)' }}>
-                  {entityToShow}
-                </span>
-                <Tag color="arcoblue" size="small">
-                  {stageLabel(lead.leadStage)}
-                </Tag>
-              </div>
-
-              {/* 跟进人 / 跟进频次 / 意向度 */}
+    <Card className="h-full flex-1 w-full flex flex-col">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">S/A 级线索深度追踪</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col">
+        <div className="flex flex-col gap-3">
+          {trackedSaLeads.map((lead) => {
+            const intent = intentTone[lead.intentLevel];
+            const entityToShow = lead.entity ?? lead.name;
+            return (
               <div
-                className="flex items-center gap-3"
-                style={{ fontSize: 12, color: 'hsl(220, 8%, 55%)', marginBottom: 6 }}
+                key={lead.id}
+                className="p-3 border border-border rounded-lg bg-muted/30"
               >
-                <span>跟进人「{lead.owner}」</span>
-                <span>·</span>
-                <span>
-                  频次 {lead.followFreqPerWeek}次/周 / {lead.trackedDays}天
-                </span>
-                <span>·</span>
-                <span style={{ color: intent.color, fontWeight: 600 }}>
-                  意向{intent.text}
-                </span>
-              </div>
+                {/* 标题行：客户主体名 + 进展阶段 */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-foreground">
+                    {entityToShow}
+                  </span>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-600">
+                    {stageLabel(lead.leadStage)}
+                  </Badge>
+                </div>
 
-              {/* 方案状态 / 客户预算 */}
-              <div
-                style={{
-                  fontSize: 12,
-                  color: 'hsl(220, 12%, 30%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  marginBottom: 6,
-                }}
-              >
-                <span
-                  style={{
-                    padding: '2px 8px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'hsl(221 83% 53% / 0.10)',
-                    color: brandColors.blue,
-                    fontWeight: 600,
-                  }}
-                >
-                  已推方案 {lead.proposalVersions}版
-                </span>
-                <span style={{ color: 'hsl(220, 8%, 55%)' }}>
-                  预算 ¥{(lead.budgetEstimated / 10000).toFixed(0)}万
-                </span>
-              </div>
+                {/* 跟进人 / 跟进频次 / 意向度 */}
+                <div className="flex items-center gap-3 text-xs text-muted-foreground mb-1.5">
+                  <span>跟进人「{lead.owner}」</span>
+                  <span>·</span>
+                  <span>
+                    频次 {lead.followFreqPerWeek}次/周 / {lead.trackedDays}天
+                  </span>
+                  <span>·</span>
+                  <span className="font-semibold" style={{ color: intent.color }}>
+                    意向{intent.text}
+                  </span>
+                </div>
 
-              {/* 最新进展 */}
-              <p
-                style={{
-                  fontSize: 12,
-                  color: 'hsl(220, 12%, 30%)',
-                  margin: 0,
-                  lineHeight: 1.5,
-                  fontStyle: 'italic',
-                }}
-              >
-                "{lead.latestProgress}"
-              </p>
-            </div>
-          );
-        })}
-      </div>
+                {/* 方案状态 / 客户预算 */}
+                <div className="flex items-center gap-1.5 text-xs mb-1.5">
+                  <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-600 font-semibold">
+                    已推方案 {lead.proposalVersions}版
+                  </span>
+                  <span className="text-muted-foreground">
+                    预算 ¥{(lead.budgetEstimated / 10000).toFixed(0)}万
+                  </span>
+                </div>
+
+                {/* 最新进展 */}
+                <p className="text-xs text-foreground m-0 leading-relaxed italic">
+                  "{lead.latestProgress}"
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
     </Card>
   );
 }

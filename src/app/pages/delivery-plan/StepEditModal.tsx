@@ -1,17 +1,24 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Modal,
-  Form,
-  Input,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
+import {
   Select,
-  DatePicker,
-  Message,
-  Grid,
-} from '@arco-design/web-react';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { Label } from '../../components/ui/label';
+import { Button } from '../../components/ui/button';
+import { toast } from 'sonner';
 import type { SopStep, SopStepStatus } from './types';
-
-const { Row, Col } = Grid;
-const { TextArea } = Input;
 
 interface StepEditModalProps {
   visible: boolean;
@@ -43,50 +50,56 @@ const StepEditModal: React.FC<StepEditModalProps> = ({
   onSave,
   projectMembers,
 }) => {
-  const [form] = Form.useForm();
+  const [stepName, setStepName] = useState('');
+  const [assignee, setAssignee] = useState('');
+  const [status, setStatus] = useState<SopStepStatus>('pending');
+  const [startDate, setStartDate] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [deliverables, setDeliverables] = useState('');
+  const [userNotes, setUserNotes] = useState('');
 
   /** 将 projectMembers 扁平化并去重 */
   const memberOptions = useMemo(() => {
     const all = Object.values(projectMembers).flat();
-    return [...new Set(all)].map((name) => ({
-      value: name,
-      label: name,
-    }));
+    return [...new Set(all)];
   }, [projectMembers]);
+
+  const resetForm = () => {
+    setStepName('');
+    setAssignee('');
+    setStatus('pending');
+    setStartDate('');
+    setDueDate('');
+    setDeliverables('');
+    setUserNotes('');
+  };
 
   /** 步骤切换时重置表单 */
   useEffect(() => {
     if (visible && step) {
-      form.resetFields();
-      form.setFieldsValue({
-        stepName: step.stepName,
-        assignee: step.assignee,
-        status: step.status,
-        startDate: step.startDate || undefined,
-        dueDate: step.dueDate || undefined,
-        deliverables: step.deliverables,
-        userNotes: step.userNotes,
-      });
+      setStepName(step.stepName);
+      setAssignee(step.assignee);
+      setStatus(step.status);
+      setStartDate(step.startDate || '');
+      setDueDate(step.dueDate || '');
+      setDeliverables(step.deliverables || '');
+      setUserNotes(step.userNotes || '');
     }
-  }, [visible, step, form]);
+  }, [visible, step]);
 
-  const handleOk = async () => {
-    try {
-      await form.validate();
-    } catch {
+  const handleSave = () => {
+    if (!stepName.trim()) {
+      toast.warning('请输入步骤名称');
       return;
     }
 
-    const values = form.getFieldsValue();
-    const newStatus = values.status as SopStepStatus;
-
     // 校验状态转移合法性
-    if (step && newStatus !== step.status) {
+    if (step && status !== step.status) {
       const allowed = VALID_TRANSITIONS[step.status];
-      if (!allowed.includes(newStatus)) {
-        Message.warning(
+      if (!allowed.includes(status)) {
+        toast.warning(
           `不允许从"${STATUS_OPTIONS.find((o) => o.value === step.status)?.label}"切换到"${
-            STATUS_OPTIONS.find((o) => o.value === newStatus)?.label
+            STATUS_OPTIONS.find((o) => o.value === status)?.label
           }"`
         );
         return;
@@ -94,106 +107,133 @@ const StepEditModal: React.FC<StepEditModalProps> = ({
     }
 
     const updates: Partial<SopStep> = {
-      stepName: values.stepName,
-      assignee: values.assignee,
-      status: newStatus,
-      startDate: values.startDate || '',
-      dueDate: values.dueDate || '',
-      deliverables: values.deliverables || '',
-      userNotes: values.userNotes || '',
+      stepName,
+      assignee,
+      status,
+      startDate: startDate || '',
+      dueDate: dueDate || '',
+      deliverables: deliverables || '',
+      userNotes: userNotes || '',
     };
 
     onSave(step!.id, updates);
-    form.resetFields();
+    resetForm();
   };
 
   const handleCancel = () => {
-    form.resetFields();
+    resetForm();
     onCancel();
   };
 
   return (
-    <Modal
-      title="编辑步骤"
-      visible={visible}
-      onOk={handleOk}
-      onCancel={handleCancel}
-      okText="保存"
-      cancelText="取消"
-      style={{ width: 620 }}
-      maskClosable={false}
-      unmountOnExit
-    >
-      <Form
-        form={form}
-        layout="vertical"
-        autoComplete="off"
-      >
-        <Row gutter={16}>
-          <Col span={24}>
-            <Form.Item label="步骤名称" field="stepName">
+    <Dialog open={visible} onOpenChange={(open) => !open && handleCancel()}>
+      <DialogContent className="sm:max-w-[620px]">
+        <DialogHeader>
+          <DialogTitle>编辑步骤</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-4">
+          {/* 步骤名称 */}
+          <div className="grid gap-2">
+            <Label htmlFor="stepName">步骤名称</Label>
+            <Input
+              id="stepName"
+              placeholder="请输入步骤名称"
+              value={stepName}
+              onChange={(e) => setStepName(e.target.value)}
+              disabled={!(step?.isCustom)}
+            />
+          </div>
+
+          {/* 执行人 + 状态 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="assignee">执行人</Label>
+              <Select value={assignee} onValueChange={setAssignee}>
+                <SelectTrigger id="assignee">
+                  <SelectValue placeholder="请选择执行人" />
+                </SelectTrigger>
+                <SelectContent>
+                  {memberOptions.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="status">状态</Label>
+              <Select value={status} onValueChange={(v) => setStatus(v as SopStepStatus)}>
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="请选择状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* 开始日期 + 截止日期 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="startDate">开始日期</Label>
               <Input
-                placeholder="请输入步骤名称"
-                disabled={!(step?.isCustom)}
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
               />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="执行人" field="assignee">
-              <Select
-                placeholder="请选择执行人"
-                options={memberOptions}
-                allowClear
-                showSearch
-                filterOption={(input, option) =>
-                  (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
-                }
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="dueDate">截止日期</Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
               />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="状态" field="status">
-              <Select
-                placeholder="请选择状态"
-                options={STATUS_OPTIONS}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
+            </div>
+          </div>
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="开始日期" field="startDate">
-              <DatePicker style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="截止日期" field="dueDate">
-              <DatePicker style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-        </Row>
+          {/* 执行产物 */}
+          <div className="grid gap-2">
+            <Label htmlFor="deliverables">执行产物</Label>
+            <Textarea
+              id="deliverables"
+              placeholder="请输入执行产物"
+              value={deliverables}
+              onChange={(e) => setDeliverables(e.target.value)}
+              rows={3}
+            />
+          </div>
 
-        <Row gutter={16}>
-          <Col span={24}>
-            <Form.Item label="执行产物" field="deliverables">
-              <TextArea placeholder="请输入执行产物" autoSize={{ minRows: 2, maxRows: 4 }} />
-            </Form.Item>
-          </Col>
-        </Row>
+          {/* 用户备注 */}
+          <div className="grid gap-2">
+            <Label htmlFor="userNotes">用户备注</Label>
+            <Textarea
+              id="userNotes"
+              placeholder="请输入用户备注"
+              value={userNotes}
+              onChange={(e) => setUserNotes(e.target.value)}
+              rows={3}
+            />
+          </div>
+        </div>
 
-        <Row gutter={16}>
-          <Col span={24}>
-            <Form.Item label="用户备注" field="userNotes">
-              <TextArea placeholder="请输入用户备注" autoSize={{ minRows: 2, maxRows: 4 }} />
-            </Form.Item>
-          </Col>
-        </Row>
-      </Form>
-    </Modal>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleCancel}>
+            取消
+          </Button>
+          <Button onClick={handleSave}>保存</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

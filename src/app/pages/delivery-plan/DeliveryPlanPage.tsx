@@ -2,17 +2,30 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
+import { toast } from 'sonner';
+import { ArrowLeft, Trash2 } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 import {
-  Button,
   Select,
-  Typography,
-  Message,
-  Popconfirm,
-  Badge,
-  Radio,
-  Progress,
-} from '@arco-design/web-react';
-import { IconLeft, IconDelete } from '@arco-design/web-react/icon';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '../../components/ui/alert-dialog';
+import { ToggleGroup, ToggleGroupItem } from '../../components/ui/toggle-group';
+import { Progress } from '../../components/ui/progress';
 import { initialProjects } from '../project-management/mockData';
 import type { DeliveryPlan, SopStep, GanttZoomLevel, DeliveryType } from './types';
 import { SOP_PHASES } from './constants';
@@ -31,28 +44,25 @@ import TaskList from './TaskList';
 import GanttChart from './GanttChart';
 import { format, differenceInDays } from 'date-fns';
 
-const { Text } = Typography;
-
-/* ---------- Status badge (same pattern as Projects.tsx) ---------- */
+/* ---------- Status badge ---------- */
 
 type ProjectStatus = '未开始' | '进行中' | '已完成' | '验收中' | '搁置' | '延迟' | '催款中';
 
 function statusBadge(status: ProjectStatus) {
-  const map: Record<ProjectStatus, 'default' | 'processing' | 'success' | 'warning' | 'error'> = {
-    未开始: 'default',
-    进行中: 'processing',
-    已完成: 'success',
-    验收中: 'processing',
-    搁置: 'warning',
-    延迟: 'error',
-    催款中: 'warning',
+  const variantMap: Record<ProjectStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    未开始: 'secondary',
+    进行中: 'default',
+    已完成: 'default',
+    验收中: 'default',
+    搁置: 'outline',
+    延迟: 'destructive',
+    催款中: 'outline',
   };
-  return <Badge status={map[status]} text={status} />;
+  return <Badge variant={variantMap[status]}>{status}</Badge>;
 }
 
 /* ---------- Contract lookup helper ---------- */
 
-/** Simple contract data mirroring Contracts.tsx for deliveryType lookup */
 const CONTRACT_DELIVERY_TYPES: Record<string, DeliveryType> = {
   '1': '全平台',
   '2': '小程序',
@@ -86,7 +96,7 @@ export default function DeliveryPlanPage() {
   // ─── Find project ───
   const project = initialProjects.find((p) => p.id === id);
 
-  // ─── Delivery plan state (deep clone from mockData to allow mutations) ───
+  // ─── Delivery plan state ───
   const [plan, setPlan] = useState<DeliveryPlan | null>(
     initialDeliveryPlans[id!] ? JSON.parse(JSON.stringify(initialDeliveryPlans[id!])) : null,
   );
@@ -118,11 +128,9 @@ export default function DeliveryPlanPage() {
   // ─── Scroll refs for sync ───
   const listScrollRef = useRef<HTMLDivElement>(null);
   const ganttScrollRef = useRef<HTMLDivElement>(null);
-
-  // Flag to prevent infinite scroll sync loops
   const isSyncingScroll = useRef(false);
 
-  // ─── Scroll sync: when one pane scrolls vertically, sync the other ───
+  // ─── Scroll sync ───
   useEffect(() => {
     const listEl = listScrollRef.current;
     const ganttEl = ganttScrollRef.current;
@@ -149,25 +157,14 @@ export default function DeliveryPlanPage() {
       listEl.removeEventListener('scroll', onListScroll);
       ganttEl.removeEventListener('scroll', onGanttScroll);
     };
-  }, [plan]); // re-bind when plan changes (scroll refs are set after render)
+  }, [plan]);
 
   // ─── Project not found ───
   if (!project) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100vh',
-          gap: 16,
-        }}
-      >
-        <Text style={{ fontSize: 18, color: '#86909c' }}>项目不存在</Text>
-        <Button type="primary" onClick={() => navigate('/projects')}>
-          返回项目列表
-        </Button>
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
+        <span className="text-lg text-muted-foreground">项目不存在</span>
+        <Button onClick={() => navigate('/projects')}>返回项目列表</Button>
       </div>
     );
   }
@@ -220,7 +217,6 @@ export default function DeliveryPlanPage() {
     const completedMilestones = allMilestones.filter((m) => m.completed).length;
     const totalMilestones = allMilestones.length;
 
-    // Expected end date: latest dueDate across all steps
     const dueDates = allSteps.map((s) => s.dueDate).filter(Boolean).sort();
     const expectedEndDate = dueDates.length > 0 ? dueDates[dueDates.length - 1] : '-';
 
@@ -246,14 +242,12 @@ export default function DeliveryPlanPage() {
         contractSignDate,
       );
       setPlan(newPlan);
-      // Also update initialDeliveryPlans for cross-reference
       if (id) {
         initialDeliveryPlans[id] = newPlan;
       }
       setExpandedPhaseIds(newPlan.phases.map((p) => p.id));
       setExpandedStepIds([]);
 
-      // Auto-set zoom level based on total days
       const allDates = newPlan.steps
         .flatMap((s) => [s.startDate, s.dueDate])
         .filter(Boolean)
@@ -267,7 +261,7 @@ export default function DeliveryPlanPage() {
       }
 
       setConfigModalVisible(false);
-      Message.success('交付计划已生成');
+      toast.success('交付计划已生成');
     },
     [project, contractSignDate, id],
   );
@@ -280,7 +274,6 @@ export default function DeliveryPlanPage() {
         s.id === stepId ? { ...s, ...updates } : s,
       );
 
-      // Find the phase this step belongs to and recalculate its status
       const updatedStep = newSteps.find((s) => s.id === stepId);
       if (!updatedStep) return;
 
@@ -288,7 +281,6 @@ export default function DeliveryPlanPage() {
       const phaseSteps = newSteps.filter((s) => s.phaseId === phaseId);
       const newPhaseStatus = derivePhaseStatus(phaseSteps);
 
-      // Recalculate phase date range from steps
       const stepDates = phaseSteps
         .flatMap((s) => [s.startDate, s.dueDate])
         .filter(Boolean)
@@ -305,10 +297,8 @@ export default function DeliveryPlanPage() {
       });
 
       setPlan({ ...plan, steps: newSteps, phases: newPhases });
-
-      // Close edit modal
       setEditStep(null);
-      Message.success('步骤已更新');
+      toast.success('步骤已更新');
     },
     [plan],
   );
@@ -319,7 +309,6 @@ export default function DeliveryPlanPage() {
 
       const newSteps = [...plan.steps, newStep];
 
-      // Recalculate the parent phase
       const phaseId = newStep.phaseId;
       const phaseSteps = newSteps.filter((s) => s.phaseId === phaseId);
       const newPhaseStatus = derivePhaseStatus(phaseSteps);
@@ -340,9 +329,8 @@ export default function DeliveryPlanPage() {
       });
 
       setPlan({ ...plan, steps: newSteps, phases: newPhases });
-
       setCustomStepPhaseId(null);
-      Message.success('自定义步骤已添加');
+      toast.success('自定义步骤已添加');
     },
     [plan],
   );
@@ -354,7 +342,7 @@ export default function DeliveryPlanPage() {
     }
     setExpandedPhaseIds([]);
     setExpandedStepIds([]);
-    Message.success('交付计划已删除');
+    toast.success('交付计划已删除');
   }, [id]);
 
   const handleStepEdit = useCallback((step: SopStep) => {
@@ -366,7 +354,6 @@ export default function DeliveryPlanPage() {
     setCustomStepPhaseNo(phaseNo);
   }, []);
 
-  // ─── Custom step count for a phase ───
   const getExistingCustomStepCount = useCallback(
     (phaseId: string) => {
       if (!plan) return 0;
@@ -377,49 +364,28 @@ export default function DeliveryPlanPage() {
 
   // ─── Render ───
 
-  // Empty state: no plan yet
+  // Empty state
   if (!plan || !filteredPlan) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <div className="flex flex-col h-screen">
         {/* Top bar */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            padding: '12px 20px',
-            borderBottom: '1px solid #e5e6eb',
-            background: '#fff',
-            flexShrink: 0,
-          }}
-        >
+        <div className="flex items-center px-5 py-3 border-b bg-background shrink-0">
           <Button
-            type="text"
-            icon={<IconLeft />}
+            variant="ghost"
+            size="icon"
             onClick={() => navigate('/projects')}
-            style={{ marginRight: 12 }}
-          />
-          <Text bold style={{ fontSize: 16, marginRight: 16 }}>
-            {project.name}
-          </Text>
+            className="mr-3"
+          >
+            <ArrowLeft className="size-4" />
+          </Button>
+          <span className="text-base font-semibold mr-4">{project.name}</span>
           {statusBadge(project.status as ProjectStatus)}
         </div>
 
         {/* Empty state */}
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 16,
-            background: '#f7f8fa',
-          }}
-        >
-          <Text style={{ fontSize: 16, color: '#86909c' }}>暂无交付计划</Text>
-          <Button type="primary" onClick={() => setConfigModalVisible(true)}>
-            生成交付计划
-          </Button>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 bg-muted/30">
+          <span className="text-base text-muted-foreground">暂无交付计划</span>
+          <Button onClick={() => setConfigModalVisible(true)}>生成交付计划</Button>
         </div>
 
         {/* Config modal */}
@@ -437,80 +403,82 @@ export default function DeliveryPlanPage() {
 
   // Plan exists: full layout
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div className="flex flex-col h-screen">
       {/* ── Top bar ── */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '12px 20px',
-          borderBottom: '1px solid #e5e6eb',
-          background: '#fff',
-          flexShrink: 0,
-          gap: 12,
-        }}
-      >
+      <div className="flex items-center px-5 py-3 border-b bg-background shrink-0 gap-3">
         {/* Back button */}
-        <Button
-          type="text"
-          icon={<IconLeft />}
-          onClick={() => navigate('/projects')}
-        />
+        <Button variant="ghost" size="icon" onClick={() => navigate('/projects')}>
+          <ArrowLeft className="size-4" />
+        </Button>
 
         {/* Project name */}
-        <Text bold style={{ fontSize: 16, marginRight: 4 }}>
-          {project.name}
-        </Text>
+        <span className="text-base font-semibold mr-1">{project.name}</span>
 
         {/* Status badge */}
         {statusBadge(project.status as ProjectStatus)}
 
         {/* Spacer */}
-        <span style={{ flex: 1 }} />
+        <span className="flex-1" />
 
         {/* Phase filter */}
         <Select
-          placeholder="板块筛选"
-          value={phaseFilter ?? 0}
-          onChange={(val: number) => setPhaseFilter(val === 0 ? null : val)}
-          style={{ width: 180 }}
-          size="small"
+          value={phaseFilter === null ? '0' : String(phaseFilter)}
+          onValueChange={(val) => setPhaseFilter(val === '0' ? null : Number(val))}
         >
-          <Select.Option value={0}>全部</Select.Option>
-          {SOP_PHASES.map((p) => (
-            <Select.Option key={p.phaseNo} value={p.phaseNo}>
-              {['一', '二', '三', '四', '五', '六', '七'][p.phaseNo - 1]}、{p.phaseName}
-            </Select.Option>
-          ))}
+          <SelectTrigger className="w-[180px] h-8">
+            <SelectValue placeholder="板块筛选" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0">全部</SelectItem>
+            {SOP_PHASES.map((p) => (
+              <SelectItem key={p.phaseNo} value={String(p.phaseNo)}>
+                {['一', '二', '三', '四', '五', '六', '七'][p.phaseNo - 1]}、{p.phaseName}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
 
         {/* Zoom level */}
-        <Radio.Group
-          type="button"
+        <ToggleGroup
+          type="single"
           value={zoomLevel}
-          onChange={(val) => setZoomLevel(val as GanttZoomLevel)}
-          size="small"
+          onValueChange={(val) => { if (val) setZoomLevel(val as GanttZoomLevel); }}
+          variant="outline"
+          size="sm"
         >
           {ZOOM_OPTIONS.map((opt) => (
-            <Radio key={opt.value} value={opt.value}>
+            <ToggleGroupItem key={opt.value} value={opt.value}>
               {opt.label}
-            </Radio>
+            </ToggleGroupItem>
           ))}
-        </Radio.Group>
+        </ToggleGroup>
 
         {/* Delete plan */}
-        <Popconfirm
-          title="确定删除交付计划？"
-          onOk={handleDeletePlan}
-        >
-          <Button type="text" icon={<IconDelete />} status="danger" size="small" />
-        </Popconfirm>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+              <Trash2 className="size-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>确定删除交付计划？</AlertDialogTitle>
+              <AlertDialogDescription>
+                此操作不可撤销，删除后需要重新生成交付计划。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeletePlan}>确定</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {/* ── Main content: split pane ── */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+      <div className="flex flex-1 min-h-0">
         {/* Left: TaskList (480px fixed) */}
-        <div style={{ width: 480, flexShrink: 0, height: '100%', overflow: 'hidden' }}>
+        <div className="w-[480px] shrink-0 h-full overflow-hidden">
           <TaskList
             plan={filteredPlan}
             project={project as unknown as Record<string, any>}
@@ -525,7 +493,7 @@ export default function DeliveryPlanPage() {
         </div>
 
         {/* Right: GanttChart (flex-1) */}
-        <div style={{ flex: 1, minWidth: 0, height: '100%' }}>
+        <div className="flex-1 min-w-0 h-full">
           <GanttChart
             plan={filteredPlan}
             zoomLevel={zoomLevel}
@@ -537,74 +505,58 @@ export default function DeliveryPlanPage() {
 
       {/* ── Bottom summary bar ── */}
       {summary && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            padding: '8px 20px',
-            borderTop: '1px solid #e5e6eb',
-            background: '#fff',
-            flexShrink: 0,
-            gap: 24,
-            fontSize: 13,
-          }}
-        >
+        <div className="flex items-center px-5 py-2 border-t bg-background shrink-0 gap-6 text-[13px]">
           {/* Steps count */}
           <span>
-            <Text type="secondary">步骤</Text>{' '}
-            <Text bold>{summary.visibleSteps}</Text>
-            <Text type="secondary">/{summary.totalSteps}</Text>
+            <span className="text-muted-foreground">步骤</span>{' '}
+            <span className="font-semibold">{summary.visibleSteps}</span>
+            <span className="text-muted-foreground">/{summary.totalSteps}</span>
           </span>
 
           {/* Completion */}
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Text type="secondary">完成</Text>
+          <span className="flex items-center gap-1.5">
+            <span className="text-muted-foreground">完成</span>
             <Progress
-              percent={Math.round(summary.completion * 100)}
-              size="small"
-              style={{ width: 80 }}
-              color={summary.completion >= 0.8 ? 'rgb(var(--green-6))' : 'rgb(var(--arcoblue-6))'}
+              value={Math.round(summary.completion * 100)}
+              className={`w-20 h-2 ${summary.completion >= 0.8 ? '[&>div]:bg-green-600' : ''}`}
             />
-            <Text bold>{Math.round(summary.completion * 100)}%</Text>
+            <span className="font-semibold">{Math.round(summary.completion * 100)}%</span>
           </span>
 
           {/* In progress */}
           <span>
-            <Text type="secondary">进行中</Text>{' '}
-            <Text bold style={{ color: 'rgb(var(--arcoblue-6))' }}>
-              {summary.inProgressCount}
-            </Text>
+            <span className="text-muted-foreground">进行中</span>{' '}
+            <span className="font-semibold text-blue-600">{summary.inProgressCount}</span>
           </span>
 
           {/* Overdue */}
           <span>
-            <Text type="secondary">逾期</Text>{' '}
-            <Text bold style={{ color: summary.overdueCount > 0 ? 'rgb(var(--red-6))' : undefined }}>
+            <span className="text-muted-foreground">逾期</span>{' '}
+            <span className={`font-semibold ${summary.overdueCount > 0 ? 'text-red-600' : ''}`}>
               {summary.overdueCount}
-            </Text>
+            </span>
           </span>
 
           {/* Milestones */}
           <span>
-            <Text type="secondary">里程碑</Text>{' '}
-            <Text bold>{summary.completedMilestones}</Text>
-            <Text type="secondary">/{summary.totalMilestones}</Text>
+            <span className="text-muted-foreground">里程碑</span>{' '}
+            <span className="font-semibold">{summary.completedMilestones}</span>
+            <span className="text-muted-foreground">/{summary.totalMilestones}</span>
           </span>
 
           {/* Spacer */}
-          <span style={{ flex: 1 }} />
+          <span className="flex-1" />
 
           {/* Expected end date */}
           <span>
-            <Text type="secondary">预计</Text>{' '}
-            <Text bold>{summary.expectedEndDate}</Text>
+            <span className="text-muted-foreground">预计</span>{' '}
+            <span className="font-semibold">{summary.expectedEndDate}</span>
           </span>
         </div>
       )}
 
       {/* ── Modals ── */}
 
-      {/* Config modal */}
       <DeliveryConfigModal
         visible={configModalVisible}
         onCancel={() => setConfigModalVisible(false)}
@@ -614,7 +566,6 @@ export default function DeliveryPlanPage() {
         projectStartDate={project.startDate}
       />
 
-      {/* Step edit modal */}
       <StepEditModal
         visible={!!editStep}
         step={editStep}
@@ -623,7 +574,6 @@ export default function DeliveryPlanPage() {
         projectMembers={projectMembers}
       />
 
-      {/* Custom step modal */}
       {customStepPhaseId && (
         <CustomStepModal
           visible={!!customStepPhaseId}

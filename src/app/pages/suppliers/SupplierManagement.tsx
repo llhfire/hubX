@@ -1,46 +1,25 @@
 import { useState, useMemo } from 'react';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select';
+import { Separator } from '../../components/ui/separator';
 import {
-  Card,
-  Grid,
-  Statistic,
-  Table,
-  Button,
-  Space,
-  Tag,
-  Tabs,
-  Modal,
-  Form,
-  Input,
-  Select,
-  DatePicker,
-  InputNumber,
-  TextArea,
-  Typography,
-  Rate,
-  Avatar,
-  Descriptions,
-  Divider,
-  Progress,
-  Popconfirm,
-} from '@arco-design/web-react';
-import {
-  IconUser,
-  IconFile,
-  IconPlus,
-  IconEdit,
-  IconDelete,
-  IconStar,
-  IconCalendar,
-  IconExperiment,
-  IconCheckCircle,
-} from '@arco-design/web-react/icon';
-
-const Row = Grid.Row;
-const Col = Grid.Col;
-const TabPane = Tabs.TabPane;
-const Title = Typography.Title;
-const FormItem = Form.Item;
-const SelectOption = Select.Option;
+  User,
+  FileText,
+  Plus,
+  Pencil,
+  Trash2,
+  Star,
+  Calendar,
+  CheckCircle2,
+} from 'lucide-react';
 
 // ---------- 类型 ----------
 
@@ -114,6 +93,20 @@ const mockPayments: SupplierPayment[] = [
   { id: 'sp-8', supplierName: '陈小红',          projectName: '企业管理系统开发', contractNo: 'SC-2026-006', period: 2, amount: 20000, status: 'paid',     dueDate: '2026-04-15', paidDate: '2026-04-15' },
 ];
 
+// ---------- 状态标签映射 ----------
+
+const CONTRACT_STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  active:    { label: '执行中', variant: 'default' },
+  completed: { label: '已完成', variant: 'default' },
+  terminated: { label: '已终止', variant: 'destructive' },
+};
+
+const PAYMENT_STATUS_LABELS: Record<PaymentStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  paid:    { label: '已付', variant: 'default' },
+  partial: { label: '部分', variant: 'secondary' },
+  unpaid:  { label: '未付', variant: 'destructive' },
+};
+
 // ---------- 主组件 ----------
 
 export function SupplierManagement() {
@@ -121,7 +114,18 @@ export function SupplierManagement() {
   const [suppliers, setSuppliers] = useState(mockSuppliers);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
-  const [form] = Form.useForm();
+
+  // 表单状态
+  const [formData, setFormData] = useState({
+    name: '',
+    type: 'company' as SupplierType,
+    contactPerson: '',
+    phone: '',
+    email: '',
+    rating: '3',
+    skillsInput: '',
+    notes: '',
+  });
 
   const summary = useMemo(() => {
     const totalSuppliers = suppliers.length;
@@ -131,230 +135,379 @@ export function SupplierManagement() {
     return { totalSuppliers, totalContracts, totalAmount, unpaidAmount, paidAmount: totalAmount - unpaidAmount };
   }, [suppliers]);
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      type: 'company',
+      contactPerson: '',
+      phone: '',
+      email: '',
+      rating: '3',
+      skillsInput: '',
+      notes: '',
+    });
+  };
+
   const handleAdd = () => {
     setEditingSupplier(null);
-    form.resetFields();
-    form.setFieldsValue({ type: 'company', skills: [], rating: 3 });
+    resetForm();
     setModalVisible(true);
   };
 
   const handleEdit = (supplier: Supplier) => {
     setEditingSupplier(supplier);
-    form.setFieldsValue(supplier);
+    setFormData({
+      name: supplier.name,
+      type: supplier.type,
+      contactPerson: supplier.contactPerson,
+      phone: supplier.phone,
+      email: supplier.email,
+      rating: String(supplier.rating),
+      skillsInput: supplier.skills.join(','),
+      notes: supplier.notes || '',
+    });
     setModalVisible(true);
   };
 
   const handleDelete = (id: string) => {
-    setSuppliers(prev => prev.filter(s => s.id !== id));
+    if (window.confirm('确定删除?')) {
+      setSuppliers(prev => prev.filter(s => s.id !== id));
+    }
   };
 
-  const handleSubmit = () => {
-    form.validate().then(values => {
-      if (editingSupplier) {
-        setSuppliers(prev => prev.map(s => s.id === editingSupplier.id ? { ...s, ...values } : s));
-      } else {
-        const newSupplier: Supplier = {
-          id: `sup-${Date.now()}`,
-          ...values,
-          totalContracts: 0,
-          totalAmount: 0,
-        };
-        setSuppliers(prev => [...prev, newSupplier]);
-      }
-      setModalVisible(false);
-    });
+  const updateForm = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.contactPerson) {
+      return;
+    }
+    const skills = formData.skillsInput
+      ? formData.skillsInput.split(/[,，]/).map(s => s.trim()).filter(Boolean)
+      : [];
+    const values = {
+      name: formData.name,
+      type: formData.type,
+      contactPerson: formData.contactPerson,
+      phone: formData.phone,
+      email: formData.email,
+      rating: Number(formData.rating),
+      skills,
+      notes: formData.notes || undefined,
+    };
+    if (editingSupplier) {
+      setSuppliers(prev => prev.map(s => s.id === editingSupplier.id ? { ...s, ...values } : s));
+    } else {
+      const newSupplier: Supplier = {
+        id: `sup-${Date.now()}`,
+        ...values,
+        totalContracts: 0,
+        totalAmount: 0,
+      };
+      setSuppliers(prev => [...prev, newSupplier]);
+    }
+    setModalVisible(false);
   };
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <div className="flex flex-col gap-4 w-full">
       {/* 摘要栏 */}
-      <Row gutter={16}>
-        <Col span={4}><Card><Statistic title="供应商数" value={summary.totalSuppliers} suffix="家" icon={<IconUser style={{ color: 'var(--primary)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="分包合同" value={summary.totalContracts} suffix="个" icon={<IconFile style={{ color: 'var(--primary)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="合同总额" value={summary.totalAmount} prefix="¥" /></Card></Col>
-        <Col span={4}><Card><Statistic title="已付金额" value={summary.paidAmount} prefix="¥" icon={<IconCheckCircle style={{ color: 'var(--success-500)' }} />} /></Card></Col>
-        <Col span={4}><Card><Statistic title="未付金额" value={summary.unpaidAmount} prefix="¥" icon={<IconCalendar style={{ color: 'var(--destructive-500)' }} />} valueStyle={{ color: 'var(--destructive-500)' }} /></Card></Col>
-        <Col span={4}><Card><Statistic title="合作评级" value={(suppliers.reduce((s, sup) => s + sup.rating, 0) / Math.max(suppliers.length, 1)).toFixed(1)} suffix="★" icon={<IconStar style={{ color: 'var(--warning-300)' }} />} /></Card></Col>
-      </Row>
+      <div className="grid grid-cols-6 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <User className="size-4 text-primary" />
+              供应商数
+            </div>
+            <div className="text-2xl font-bold mt-1">{summary.totalSuppliers} <span className="text-sm font-normal text-muted-foreground">家</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <FileText className="size-4 text-primary" />
+              分包合同
+            </div>
+            <div className="text-2xl font-bold mt-1">{summary.totalContracts} <span className="text-sm font-normal text-muted-foreground">个</span></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm">合同总额</div>
+            <div className="text-2xl font-bold mt-1">&yen;{summary.totalAmount.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-green-600" />
+              已付金额
+            </div>
+            <div className="text-2xl font-bold mt-1">&yen;{summary.paidAmount.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <Calendar className="size-4 text-destructive" />
+              未付金额
+            </div>
+            <div className="text-2xl font-bold mt-1 text-destructive">&yen;{summary.unpaidAmount.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <Star className="size-4 text-yellow-400 fill-yellow-400" />
+              合作评级
+            </div>
+            <div className="text-2xl font-bold mt-1">
+              {(suppliers.reduce((s, sup) => s + sup.rating, 0) / Math.max(suppliers.length, 1)).toFixed(1)}
+              <span className="text-sm font-normal text-muted-foreground ml-1">★</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* 主体 Tab */}
-      <Card bordered={false}>
-        <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <TabPane key="suppliers" title={<span><IconUser /> 供应商档案</span>} />
-          <TabPane key="contracts" title={<span><IconFile /> 分包合同</span>} />
-          <TabPane key="payments" title={<span><IconCalendar /> 付款记录</span>} />
-        </Tabs>
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="flex flex-wrap">
+              <TabsTrigger value="suppliers"><User className="size-4" /> 供应商档案</TabsTrigger>
+              <TabsTrigger value="contracts"><FileText className="size-4" /> 分包合同</TabsTrigger>
+              <TabsTrigger value="payments"><Calendar className="size-4" /> 付款记录</TabsTrigger>
+            </TabsList>
 
-        <div style={{ paddingTop: 16 }}>
-          {/* 供应商档案 Tab */}
-          {activeTab === 'suppliers' && (
-            <div>
-              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button type="primary" icon={<IconPlus />} onClick={handleAdd}>新增供应商</Button>
-              </div>
-              <Row gutter={16}>
-                {suppliers.map(supplier => (
-                  <Col span={8} key={supplier.id} style={{ marginBottom: 16 }}>
-                    <Card
-                      size="small"
-                      style={{ borderRadius: 8 }}
-                      extra={
-                        <Space>
-                          <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEdit(supplier)} />
-                          <Popconfirm title="确定删除?" onOk={() => handleDelete(supplier.id)}>
-                            <Button type="text" size="small" status="danger" icon={<IconDelete />} />
-                          </Popconfirm>
-                        </Space>
-                      }
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                        <Avatar size={40} style={{ background: supplier.type === 'company' ? 'var(--primary)' : 'var(--chart-5)' }}>
-                          {supplier.name.slice(0, 1)}
-                        </Avatar>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{supplier.name}</div>
-                          <Tag size="small" color={supplier.type === 'company' ? 'blue' : 'purple'}>
-                            {supplier.type === 'company' ? '企业' : '个人'}
-                          </Tag>
-                        </div>
-                      </div>
+            <TabsContent value={activeTab} className="pt-4">
+              {/* 供应商档案 Tab */}
+              {activeTab === 'suppliers' && (
+                <div>
+                  <div className="mb-4 flex justify-end">
+                    <Button onClick={handleAdd}>
+                      <Plus className="size-4" /> 新增供应商
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    {suppliers.map(supplier => (
+                      <Card key={supplier.id}>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="flex items-center justify-center size-10 rounded-full text-white font-bold text-lg"
+                                style={{ background: supplier.type === 'company' ? 'hsl(var(--primary))' : 'hsl(262, 80%, 50%)' }}
+                              >
+                                {supplier.name.slice(0, 1)}
+                              </div>
+                              <div>
+                                <div className="font-semibold">{supplier.name}</div>
+                                <Badge variant={supplier.type === 'company' ? 'default' : 'secondary'} className="mt-0.5">
+                                  {supplier.type === 'company' ? '企业' : '个人'}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" className="size-8" onClick={() => handleEdit(supplier)}>
+                                <Pencil className="size-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive" onClick={() => handleDelete(supplier.id)}>
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </div>
+                          </div>
 
-                      <div style={{ marginBottom: 8 }}>
-                        <Rate value={supplier.rating} allowHalf readonly style={{ fontSize: 14 }} />
-                        <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--color-text-3)' }}>{supplier.rating}</span>
-                      </div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-0.5">
+                              {Array.from({ length: 5 }, (_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`size-3.5 ${i < Math.floor(supplier.rating) ? 'text-yellow-400 fill-yellow-400' : i < supplier.rating ? 'text-yellow-400 fill-yellow-400 opacity-50' : 'text-muted-foreground'}`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-xs text-muted-foreground">{supplier.rating}</span>
+                          </div>
 
-                      <div style={{ marginBottom: 8 }}>
-                        {supplier.skills.map(skill => (
-                          <Tag key={skill} size="small" style={{ margin: '2px 4px 2px 0' }}>{skill}</Tag>
-                        ))}
-                      </div>
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {supplier.skills.map(skill => (
+                              <Badge key={skill} variant="outline" className="text-xs">{skill}</Badge>
+                            ))}
+                          </div>
 
-                      <Divider style={{ margin: '8px 0' }} />
+                          <Separator className="my-2" />
 
-                      <div style={{ fontSize: 12, color: 'var(--color-text-2)' }}>
-                        <div>联系人：{supplier.contactPerson}</div>
-                        <div>合作 {supplier.totalContracts} 次 · 总额 ¥{supplier.totalAmount.toLocaleString()}</div>
-                        {supplier.notes && <div style={{ color: 'var(--color-text-3)', marginTop: 4 }}><IconEdit style={{ marginRight: 4 }} /> {supplier.notes}</div>}
-                      </div>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            </div>
-          )}
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            <div>联系人：{supplier.contactPerson}</div>
+                            <div>合作 {supplier.totalContracts} 次 · 总额 &yen;{supplier.totalAmount.toLocaleString()}</div>
+                            {supplier.notes && (
+                              <div className="text-muted-foreground/70 mt-1">
+                                <Pencil className="inline size-3 mr-1" /> {supplier.notes}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          {/* 分包合同 Tab */}
-          {activeTab === 'contracts' && (
-            <Table
-              columns={[
-                { title: '合同编号', dataIndex: 'contractNo', width: 130 },
-                { title: '供应商', dataIndex: 'supplierName', width: 140, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
-                { title: '项目', dataIndex: 'projectName', width: 140 },
-                { title: '签订日期', dataIndex: 'signDate', width: 100 },
-                { title: '金额', dataIndex: 'amount', width: 100, render: (v: number) => `¥${v.toLocaleString()}` },
-                {
-                  title: '状态', dataIndex: 'status', width: 80,
-                  render: (s: string) => {
-                    const map: Record<string, { label: string; color: string }> = { active: { label: '执行中', color: 'var(--primary)' }, completed: { label: '已完成', color: 'var(--success-500)' }, terminated: { label: '已终止', color: 'var(--destructive-500)' } };
-                    const m = map[s] || map.active;
-                    return <Tag color={m.color}>{m.label}</Tag>;
-                  },
-                },
-                { title: '描述', dataIndex: 'description' },
-              ] as any}
-              data={mockSubcontracts}
-              rowKey="id"
-              pagination={false}
-            />
-          )}
+              {/* 分包合同 Tab */}
+              {activeTab === 'contracts' && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[130px]">合同编号</TableHead>
+                      <TableHead className="w-[140px]">供应商</TableHead>
+                      <TableHead className="w-[140px]">项目</TableHead>
+                      <TableHead className="w-[100px]">签订日期</TableHead>
+                      <TableHead className="w-[100px]">金额</TableHead>
+                      <TableHead className="w-[80px]">状态</TableHead>
+                      <TableHead>描述</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockSubcontracts.map(row => (
+                      <TableRow key={row.id}>
+                        <TableCell>{row.contractNo}</TableCell>
+                        <TableCell className="font-semibold">{row.supplierName}</TableCell>
+                        <TableCell>{row.projectName}</TableCell>
+                        <TableCell>{row.signDate}</TableCell>
+                        <TableCell>&yen;{row.amount.toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Badge variant={CONTRACT_STATUS_LABELS[row.status]?.variant || 'outline'}>
+                            {CONTRACT_STATUS_LABELS[row.status]?.label || row.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{row.description}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
 
-          {/* 付款记录 Tab */}
-          {activeTab === 'payments' && (
-            <Table
-              columns={[
-                { title: '供应商', dataIndex: 'supplierName', width: 140, render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
-                { title: '项目', dataIndex: 'projectName', width: 140 },
-                { title: '合同', dataIndex: 'contractNo', width: 120 },
-                { title: '期数', dataIndex: 'period', width: 50, render: (v: number) => `P${v}` },
-                { title: '金额', dataIndex: 'amount', width: 100, render: (v: number) => `¥${v.toLocaleString()}` },
-                {
-                  title: '状态', dataIndex: 'status', width: 80,
-                  render: (s: string) => {
-                    const map: Record<string, { label: string; color: string }> = { paid: { label: '已付', color: 'var(--success-500)' }, partial: { label: '部分', color: 'var(--warning-500)' }, unpaid: { label: '未付', color: 'var(--destructive-500)' } };
-                    const m = map[s] || map.unpaid;
-                    return <Tag color={m.color}>{m.label}</Tag>;
-                  },
-                },
-                { title: '应付日期', dataIndex: 'dueDate', width: 100 },
-                { title: '实付日期', dataIndex: 'paidDate', width: 100, render: (v: string) => v || '—' },
-              ] as any}
-              data={mockPayments}
-              rowKey="id"
-              pagination={false}
-            />
-          )}
-        </div>
+              {/* 付款记录 Tab */}
+              {activeTab === 'payments' && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[140px]">供应商</TableHead>
+                      <TableHead className="w-[140px]">项目</TableHead>
+                      <TableHead className="w-[120px]">合同</TableHead>
+                      <TableHead className="w-[50px]">期数</TableHead>
+                      <TableHead className="w-[100px]">金额</TableHead>
+                      <TableHead className="w-[80px]">状态</TableHead>
+                      <TableHead className="w-[100px]">应付日期</TableHead>
+                      <TableHead className="w-[100px]">实付日期</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockPayments.map(row => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-semibold">{row.supplierName}</TableCell>
+                        <TableCell>{row.projectName}</TableCell>
+                        <TableCell>{row.contractNo}</TableCell>
+                        <TableCell>P{row.period}</TableCell>
+                        <TableCell>&yen;{row.amount.toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Badge variant={PAYMENT_STATUS_LABELS[row.status].variant}>{PAYMENT_STATUS_LABELS[row.status].label}</Badge>
+                        </TableCell>
+                        <TableCell>{row.dueDate}</TableCell>
+                        <TableCell>{row.paidDate || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
 
       {/* 新增/编辑弹窗 */}
-      <Modal
-        title={editingSupplier ? '编辑供应商' : '新增供应商'}
-        visible={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-        autoFocus={false}
-        focusLock={true}
-        style={{ width: 560 }}
-      >
-        <Form form={form} layout="vertical">
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="名称" field="name" rules={[{ required: true, message: '请输入名称' }]}>
-                <Input placeholder="公司名或姓名" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="类型" field="type" rules={[{ required: true }]}>
-                <Select placeholder="选择类型">
-                  <SelectOption value="company">企业</SelectOption>
-                  <SelectOption value="individual">个人</SelectOption>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="联系人" field="contactPerson" rules={[{ required: true, message: '请输入联系人' }]}>
-                <Input placeholder="联系人姓名" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="电话" field="phone">
-                <Input placeholder="联系电话" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="邮箱" field="email">
-                <Input placeholder="邮箱地址" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="合作评级" field="rating">
-                <Rate allowHalf />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-          <FormItem label="技能标签" field="skills">
-            <Select mode="tags" placeholder="输入技能标签后回车" />
-          </FormItem>
-          <FormItem label="备注" field="notes">
-            <Input.TextArea placeholder="备注信息" autoSize={{ minRows: 2, maxRows: 4 }} />
-          </FormItem>
-        </Form>
-      </Modal>
-    </Space>
+      <Dialog open={modalVisible} onOpenChange={setModalVisible}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>{editingSupplier ? '编辑供应商' : '新增供应商'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="supplier-name">名称 <span className="text-destructive">*</span></Label>
+                  <Input id="supplier-name" placeholder="公司名或姓名" value={formData.name} onChange={e => updateForm('name', e.target.value)} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="supplier-type">类型 <span className="text-destructive">*</span></Label>
+                  <Select value={formData.type} onValueChange={v => updateForm('type', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择类型" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="company">企业</SelectItem>
+                      <SelectItem value="individual">个人</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="supplier-contact">联系人 <span className="text-destructive">*</span></Label>
+                  <Input id="supplier-contact" placeholder="联系人姓名" value={formData.contactPerson} onChange={e => updateForm('contactPerson', e.target.value)} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="supplier-phone">电话</Label>
+                  <Input id="supplier-phone" placeholder="联系电话" value={formData.phone} onChange={e => updateForm('phone', e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="supplier-email">邮箱</Label>
+                  <Input id="supplier-email" placeholder="邮箱地址" value={formData.email} onChange={e => updateForm('email', e.target.value)} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="supplier-rating">合作评级</Label>
+                  <div className="flex items-center gap-2 h-9">
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map(val => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => updateForm('rating', String(val))}
+                          className="focus:outline-none"
+                        >
+                          <Star
+                            className={`size-5 cursor-pointer transition-colors ${
+                              val <= Number(formData.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-sm text-muted-foreground">{formData.rating}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="supplier-skills">技能标签</Label>
+                <Input id="supplier-skills" placeholder="输入技能标签，用逗号分隔" value={formData.skillsInput} onChange={e => updateForm('skillsInput', e.target.value)} />
+                <p className="text-xs text-muted-foreground">多个标签用逗号分隔，如：UI设计,Figma,原型设计</p>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="supplier-notes">备注</Label>
+                <Textarea id="supplier-notes" placeholder="备注信息" rows={3} value={formData.notes} onChange={e => updateForm('notes', e.target.value)} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setModalVisible(false)}>取消</Button>
+              <Button type="submit">确定</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
