@@ -42,11 +42,32 @@ import { ProjectCostAccounting } from "./pages/contract-cost/ProjectCostAccounti
 import DeliveryPlanPage from "./pages/delivery-plan/DeliveryPlanPage";
 import PaymentKanban from "./pages/contracts/PaymentKanban";
 import { PaymentForecast } from "./pages/contracts/forecast/PaymentForecast";
-import { EmployeeList } from "./pages/employee";
-import { EmployeeDetail } from "./pages/employee";
 import { AttendanceManagement } from "./pages/employee";
 import { PerformanceManagement } from "./pages/employee";
 import { LevelRateSettings } from "./pages/employee";
+import { BossDashboard as HrDashboard } from "./pages/hr/dashboard/BossDashboard";
+import { OrganizationPage } from "./pages/hr/organization/OrganizationPage";
+import { EmployeeList as EmployeeListPage } from "./pages/hr/employees/EmployeeList";
+import { EmployeeDetail as EmployeeDetailPage } from "./pages/hr/employees/EmployeeDetail";
+import RecruitmentListPage from "./pages/hr/recruitment/RecruitmentList";
+import RecruitmentDetailPage from "./pages/hr/recruitment/RecruitmentDetail";
+import TalentPoolPage from "./pages/hr/recruitment/TalentPool";
+import SalaryApprovalPage from "./pages/hr/recruitment/SalaryApproval";
+import OnboardingListPage from "./pages/hr/onboarding/OnboardingList";
+import OnboardingDetailPage from "./pages/hr/onboarding/OnboardingDetail";
+import { ProbationTrack as ProbationTrackPage } from "./pages/hr/onboarding/ProbationTrack";
+import { AttendanceSummary as AttendanceSummaryPage } from "./pages/hr/attendance/AttendanceSummary";
+import { AttendanceExceptions as AttendanceExceptionsPage } from "./pages/hr/attendance/AttendanceExceptions";
+import { PerformanceList as PerformanceListPage } from "./pages/hr/performance/PerformanceList";
+import { PerformanceDetail as PerformanceDetailPage } from "./pages/hr/performance/PerformanceDetail";
+import { KPITemplates as KPITemplatesPage } from "./pages/hr/performance/KPITemplates";
+import { PayrollList as PayrollListPage } from "./pages/hr/payroll/PayrollList";
+import { PayrollDetail as PayrollDetailPage } from "./pages/hr/payroll/PayrollDetail";
+import { PayrollEngine as PayrollEnginePage } from "./pages/hr/payroll/PayrollEngine";
+import { DispatchList as DispatchListPage } from "./pages/hr/dispatch/DispatchList";
+import { DispatchDetail as DispatchDetailPage } from "./pages/hr/dispatch/DispatchDetail";
+import { ResignationList as ResignationListPage } from "./pages/hr/resignation/ResignationList";
+import { ResignationDetail as ResignationDetailPage } from "./pages/hr/resignation/ResignationDetail";
 import { PersonalWorkbench } from "./pages/workbench/PersonalWorkbench";
 import { LeadGovernance } from "./pages/leads/LeadGovernance";
 import { AssetManagement } from "./pages/assets/AssetManagement";
@@ -133,11 +154,29 @@ export const router = createBrowserRouter([
       { path: "leads/follow-records", Component: FollowRecordList },
       { path: "leads/high-tech", Component: NewLeadList },
       { path: "leads/:id", Component: NewLeadDetail },
-      { path: "employees", Component: EmployeeList },
-      { path: "employees/attendance", Component: AttendanceManagement },
-      { path: "employees/performance", Component: PerformanceManagement },
-      { path: "employees/level-rates", Component: LevelRateSettings },
-      { path: "employees/:id", Component: EmployeeDetail },
+      { path: "hr/dashboard", Component: HrDashboard },
+      { path: "hr/organization", Component: OrganizationPage },
+      { path: "hr/employees", Component: EmployeeListPage },
+      { path: "hr/employees/:id", Component: EmployeeDetailPage },
+      { path: "hr/recruitment", Component: RecruitmentListPage },
+      { path: "hr/recruitment/:id", Component: RecruitmentDetailPage },
+      { path: "hr/talent-pool", Component: TalentPoolPage },
+      { path: "hr/salary-approval", Component: SalaryApprovalPage },
+      { path: "hr/onboarding", Component: OnboardingListPage },
+      { path: "hr/onboarding/:id", Component: OnboardingDetailPage },
+      { path: "hr/probation", Component: ProbationTrackPage },
+      { path: "hr/attendance", Component: AttendanceSummaryPage },
+      { path: "hr/attendance/exceptions", Component: AttendanceExceptionsPage },
+      { path: "hr/performance", Component: PerformanceListPage },
+      { path: "hr/performance/:id", Component: PerformanceDetailPage },
+      { path: "hr/performance/templates", Component: KPITemplatesPage },
+      { path: "hr/payroll", Component: PayrollListPage },
+      { path: "hr/payroll/:id", Component: PayrollDetailPage },
+      { path: "hr/payroll/engine", Component: PayrollEnginePage },
+      { path: "hr/dispatch", Component: DispatchListPage },
+      { path: "hr/dispatch/:id", Component: DispatchDetailPage },
+      { path: "hr/resignation", Component: ResignationListPage },
+      { path: "hr/resignation/:id", Component: ResignationDetailPage },
       { path: "system/organization", Component: Organization },
       { path: "system/permission", Component: UserPermission },
       { path: "system/company", Component: CompanyEntity },

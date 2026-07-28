@@ -7,7 +7,10 @@
     "build": "vite build",
     "dev": "vite",
     "test": "vitest run",
-    "test:reminders": "vitest run src/app/reminders/__tests__/utils.test.ts"
+    "test:reminders": "vitest run src/app/reminders/__tests__/utils.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
     "@arco-design/web-react": "^2.66.13",
@@ -70,6 +73,7 @@
     "vaul": "1.1.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/vite": "4.1.12",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
