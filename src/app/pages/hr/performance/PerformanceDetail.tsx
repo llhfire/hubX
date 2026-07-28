@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/app/components/ui/table'
+import { Progress } from '@/app/components/ui/progress'
 import {
   TrendingUp,
   ShieldAlert,
@@ -18,6 +19,7 @@ import {
   CheckCircle2,
   XCircle,
   Info,
+  Scale,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -177,6 +179,65 @@ export function PerformanceDetail() {
               </TableRow>
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      {/* Weight Validation */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Scale className="h-4 w-4 text-indigo-500" />
+            <CardTitle className="text-sm">权重校验</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">&Sigma;权重 = {totalWeight}%</span>
+              {totalWeight === 100 ? (
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-500" />
+              )}
+            </div>
+            <Badge
+              variant="outline"
+              className={`text-xs ${
+                totalWeight === 100
+                  ? 'bg-green-50 text-green-600 border-green-200'
+                  : 'bg-red-50 text-red-600 border-red-200'
+              }`}
+            >
+              {totalWeight === 100 ? '校验通过' : '校验不通过'}
+            </Badge>
+          </div>
+          <div className="space-y-1">
+            <Progress
+              value={totalWeight}
+              className={`h-2 ${
+                totalWeight === 100
+                  ? '[&>div]:bg-green-500'
+                  : totalWeight > 100
+                  ? '[&>div]:bg-red-500'
+                  : '[&>div]:bg-amber-500'
+              }`}
+            />
+            <div className="flex justify-between text-xs text-slate-400">
+              <span>0%</span>
+              <span>50%</span>
+              <span>100%</span>
+            </div>
+          </div>
+          {totalWeight !== 100 && (
+            <Alert className="border-red-200 bg-red-50/50">
+              <XCircle className="h-4 w-4 text-red-500" />
+              <AlertDescription className="text-sm text-red-700">
+                {totalWeight > 100
+                  ? `权重超出 ${totalWeight - 100}%，请调整各指标权重使总和为 100%`
+                  : `权重不足 ${100 - totalWeight}%，请补充各指标权重使总和为 100%`}
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 

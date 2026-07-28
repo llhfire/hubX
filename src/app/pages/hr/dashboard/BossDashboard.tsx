@@ -4,7 +4,8 @@ import { Button } from '@/app/components/ui/button'
 import { Input } from '@/app/components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
-import { Users, DollarSign, TrendingUp, UserCheck, AlertTriangle, Search, Bot } from 'lucide-react'
+import { useNavigate } from 'react-router'
+import { Users, DollarSign, TrendingUp, UserCheck, AlertTriangle, Search, Bot, ArrowRight, FileText, Calendar, ClipboardList } from 'lucide-react'
 import { useState } from 'react'
 
 const salaryTrend = [
@@ -42,12 +43,26 @@ const performanceDistribution = [
 ]
 
 export function BossDashboard() {
+  const navigate = useNavigate()
   const [nlQuery, setNlQuery] = useState('')
   const [nlResult, setNlResult] = useState<string | null>(null)
 
   const handleNLSearch = () => {
     if (!nlQuery) return
-    setNlResult(`📊 根据自然语言查询「${nlQuery}」的分析结果：\n\n• 电商业务线 2026 年 1-7 月人工成本 ¥65,000，派单工时产出 ¥180,000，ROI 为 177%\n• 建议优化电商业务线人力配置，当前投入产出比在 4 条业务线中最低`)
+    const q = nlQuery.toLowerCase()
+    let result = ''
+    if (q.includes('成本') || q.includes('薪资') || q.includes('工资')) {
+      result = '📊 薪资成本分析：\n\n• 2026 年 1-7 月累计薪资成本 ¥335.5 万\n• 7 月单月 ¥51 万，环比增长 3%\n• 软件定制业务线占比 55%（¥28 万）\n• 建议关注电商业务线人均产出偏低的问题'
+    } else if (q.includes('离职') || q.includes('流失')) {
+      result = '📊 人员流失分析：\n\n• 2026 年累计离职 3 人，主动离职率 5.4%\n• 试岗期淘汰率 0%（2 人试岗中，暂无淘汰）\n• 技术部流失率最低，销售部需关注\n• 建议加强新员工试岗期关怀'
+    } else if (q.includes('绩效') || q.includes('打分')) {
+      result = '📊 绩效分布分析：\n\n• 7 月绩效分布：S(3) A(8) B(15) C(4) D(1)\n• 平均分 78.5 分，标准差 12.3\n• 王建国组打分偏高（平均 85 分），建议关注趋中效应\n• 技术部整体绩效优于其他部门'
+    } else if (q.includes('招聘') || q.includes('岗位')) {
+      result = '📊 招聘进度分析：\n\n• 当前在招 3 个岗位：前端开发(2人)、UI设计(1人)、销售经理(1人)\n• 前端开发岗位已持续 45 天，建议提高薪资竞争力\n• 人才库现有 32 份简历，匹配度≥80% 的有 5 份\n• 预计 8 月中旬可完成全部招聘'
+    } else {
+      result = `📊 根据自然语言查询「${nlQuery}」的分析结果：\n\n• 电商业务线 2026 年 1-7 月人工成本 ¥65,000，派单工时产出 ¥180,000，ROI 为 177%\n• 建议优化电商业务线人力配置，当前投入产出比在 4 条业务线中最低`
+    }
+    setNlResult(result)
   }
 
   return (
@@ -134,6 +149,35 @@ export function BossDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 快捷入口 */}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-500">快捷入口</span>
+            {[
+              { label: '员工花名册', path: '/hr/employees', icon: Users },
+              { label: '招聘管理', path: '/hr/recruitment', icon: FileText },
+              { label: '绩效管理', path: '/hr/performance', icon: TrendingUp },
+              { label: '薪资核算', path: '/hr/payroll', icon: DollarSign },
+              { label: '考勤管理', path: '/hr/attendance', icon: Calendar },
+              { label: '工作派单', path: '/hr/dispatch', icon: ClipboardList },
+            ].map((item) => (
+              <Button
+                key={item.path}
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => navigate(item.path)}
+              >
+                <item.icon className="h-3.5 w-3.5" />
+                {item.label}
+                <ArrowRight className="h-3 w-3 text-slate-400" />
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 图表区 */}
       <div className="grid grid-cols-2 gap-4">

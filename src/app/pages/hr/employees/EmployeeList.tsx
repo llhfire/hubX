@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback } from '@/app/components/ui/avatar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select'
 import { Users, Plus, Search, Download, Eye, Edit, Filter } from 'lucide-react'
+import { EmployeeFormDialog } from '../components/EmployeeFormDialog'
+import { toast } from 'sonner'
 
 interface Emp {
   id: string; employeeNo: string; name: string; gender: string; phone: string
@@ -32,10 +34,10 @@ const MOCK_EMPLOYEES: Emp[] = [
 ]
 
 const statusColor: Record<string, string> = {
-  '在职': 'bg-green-100 text-green-700',
-  '试岗中': 'bg-amber-100 text-amber-700',
-  '试用期': 'bg-blue-100 text-blue-700',
-  '已离职': 'bg-slate-100 text-slate-500',
+  '在职': 'bg-green-100 text-green-700 border-green-200',
+  '试岗中': 'bg-amber-100 text-amber-700 border-amber-200',
+  '试用期': 'bg-blue-100 text-blue-700 border-blue-200',
+  '已离职': 'bg-slate-100 text-slate-500 border-slate-200',
 }
 
 export function EmployeeList() {
@@ -43,6 +45,8 @@ export function EmployeeList() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [deptFilter, setDeptFilter] = useState('all')
+  const [formOpen, setFormOpen] = useState(false)
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
 
   const filtered = useMemo(() => {
     return MOCK_EMPLOYEES.filter((e) => {
@@ -63,8 +67,8 @@ export function EmployeeList() {
           <Badge variant="secondary">{filtered.length} 人</Badge>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2"><Download className="h-4 w-4" />导出</Button>
-          <Button className="gap-2"><Plus className="h-4 w-4" />新增员工</Button>
+          <Button variant="outline" className="gap-2" onClick={() => toast.success('员工数据已导出')}><Download className="h-4 w-4" />导出</Button>
+          <Button className="gap-2" onClick={() => { setFormMode('create'); setFormOpen(true) }}><Plus className="h-4 w-4" />新增员工</Button>
         </div>
       </div>
 
@@ -147,6 +151,7 @@ export function EmployeeList() {
           </Table>
         </CardContent>
       </Card>
+      <EmployeeFormDialog open={formOpen} onOpenChange={setFormOpen} mode={formMode} />
     </div>
   )
 }

@@ -12,6 +12,7 @@ import { ArrowLeft, Save, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Trip, TransportMode, AccommodationType } from '../types';
 import { createTrip } from '../travel-api';
+import { TravelRuleEngine } from '../components/TravelRuleEngine';
 
 export function TripForm() {
   const navigate = useNavigate();
@@ -40,6 +41,11 @@ export function TripForm() {
     needLoan: false,
     loanAmount: 0,
     loanReason: '',
+    // AI 验证相关
+    department: '',
+    companions: [] as string[],
+    companionInput: '',
+    hasApprovalScreenshot: false,
   });
 
   // 计算天数
@@ -82,6 +88,25 @@ export function TripForm() {
       transportModes: form.transportModes.includes(mode)
         ? form.transportModes.filter(m => m !== mode)
         : [...form.transportModes, mode],
+    });
+  };
+
+  // 添加同行人
+  const handleAddCompanion = () => {
+    if (form.companionInput.trim() && !form.companions.includes(form.companionInput.trim())) {
+      setForm({
+        ...form,
+        companions: [...form.companions, form.companionInput.trim()],
+        companionInput: '',
+      });
+    }
+  };
+
+  // 删除同行人
+  const handleRemoveCompanion = (index: number) => {
+    setForm({
+      ...form,
+      companions: form.companions.filter((_, i) => i !== index),
     });
   };
 
@@ -154,12 +179,16 @@ export function TripForm() {
         <h2 className="text-lg font-semibold">新建出差申请</h2>
       </div>
 
-      {/* 基本信息 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>基本信息</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* 主体：表单左侧 + AI右侧 */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* 左侧：表单（2/3） */}
+        <div className="col-span-2 space-y-4">
+          {/* 基本信息 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>基本信息</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>关联客户</Label>
@@ -186,6 +215,27 @@ export function TripForm() {
               value={form.purpose}
               onChange={(e) => setForm({ ...form, purpose: e.target.value })}
             />
+          </div>
+          <div className="space-y-2">
+            <Label>所属部门</Label>
+            <Select
+              value={form.department}
+              onValueChange={(value) => setForm({ ...form, department: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="选择部门" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="技术部">技术部</SelectItem>
+                <SelectItem value="销售部">销售部</SelectItem>
+                <SelectItem value="市场部">市场部</SelectItem>
+                <SelectItem value="行政部">行政部</SelectItem>
+                <SelectItem value="财务部">财务部</SelectItem>
+                <SelectItem value="人力资源部">人力资源部</SelectItem>
+                <SelectItem value="产品部">产品部</SelectItem>
+                <SelectItem value="运营部">运营部</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -278,6 +328,47 @@ export function TripForm() {
               ))}
             </div>
           </div>
+          <div className="space-y-2">
+            <Label>同行人员</Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="输入同行人姓名"
+                value={form.companionInput}
+                onChange={(e) => setForm({ ...form, companionInput: e.target.value })}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddCompanion()}
+              />
+              <Button variant="outline" onClick={handleAddCompanion}>
+                添加
+              </Button>
+            </div>
+            {form.companions.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {form.companions.map((name, index) => (
+                  <div key={index} className="flex items-center gap-1 bg-secondary px-3 py-1 rounded-md">
+                    <span className="text-sm">{name}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0"
+                      onClick={() => handleRemoveCompanion(index)}
+                    >
+                      x
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="hasApprovalScreenshot"
+              checked={form.hasApprovalScreenshot}
+              onCheckedChange={(checked) => setForm({ ...form, hasApprovalScreenshot: checked as boolean })}
+            />
+            <Label htmlFor="hasApprovalScreenshot" className="font-normal">
+              已上传审批截图
+            </Label>
+          </div>
         </CardContent>
       </Card>
 
@@ -359,6 +450,22 @@ export function TripForm() {
           </div>
         </CardContent>
       </Card>
+        </div>
+
+        {/* 右侧：AI 合规检查（1/3） */}
+        <div className="col-span-1">
+          <div className="sticky top-4">
+            <TravelRuleEngine
+              destinationCity={form.destinations[0] || ''}
+              department={form.department}
+              travelDays={calculateDays()}
+              companions={form.companions}
+              transportType={form.transportModes[0] || ''}
+              hasApprovalScreenshot={form.hasApprovalScreenshot}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* 借款申请 */}
       <Card>

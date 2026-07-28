@@ -74,17 +74,17 @@ const mockData: RecruitmentItem[] = [
 
 export default function RecruitmentList() {
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">招聘需求管理</h1>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
+        <h1 className="text-xl font-bold text-slate-800">招聘需求管理</h1>
+        <Button className="gap-2">
+          <Plus className="h-4 w-4" />
           新增招聘需求
         </Button>
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="pt-4">
           <Table>
             <TableHeader>
               <TableRow>
@@ -101,7 +101,7 @@ export default function RecruitmentList() {
             </TableHeader>
             <TableBody>
               {mockData.map((item) => (
-                <TableRow key={item.id} className="cursor-pointer">
+                <TableRow key={item.id} className="cursor-pointer hover:bg-slate-50">
                   <TableCell className="font-medium">{item.position}</TableCell>
                   <TableCell>{item.department}</TableCell>
                   <TableCell>{item.businessLine}</TableCell>

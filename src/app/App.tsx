@@ -1,4 +1,5 @@
 import { RouterProvider } from 'react-router';
+import { Toaster } from 'sonner';
 import { ReminderProvider } from './reminders/ReminderContext';
 import { ContractsProvider } from './pages/contracts/ContractsContext';
 import { EmployeeProvider } from './pages/employee';
@@ -10,6 +11,7 @@ function App() {
       <EmployeeProvider>
         <ContractsProvider>
           <RouterProvider router={router} />
+          <Toaster position="top-right" richColors />
         </ContractsProvider>
       </EmployeeProvider>
     </ReminderProvider>

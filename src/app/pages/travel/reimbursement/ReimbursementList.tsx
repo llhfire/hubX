@@ -9,7 +9,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/table';
-import { Search, Plus, Check, X, DollarSign, Eye, Download } from 'lucide-react';
+import { Search, Plus, Check, X, DollarSign, Eye, Download, Brain } from 'lucide-react'
+import { FinanceAuditDashboard } from '../components/FinanceAuditDashboard';
 import { toast } from 'sonner';
 import type { Reimbursement, ReimbursementStatus } from '../types';
 import { getReimbursementList, approveReimbursement, payReimbursement } from '../travel-api';
@@ -28,6 +29,7 @@ export function ReimbursementList() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [reimbursementList, setReimbursementList] = useState<Reimbursement[]>([]);
+  const [auditOpen, setAuditOpen] = useState(false);
   const [total, setTotal] = useState(0);
   const [searchForm, setSearchForm] = useState({
     keyword: '',
@@ -156,6 +158,11 @@ export function ReimbursementList() {
 
   return (
     <div className="space-y-4">
+      {/* AI 稽核看板 */}
+      {auditOpen && (
+        <FinanceAuditDashboard />
+      )}
+
       {/* 搜索栏 */}
       <Card>
         <CardContent className="pt-6">
@@ -166,6 +173,10 @@ export function ReimbursementList() {
               value={searchForm.keyword}
               onChange={(e) => setSearchForm({ ...searchForm, keyword: e.target.value })}
             />
+            <Button variant="outline" size="sm" onClick={() => setAuditOpen(!auditOpen)} className="gap-1">
+              <Brain className="h-4 w-4 text-indigo-500" />
+              {auditOpen ? '收起' : 'AI 稽核看板'}
+            </Button>
             <Select
               value={searchForm.status}
               onValueChange={(value) => setSearchForm({ ...searchForm, status: value as ReimbursementStatus | '' })}
@@ -211,7 +222,7 @@ export function ReimbursementList() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>报销申请列表</CardTitle>
-          <Button onClick={() => navigate('/travel/reimbursements/new')}>
+          <Button onClick={() => toast.info('请先在出差详情页的费用管理中添加费用，再提交报销')}>
             <Plus className="mr-2 h-4 w-4" />
             新增报销
           </Button>

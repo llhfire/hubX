@@ -4,7 +4,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/tabs';
-import { ArrowLeft, MapPin, Calendar, DollarSign, Building2, Briefcase } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, DollarSign, Building2, Briefcase } from 'lucide-react'
+import { ComplianceGuide } from '../components/ComplianceGuide';
 import { toast } from 'sonner';
 import type { Trip, TripStatus } from '../types';
 import { getTripDetail, startTrip, endTrip, closeTrip } from '../travel-api';
@@ -179,6 +180,16 @@ export function TripDetail() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 审批通过后显示合规指南 */}
+      {trip.status === 'approved' && (
+        <ComplianceGuide
+          destination={trip.destinations[0]}
+          days={Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24))}
+          department={trip.department || '技术部'}
+          companions={trip.companions || []}
+        />
+      )}
 
       {/* Tab 内容 */}
       <Tabs defaultValue="basic" className="space-y-4">

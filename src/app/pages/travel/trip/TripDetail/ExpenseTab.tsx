@@ -8,7 +8,9 @@ import { Label } from '../../../../components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../components/ui/select';
 import { Textarea } from '../../../../components/ui/textarea';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui/table';
-import { Plus, Edit, Trash2, AlertTriangle, DollarSign } from 'lucide-react';
+import { Plus, Edit, Trash2, AlertTriangle, DollarSign, ScanLine, LayoutList, BarChart3 } from 'lucide-react'
+import { ExpenseOCR } from '../../components/ExpenseOCR';
+import { TimelineView } from './TimelineView';
 import { toast } from 'sonner';
 import type { Trip, Expense, TripExpenseType } from '../../types';
 
@@ -31,6 +33,7 @@ const expenseTypeLabels: Record<TripExpenseType, string> = {
 export function ExpenseTab({ trip, onUpdate }: ExpenseTabProps) {
   const [formVisible, setFormVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('timeline');
   const [form, setForm] = useState({
     itinerarySegmentId: '',
     type: 'meal' as TripExpenseType,
@@ -100,6 +103,8 @@ export function ExpenseTab({ trip, onUpdate }: ExpenseTabProps) {
   };
 
   // 保存
+  const [ocrOpen, setOcrOpen] = useState(false)
+
   const handleSave = () => {
     if (!form.amount || !form.date) {
       toast.error('请填写完整信息');
@@ -122,14 +127,14 @@ export function ExpenseTab({ trip, onUpdate }: ExpenseTabProps) {
           <Card key={type}>
             <CardContent className="pt-6">
               <div className="text-sm text-muted-foreground">{expenseTypeLabels[type as TripExpenseType] || type}</div>
-              <div className="text-xl font-bold">¥{amount.toLocaleString()}</div>
+              <div className="text-2xl font-bold">¥{amount.toLocaleString()}</div>
             </CardContent>
           </Card>
         ))}
         <Card>
           <CardContent className="pt-6">
             <div className="text-sm text-muted-foreground">总费用</div>
-            <div className="text-xl font-bold text-primary">¥{totalExpense.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-primary">¥{totalExpense.toLocaleString()}</div>
           </CardContent>
         </Card>
       </div>
@@ -138,12 +143,36 @@ export function ExpenseTab({ trip, onUpdate }: ExpenseTabProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>费用记录</CardTitle>
-          <Button size="sm" onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            新增费用
-          </Button>
+          <div className="flex gap-2">
+            <div className="flex border rounded-md">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => setViewMode('list')}
+              >
+                <LayoutList className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'timeline' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => setViewMode('timeline')}
+              >
+                <BarChart3 className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setOcrOpen(true)} className="gap-1">
+              <ScanLine className="h-4 w-4" />OCR 识别发票
+            </Button>
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              新增费用
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
+          {viewMode === 'list' ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -202,6 +231,9 @@ export function ExpenseTab({ trip, onUpdate }: ExpenseTabProps) {
               )}
             </TableBody>
           </Table>
+          ) : (
+            <TimelineView expenses={allExpenses} typeLabels={expenseTypeLabels} />
+          )}
         </CardContent>
       </Card>
 
@@ -307,6 +339,7 @@ export function ExpenseTab({ trip, onUpdate }: ExpenseTabProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ExpenseOCR open={ocrOpen} onOpenChange={setOcrOpen} />
     </div>
   );
 }

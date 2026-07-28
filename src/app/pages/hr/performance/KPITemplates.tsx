@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Card, CardContent } from '@/app/components/ui/card'
 import { Badge } from '@/app/components/ui/badge'
-import { ChevronDown, ChevronUp, CheckCircle, FileText } from 'lucide-react'
+import { Button } from '@/app/components/ui/button'
+import { ChevronDown, ChevronUp, CheckCircle, FileText, Sparkles, Loader2 } from 'lucide-react'
 
 interface KPIItem {
   name: string
@@ -57,21 +58,90 @@ const TEMPLATES: Template[] = [
   },
 ]
 
+const AI_GENERATED_ITEMS: KPIItem[] = [
+  { name: '核心业务指标达成率', weight: 35, target: '≥90%' },
+  { name: '项目交付准时率', weight: 25, target: '≥95%' },
+  { name: '跨部门协作满意度', weight: 20, target: '评分≥85' },
+  { name: '创新提案落地数', weight: 12, target: '季度≥2项' },
+  { name: '知识沉淀与分享', weight: 8, target: '月度≥1篇' },
+]
+
 const barColors = ['#6366f1', '#3b82f6', '#14b8a6', '#10b981', '#06b6d4', '#8b5cf6']
 
 export function KPITemplates() {
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [aiGenerating, setAiGenerating] = useState(false)
+  const [aiGenerated, setAiGenerated] = useState(false)
 
   const toggle = (id: string) => {
     setExpanded((prev) => (prev === id ? null : id))
+  }
+
+  const handleAiGenerate = () => {
+    setAiGenerating(true)
+    setTimeout(() => {
+      setAiGenerating(false)
+      setAiGenerated(true)
+    }, 2000)
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-slate-800">KPI 模板管理</h1>
-        <Badge variant="secondary">{TEMPLATES.length} 个模板</Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
+            onClick={handleAiGenerate}
+            disabled={aiGenerating}
+          >
+            {aiGenerating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {aiGenerating ? 'AI 生成中...' : 'AI 一键生成 KPI'}
+          </Button>
+          <Badge variant="secondary">{TEMPLATES.length} 个模板</Badge>
+        </div>
       </div>
+
+      {aiGenerated && (
+        <Card className="border-violet-200 bg-violet-50/50">
+          <CardContent className="pt-4 space-y-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-4 w-4 text-violet-500" />
+              <span className="text-sm font-medium text-violet-700">AI 智能生成 KPI 方案</span>
+            </div>
+            {AI_GENERATED_ITEMS.map((item, idx) => (
+              <div key={idx} className="space-y-1.5">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-700">{item.name}</span>
+                    <Badge variant="outline" className="bg-violet-100 text-violet-600 border-violet-200 text-xs gap-0.5">
+                      <Sparkles className="h-2.5 w-2.5" />
+                      AI 辅助生成
+                    </Badge>
+                  </div>
+                  <span className="text-slate-500">{item.target}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${item.weight}%`, backgroundColor: barColors[idx % barColors.length] }} />
+                  </div>
+                  <span className="text-sm font-mono font-medium text-slate-600 w-12 text-right">{item.weight}%</span>
+                </div>
+              </div>
+            ))}
+            <div className="flex items-center justify-between pt-2 border-t text-sm font-medium">
+              <span className="text-slate-600">合计权重</span>
+              <span className="text-green-600">100%</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-3">
         {TEMPLATES.map((tpl) => {

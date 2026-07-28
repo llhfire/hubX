@@ -47,6 +47,7 @@ export function TravelDashboard() {
 
   return (
     <div className="space-y-4">
+      <h2 className="text-lg font-semibold mb-4">差旅看板</h2>
       <Tabs defaultValue="personal" className="space-y-4">
         <TabsList>
           <TabsTrigger value="personal">个人看板</TabsTrigger>

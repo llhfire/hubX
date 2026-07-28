@@ -58,6 +58,7 @@ import { RoleSelectModal } from '../pages/daily-report/RoleSelectModal';
 import { DailyReport } from '../pages/daily-report/types';
 import { ReminderBell, hasDailyReportUnsubmittedReminder } from '../reminders/components/ReminderBell';
 import { useReminders } from '../reminders/ReminderContext';
+import { HRPolicyBot } from '../pages/hr/components/HRPolicyBot';
 
 // ── 菜单配置 ──────────────────────────────────────────────────
 interface MenuItem {
@@ -404,6 +405,7 @@ export function MainLayout() {
         onCancel={() => setRoleSelectVisible(false)}
         onSelect={handleRoleSelect}
       />
+      <HRPolicyBot />
     </div>
   );
 }

@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/ui/table";
-import { Card, CardContent } from "@/app/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -18,8 +18,40 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { toast } from "sonner";
-import { DollarSign, Send, AlertTriangle, Download, Filter } from "lucide-react";
+import { Send, AlertTriangle, Download, Filter, ShieldCheck } from "lucide-react";
 import type { PayrollRecord } from "@/app/pages/hr/types";
+
+interface PayrollAnomaly {
+  id: string;
+  level: "warning" | "critical";
+  employee: string;
+  message: string;
+  explanation: string;
+}
+
+const mockAnomalies: PayrollAnomaly[] = [
+  {
+    id: "ano-001",
+    level: "warning",
+    employee: "李婷",
+    message: "考勤扣款较上月增长 200%",
+    explanation: "本月请事假 2 天导致考勤扣款翻倍，已核实请假审批单，扣款计算无误。",
+  },
+  {
+    id: "ano-002",
+    level: "critical",
+    employee: "王磊",
+    message: "绩效奖金异常偏高，实发较上月激增 40%",
+    explanation: "试岗期通过，追溯补发了试用期差额 + 绩效系数 1.2，已与部门负责人确认。",
+  },
+  {
+    id: "ano-003",
+    level: "warning",
+    employee: "吴琳",
+    message: "试岗期薪资已计入，转正日期待确认",
+    explanation: "系统自动按转正薪资计算，需确认实际转正生效日期是否为本月 1 日。",
+  },
+];
 
 const mockPayroll: PayrollRecord[] = [
   {
@@ -147,21 +179,73 @@ export function PayrollList() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-slate-800">月度工资表</h1>
         <div className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-blue-600" />
-          <h1 className="text-xl font-bold text-slate-800">月度工资表</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
+          <Button variant="outline" size="sm" className="gap-2">
+            <Download className="h-4 w-4" />
             导出Excel
           </Button>
-          <Button size="sm" onClick={handleSendPaySlips}>
-            <Send className="mr-2 h-4 w-4" />
+          <Button size="sm" className="gap-2" onClick={handleSendPaySlips}>
+            <Send className="h-4 w-4" />
             发送工资条
           </Button>
         </div>
       </div>
+
+      <Card className="border-amber-200 bg-amber-50/30">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-amber-600" />
+            <span className="text-amber-800">AI 算薪异动审计</span>
+            <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
+              {mockAnomalies.length} 项待复核
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 pt-0">
+          {mockAnomalies.map((ano) => (
+            <div
+              key={ano.id}
+              className={`rounded-lg p-3 border ${
+                ano.level === "critical"
+                  ? "bg-red-50 border-red-200"
+                  : "bg-amber-50 border-amber-200"
+              }`}
+            >
+              <div className="flex items-start gap-2">
+                <AlertTriangle
+                  className={`h-4 w-4 mt-0.5 shrink-0 ${
+                    ano.level === "critical" ? "text-red-500" : "text-amber-500"
+                  }`}
+                />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-800">
+                      {ano.employee}
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className={`text-xs ${
+                        ano.level === "critical"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {ano.level === "critical" ? "高风险" : "提醒"}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-slate-700">
+                    ⚠️ {ano.message}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {ano.explanation}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="pt-4">
@@ -200,7 +284,7 @@ export function PayrollList() {
             </TableHeader>
             <TableBody>
               {filteredData.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow key={r.id} className="hover:bg-slate-50">
                   <TableCell className="font-medium">{r.employeeName}</TableCell>
                   <TableCell>{r.departmentName}</TableCell>
                   <TableCell>{`${r.year}-${String(r.month).padStart(2, "0")}`}</TableCell>

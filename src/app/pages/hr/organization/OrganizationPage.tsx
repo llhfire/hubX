@@ -102,6 +102,7 @@ export function OrganizationPage() {
               <TabsTrigger value="entities">法人主体</TabsTrigger>
               <TabsTrigger value="bizlines">主业务线</TabsTrigger>
               <TabsTrigger value="positions">岗位职级</TabsTrigger>
+              <TabsTrigger value="permissions">权限矩阵</TabsTrigger>
             </TabsList>
 
             <div className="pt-4">
@@ -197,6 +198,54 @@ export function OrganizationPage() {
                     ))}
                   </TableBody>
                 </Table>
+              </TabsContent>
+
+              {/* 权限矩阵 */}
+              <TabsContent value="permissions">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">角色 × 功能 权限矩阵</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-28">角色</TableHead>
+                          <TableHead>花名册</TableHead>
+                          <TableHead>身份证/银行卡</TableHead>
+                          <TableHead>薪资/工资条</TableHead>
+                          <TableHead>招聘/ATS</TableHead>
+                          <TableHead>定薪审批</TableHead>
+                          <TableHead>电子签章</TableHead>
+                          <TableHead>绩效打分</TableHead>
+                          <TableHead>考勤管理</TableHead>
+                          <TableHead>工作派单</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {[
+                          { role: '普通员工', color: 'bg-slate-100 text-slate-700', perms: ['仅本人', '仅本人', '仅本人', '无权', '无权', '签署本人', '确认本人', '本人打卡', '接收/填报'] },
+                          { role: '部门主管', color: 'bg-blue-100 text-blue-700', perms: ['部分', '无权', '无权', '评估本组', '发起意见', '无权', '本业务线', '动态审批', '发起/验收'] },
+                          { role: 'HR 专员', color: 'bg-green-100 text-green-700', perms: ['全部', '全员可见', '全员可见', '全员管理', '校验/提交', '发起/监控', '全员监控', '全员汇总', '发起行政'] },
+                          { role: '财务人员', color: 'bg-amber-100 text-amber-700', perms: ['基础信息', '全员可见', '全员可见', '无权', '无权', '查看凭证', '查看系数', '查看汇总', '发起财务'] },
+                          { role: '总经理/老板', color: 'bg-purple-100 text-purple-700', perms: ['全部', '全员可见', '全员查看', '全员查看', '最终全审批', '查看存证', '全员终审', '全员查看', '全局发起'] },
+                          { role: '系统管理员', color: 'bg-red-100 text-red-700', perms: ['基础信息', '无权(掩码)', '无权', '无权', '无权', 'API配置', '无权', '规则配置', '系统配置'] },
+                        ].map((row) => (
+                          <TableRow key={row.role}>
+                            <TableCell><Badge variant="outline" className={`text-xs ${row.color}`}>{row.role}</Badge></TableCell>
+                            {row.perms.map((p, i) => {
+                              const permColor = p === '全部' ? 'bg-green-50 text-green-600 border-green-200'
+                                : p === '无权' || p.includes('无权') ? 'bg-red-50 text-red-600 border-red-200'
+                                : p.includes('本人') || p.includes('本组') ? 'bg-amber-50 text-amber-600 border-amber-200'
+                                : 'bg-blue-50 text-blue-600 border-blue-200'
+                              return <TableCell key={i}><Badge variant="outline" className={`text-[10px] ${permColor}`}>{p}</Badge></TableCell>
+                            })}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </div>
           </Tabs>

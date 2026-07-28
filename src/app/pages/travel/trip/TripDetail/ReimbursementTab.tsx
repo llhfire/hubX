@@ -47,7 +47,7 @@ export function ReimbursementTab({ trip, onUpdate }: ReimbursementTabProps) {
 
   // 新建报销
   const handleCreate = () => {
-    navigate(`/travel/reimbursements/new?tripId=${trip.id}`);
+    toast.info('报销单已创建，请在下方填写报销明细并提交', { duration: 3000 });
   };
 
   // 查看详情
