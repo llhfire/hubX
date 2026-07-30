@@ -17,6 +17,11 @@ import type { Lead, FollowRecord, FollowMethod, LeadStage, IntentLevel } from '.
 import { leadStageConfig, intentLevelConfig } from './types';
 import { getLeadDetail, getFollowRecordList, createFollowRecord, releaseToPublic, markAsTrash, transferLead } from './leads-api';
 import { employees, mockLeads } from './mock-data';
+import { WeChatGroupCard } from '../wechat-bot/components/WeChatGroupCard';
+import { mockGroups, mockExtractedItems } from '../wechat-bot/mock-data';
+import { initialProjects } from '../project-management/mockData';
+import { ProjectSummaryGrid } from '../project-management/ProjectSummaryGrid';
+import { Link } from 'react-router';
 
 export function LeadDetail() {
   const { id } = useParams();
@@ -28,7 +33,6 @@ export function LeadDetail() {
   // 弹窗状态
   const [followModalVisible, setFollowModalVisible] = useState(false);
   const [transferModalVisible, setTransferModalVisible] = useState(false);
-  const [rightTabKey, setRightTabKey] = useState('follow');
 
   // 跟进表单
   const [followForm, setFollowForm] = useState({
@@ -165,107 +169,181 @@ export function LeadDetail() {
 
   return (
     <div className="space-y-4">
-      {/* 顶部操作栏 */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-          <ArrowLeft className="mr-2 h-4 w-4" />返回
-        </Button>
-        <Button variant="outline" size="sm"><Edit className="mr-2 h-4 w-4" />编辑</Button>
-        <Button variant="outline" size="sm" onClick={() => setTransferModalVisible(true)}>
-          <UserMinus className="mr-2 h-4 w-4" />转给他人
-        </Button>
-        <Button variant="outline" size="sm" onClick={handleRelease}>扔回公海</Button>
-        <Button variant="outline" size="sm" className="text-destructive" onClick={handleMarkTrash}>
-          <Trash2 className="mr-2 h-4 w-4" />标记为垃圾
-        </Button>
+      {/* 顶部导航栏：返回 + 标题 + 操作按钮 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="shrink-0">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Separator orientation="vertical" className="h-5 shrink-0" />
+          <h2 className="text-lg font-semibold truncate">{lead.leadNo}：{lead.name}</h2>
+          <Badge variant="outline" className={
+            lead.stage === '已签单' ? 'bg-green-50 text-green-600 border-green-300 shrink-0' :
+            lead.stage === '已终止' ? 'bg-gray-50 text-gray-500 border-gray-300 shrink-0' :
+            'bg-blue-50 text-blue-600 border-blue-300 shrink-0'
+          }>{lead.stage}</Badge>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button variant="outline" size="sm"><Edit className="mr-1.5 h-3.5 w-3.5" />编辑</Button>
+          {lead.stage === '已签单' && lead.projectId && (
+            <Link to={`/projects/${lead.projectId}`}>
+              <Button variant="outline" size="sm" className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100">
+                查看项目 →
+              </Button>
+            </Link>
+          )}
+          {lead.stage !== '已签单' && lead.stage !== '已终止' && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setTransferModalVisible(true)}>
+                <UserMinus className="mr-1.5 h-3.5 w-3.5" />转给他人
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleRelease}>扔回公海</Button>
+              <Button variant="outline" size="sm" className="text-destructive" onClick={handleMarkTrash}>
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />标记为垃圾
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* 线索标题 */}
-      <div>
-        <h2 className="text-lg font-semibold">{lead.leadNo}：{lead.name}</h2>
-        <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-          <span>线索来源：<Badge variant="outline">{lead.source}</Badge></span>
-          <span>客户称呼：{lead.contactName || '-'}</span>
-          <span>创建人：{lead.creatorName}</span>
-          <span>归属人：<span className="text-blue-600">{lead.ownerName}</span></span>
-        </div>
-        <div className="text-sm text-muted-foreground mt-1">
-          创建时间：{lead.createTime}
-        </div>
-      </div>
+      {/* 已签单线索：项目概览卡片（与项目详情页一致） */}
+      {lead.stage === '已签单' && lead.projectId && (
+        <ProjectSummaryGrid projectId={lead.projectId} from="lead" leadId={lead.id} leadName={lead.name} />
+      )}
 
       {/* 两栏布局 */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* 左侧主内容 - 只显示基础信息 */}
+        {/* 左侧主内容 */}
         <div className="lg:col-span-3">
-          <Card className="mb-4">
-            <CardHeader>
-              <CardTitle>基本信息</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                <div><span className="text-muted-foreground">线索名称：</span>{lead.name}</div>
-                <div><span className="text-muted-foreground">联系方式：</span>{lead.phone || '-'}</div>
-                <div><span className="text-muted-foreground">联系人：</span>{lead.contactName || '-'}</div>
-                <div><span className="text-muted-foreground">微信：</span>{lead.wechat || '-'}</div>
-                <div><span className="text-muted-foreground">创建时间：</span>{lead.createTime}</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="mb-4">
-            <CardHeader>
-              <CardTitle>基础信息</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                <div><span className="text-muted-foreground">推广关键词：</span>{lead.keyword || '-'}</div>
-                <div><span className="text-muted-foreground">客户来源：</span>{lead.source}</div>
-                <div><span className="text-muted-foreground">所属人：</span>{lead.ownerName}</div>
-                <div><span className="text-muted-foreground">客户意向：</span>{lead.intentLevel || '-'}</div>
-                <div><span className="text-muted-foreground">跟进状态：</span><Badge variant="outline">{leadStageConfig[lead.stage]?.label}</Badge></div>
-                <div><span className="text-muted-foreground">最近一次跟进时间：</span>{lead.lastFollowTime || '-'}</div>
-                <div><span className="text-muted-foreground">当前主体：</span>{lead.entity}</div>
-                <div><span className="text-muted-foreground">售前群名称：</span>{lead.preSaleGroupName || '-'}</div>
-                <div><span className="text-muted-foreground">客户类型：</span>{lead.customerType || '-'}</div>
-                <div><span className="text-muted-foreground">客户预算：</span>{lead.budget || '-'}</div>
-              </div>
-
-              {lead.remark && (
-                <>
-                  <Separator className="my-4" />
-                  <div>
-                    <div className="text-sm font-medium mb-2">客户需求</div>
-                    <div className="p-3 bg-muted rounded-md text-sm">{lead.remark}</div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>附件列表</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {lead.attachments && lead.attachments.length > 0 ? (
-                <div className="space-y-2">
-                  {lead.attachments.map((file) => (
-                    <div key={file.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
-                      <span className="text-sm">{file.name} ({file.size})</span>
-                      <Button variant="ghost" size="sm"><Download className="h-4 w-4 mr-1" />下载</Button>
+            <CardContent className="pt-4">
+              <Tabs defaultValue="basic">
+                <TabsList>
+                  <TabsTrigger value="basic">基础信息</TabsTrigger>
+                  {lead.stage === '已签单' && lead.projectId && (
+                    <TabsTrigger value="project">项目信息</TabsTrigger>
+                  )}
+                </TabsList>
+
+                {/* 基础信息 Tab */}
+                <TabsContent value="basic" className="space-y-4">
+                  <div>
+                    <div className="text-sm font-medium mb-2">联系信息</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                      <div><span className="text-muted-foreground">线索名称：</span>{lead.name}</div>
+                      <div><span className="text-muted-foreground">联系方式：</span>{lead.phone || '-'}</div>
+                      <div><span className="text-muted-foreground">联系人：</span>{lead.contactName || '-'}</div>
+                      <div><span className="text-muted-foreground">微信：</span>{lead.wechat || '-'}</div>
+                      <div><span className="text-muted-foreground">创建时间：</span>{lead.createTime}</div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground text-center py-4">暂无附件</div>
-              )}
+                  </div>
+                  <Separator />
+                  <div>
+                    <div className="text-sm font-medium mb-2">业务信息</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                      <div><span className="text-muted-foreground">推广关键词：</span>{lead.keyword || '-'}</div>
+                      <div><span className="text-muted-foreground">客户来源：</span>{lead.source}</div>
+                      <div><span className="text-muted-foreground">所属人：</span>{lead.ownerName}</div>
+                      <div><span className="text-muted-foreground">客户意向：</span>{lead.intentLevel || '-'}</div>
+                      <div><span className="text-muted-foreground">跟进状态：</span><Badge variant="outline">{leadStageConfig[lead.stage]?.label}</Badge></div>
+                      <div><span className="text-muted-foreground">最近一次跟进时间：</span>{lead.lastFollowTime || '-'}</div>
+                      <div><span className="text-muted-foreground">当前主体：</span>{lead.entity}</div>
+                      <div><span className="text-muted-foreground">售前群名称：</span>{lead.preSaleGroupName || '-'}</div>
+                      <div><span className="text-muted-foreground">客户类型：</span>{lead.customerType || '-'}</div>
+                      <div><span className="text-muted-foreground">客户预算：</span>{lead.budget || '-'}</div>
+                    </div>
+                    {lead.remark && (
+                      <div className="mt-3">
+                        <div className="text-sm font-medium mb-1">客户需求</div>
+                        <div className="p-3 bg-muted rounded-md text-sm">{lead.remark}</div>
+                      </div>
+                    )}
+                  </div>
+                  <Separator />
+                  <div>
+                    <div className="text-sm font-medium mb-2">附件列表</div>
+                    {lead.attachments && lead.attachments.length > 0 ? (
+                      <div className="space-y-2">
+                        {lead.attachments.map((file) => (
+                          <div key={file.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                            <span className="text-sm">{file.name} ({file.size})</span>
+                            <Button variant="ghost" size="sm"><Download className="h-4 w-4 mr-1" />下载</Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground text-center py-4">暂无附件</div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* 项目信息 Tab（签单后显示） */}
+                {lead.stage === '已签单' && lead.projectId && (
+                  <TabsContent value="project">
+                    {(() => {
+                      const project = initialProjects.find(p => p.id === lead.projectId);
+                      if (!project) return <div className="text-sm text-muted-foreground py-4">项目数据未找到</div>;
+                      return (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                            <div><span className="text-muted-foreground">项目编号：</span>{project.projectNo}</div>
+                            <div><span className="text-muted-foreground">项目名称：</span>{project.name}</div>
+                            <div><span className="text-muted-foreground">项目状态：</span><Badge variant="outline">{project.status}</Badge></div>
+                            <div><span className="text-muted-foreground">项目进度：</span>{project.progress}%</div>
+                            <div><span className="text-muted-foreground">负责人：</span>{project.owner || '-'}</div>
+                            <div><span className="text-muted-foreground">优先级：</span>{project.priority}</div>
+                            <div><span className="text-muted-foreground">业务线：</span>{project.businessLine}</div>
+                            <div><span className="text-muted-foreground">对接主体：</span>{project.entity || '-'}</div>
+                            <div><span className="text-muted-foreground">开始日期：</span>{project.startDate || '-'}</div>
+                            <div><span className="text-muted-foreground">预计交付：</span>{project.expectedEndDate || '-'}</div>
+                          </div>
+                          {project.remark && (
+                            <>
+                              <Separator />
+                              <div>
+                                <div className="text-sm font-medium mb-1">项目备注</div>
+                                <div className="p-3 bg-muted rounded-md text-sm">{project.remark}</div>
+                              </div>
+                            </>
+                          )}
+                          <Separator />
+                          <div>
+                            <div className="text-sm font-medium mb-2">项目团队</div>
+                            <div className="flex flex-wrap gap-2">
+                              {project.owner && <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-700">负责人: {project.owner}</Badge>}
+                              {project.productUsers?.map((u, i) => <Badge key={i} variant="outline" className="text-xs bg-purple-50 border-purple-200 text-purple-700">产品: {u}</Badge>)}
+                              {project.frontendUsers?.map((u, i) => <Badge key={i} variant="outline" className="text-xs bg-green-50 border-green-200 text-green-700">前端: {u}</Badge>)}
+                              {project.backendUsers?.map((u, i) => <Badge key={i} variant="outline" className="text-xs bg-orange-50 border-orange-200 text-orange-700">后端: {u}</Badge>)}
+                              {project.testUsers?.map((u, i) => <Badge key={i} variant="outline" className="text-xs bg-red-50 border-red-200 text-red-700">测试: {u}</Badge>)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </TabsContent>
+                )}
+              </Tabs>
             </CardContent>
           </Card>
         </div>
 
-        {/* 右侧 - Tab 包含跟进记录、报价、出差申请、报销申请 */}
-        <div className="lg:col-span-2">
+        {/* 右侧 - 群聊卡片 + Tab 包含跟进记录、报价、出差申请、报销申请 */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* 群聊智能分析卡片 */}
+          {lead && (() => {
+            const group = mockGroups.find(g => g.leadId === lead.id);
+            if (!group) return null;
+            const items = mockExtractedItems.filter(i => i.groupId === group.id);
+            return (
+              <WeChatGroupCard
+                group={group}
+                extractedItems={items}
+                basePath="/leads"
+                entityId={lead.id}
+              />
+            );
+          })()}
+
           <Tabs defaultValue="follow">
             <TabsList>
               <TabsTrigger value="follow">跟进记录 ({followRecords.length})</TabsTrigger>
@@ -437,7 +515,7 @@ export function LeadDetail() {
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>消耗时间（分钟）</Label>
                 <Input

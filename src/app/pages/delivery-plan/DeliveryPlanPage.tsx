@@ -1,7 +1,7 @@
 // src/app/pages/delivery-plan/DeliveryPlanPage.tsx
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate, useLocation } from 'react-router';
 import { toast } from 'sonner';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
@@ -164,7 +164,14 @@ export default function DeliveryPlanPage() {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4">
         <span className="text-lg text-muted-foreground">项目不存在</span>
-        <Button onClick={() => navigate('/projects')}>返回项目列表</Button>
+        <Button onClick={() => {
+          const state = window.history.state?.usr;
+          if (state?.from === 'lead' && state?.leadId) {
+            navigate(`/leads/${state.leadId}`);
+          } else {
+            navigate(`/projects/${id}`);
+          }
+        }}>返回</Button>
       </div>
     );
   }
@@ -373,7 +380,14 @@ export default function DeliveryPlanPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/projects')}
+            onClick={() => {
+              const state = window.history.state?.usr;
+              if (state?.from === 'lead' && state?.leadId) {
+                navigate(`/leads/${state.leadId}`);
+              } else {
+                navigate(`/projects/${id}`);
+              }
+            }}
             className="mr-3"
           >
             <ArrowLeft className="size-4" />
@@ -407,7 +421,14 @@ export default function DeliveryPlanPage() {
       {/* ── Top bar ── */}
       <div className="flex items-center px-5 py-3 border-b bg-background shrink-0 gap-3">
         {/* Back button */}
-        <Button variant="ghost" size="icon" onClick={() => navigate('/projects')}>
+        <Button variant="ghost" size="icon" onClick={() => {
+          const state = window.history.state?.usr;
+          if (state?.from === 'lead' && state?.leadId) {
+            navigate(`/leads/${state.leadId}`);
+          } else {
+            navigate(`/projects/${id}`);
+          }
+        }}>
           <ArrowLeft className="size-4" />
         </Button>
 

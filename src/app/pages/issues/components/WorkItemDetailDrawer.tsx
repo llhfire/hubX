@@ -9,6 +9,7 @@ import {
   ThumbsUp,
   X,
 } from 'lucide-react';
+import { sanitizeHtml } from '../../../lib/sanitize';
 import { Avatar, AvatarFallback } from '../../../components/ui/avatar';
 import { Button } from '../../../components/ui/button';
 import { Separator } from '../../../components/ui/separator';
@@ -207,7 +208,7 @@ export function WorkItemDetailDrawer({
               {/* 描述内容 */}
               <div
                 className="rich-text-content leading-[1.8] text-[#1d2129]"
-                dangerouslySetInnerHTML={{ __html: item.description }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.description) }}
               />
 
               {/* 验收标准（需求） */}

@@ -1,3 +1,4 @@
+// DEPRECATED: This file is superseded by leads/LeadDetail.tsx. Do not modify.
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import {

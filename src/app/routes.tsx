@@ -4,7 +4,8 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import { PublicLeads } from "./pages/PublicLeads";
 import { MyLeads } from "./pages/MyLeads";
 import { TrashLeads } from "./pages/TrashLeads";
-import { LeadDetail } from "./pages/LeadDetail";
+// DEPRECATED: Legacy LeadDetail (Arco Design) no longer used in routes; kept for reference only.
+// import { LeadDetail } from "./pages/LeadDetail";
 import { Customers } from "./pages/Customers";
 import { CustomerDetail } from "./pages/CustomerDetail";
 import { Contracts } from "./pages/Contracts";
@@ -24,7 +25,8 @@ import { DailyReportList } from "./pages/DailyReportList";
 import { DailyReportView } from "./pages/DailyReportView";
 import { QuotationList } from "./pages/QuotationList";
 import { BusinessTripList } from "./pages/BusinessTripList";
-import { ReimbursementList as OldReimbursementList } from "./pages/ReimbursementList";
+// DEPRECATED: Legacy ReimbursementList superseded by travel/reimbursement/ReimbursementList. Do not modify.
+// import { ReimbursementList as OldReimbursementList } from "./pages/ReimbursementList";
 import { PaymentInvoiceList } from "./pages/PaymentInvoiceList";
 import { ContractRecordList } from "./pages/ContractRecordList";
 import { ProjectLogView } from "./pages/ProjectLogView";
@@ -49,13 +51,18 @@ import { BossDashboard as HrDashboard } from "./pages/hr/dashboard/BossDashboard
 import { OrganizationPage } from "./pages/hr/organization/OrganizationPage";
 import { EmployeeList as EmployeeListPage } from "./pages/hr/employees/EmployeeList";
 import { EmployeeDetail as EmployeeDetailPage } from "./pages/hr/employees/EmployeeDetail";
-import RecruitmentListPage from "./pages/hr/recruitment/RecruitmentList";
-import RecruitmentDetailPage from "./pages/hr/recruitment/RecruitmentDetail";
-import TalentPoolPage from "./pages/hr/recruitment/TalentPool";
-import SalaryApprovalPage from "./pages/hr/recruitment/SalaryApproval";
-import OnboardingListPage from "./pages/hr/onboarding/OnboardingList";
-import OnboardingDetailPage from "./pages/hr/onboarding/OnboardingDetail";
-import { ProbationTrack as ProbationTrackPage } from "./pages/hr/onboarding/ProbationTrack";
+import { RecruitmentList as RecruitmentListPage } from "./pages/hr/recruitment/RecruitmentList";
+import { RecruitmentDetail as RecruitmentDetailPage } from "./pages/hr/recruitment/RecruitmentDetail";
+import { CandidateList as CandidateListPage } from "./pages/hr/recruitment/CandidateList";
+import { CandidateDetail as CandidateDetailPage } from "./pages/hr/recruitment/CandidateDetail";
+import { TalentPool as TalentPoolPage } from "./pages/hr/recruitment/TalentPool";
+import { InterviewSchedule as InterviewSchedulePage } from "./pages/hr/recruitment/InterviewSchedule";
+import { OfferManagement as OfferManagementPage } from "./pages/hr/recruitment/OfferManagement";
+import { SalaryApproval as SalaryApprovalPage } from "./pages/hr/recruitment/SalaryApproval";
+import { OnboardingList as OnboardingListPage } from "./pages/hr/onboarding/OnboardingList";
+import { OnboardingDetail as OnboardingDetailPage } from "./pages/hr/onboarding/OnboardingDetail";
+import { TrialTrack as TrialTrackPage } from "./pages/hr/onboarding/TrialTrack";
+import { ProbationManage as ProbationManagePage } from "./pages/hr/onboarding/ProbationManage";
 import { AttendanceSummary as AttendanceSummaryPage } from "./pages/hr/attendance/AttendanceSummary";
 import { AttendanceExceptions as AttendanceExceptionsPage } from "./pages/hr/attendance/AttendanceExceptions";
 import { PerformanceList as PerformanceListPage } from "./pages/hr/performance/PerformanceList";
@@ -91,6 +98,7 @@ import { TravelDashboard } from "./pages/travel/dashboard/TravelDashboard";
 import { LeadList as NewLeadList } from "./pages/leads/LeadList";
 import { FollowRecordList } from "./pages/leads/FollowRecordList";
 import { LeadDetail as NewLeadDetail } from "./pages/leads/LeadDetail";
+import { ChatAnalysisPage, WeChatBotManagement, WeChatGroupList } from "./pages/wechat-bot";
 
 export const router = createBrowserRouter([
   {
@@ -120,13 +128,14 @@ export const router = createBrowserRouter([
       { path: "projects/:id/delivery", Component: DeliveryPlanPage },
       { path: "projects/:id/issues", Component: WorkItemsPage },
       { path: "projects/:id/dailyreports", Component: ProjectDailyReportsPage },
+      { path: "projects/:id/chat-analysis", Component: ChatAnalysisPage },
       { path: "issues", Component: WorkItemsPage },
       { path: "dailyreport/list", Component: DailyReportList },
       { path: "dailyreport/view", Component: DailyReportView },
       { path: "dailyreport/projectlog", Component: ProjectLogView },
       { path: "quotation", Component: QuotationList },
       { path: "businesstrip", Component: BusinessTripList },
-      { path: "reimbursement", Component: OldReimbursementList },
+      { path: "reimbursement", Component: ReimbursementList },
       { path: "paymentinvoice", Component: PaymentInvoiceList },
       { path: "contractrecord", Component: ContractRecordList },
       { path: "reports", Component: Reports },
@@ -154,17 +163,25 @@ export const router = createBrowserRouter([
       { path: "leads/follow-records", Component: FollowRecordList },
       { path: "leads/high-tech", Component: NewLeadList },
       { path: "leads/:id", Component: NewLeadDetail },
+      { path: "leads/:id/chat-analysis", Component: ChatAnalysisPage },
+      { path: "leads/wechat-groups", Component: WeChatGroupList },
+      { path: "settings/wechat-bot", Component: WeChatBotManagement },
       { path: "hr/dashboard", Component: HrDashboard },
       { path: "hr/organization", Component: OrganizationPage },
       { path: "hr/employees", Component: EmployeeListPage },
       { path: "hr/employees/:id", Component: EmployeeDetailPage },
       { path: "hr/recruitment", Component: RecruitmentListPage },
       { path: "hr/recruitment/:id", Component: RecruitmentDetailPage },
+      { path: "hr/candidates", Component: CandidateListPage },
+      { path: "hr/candidates/:id", Component: CandidateDetailPage },
       { path: "hr/talent-pool", Component: TalentPoolPage },
+      { path: "hr/interviews", Component: InterviewSchedulePage },
+      { path: "hr/offers", Component: OfferManagementPage },
       { path: "hr/salary-approval", Component: SalaryApprovalPage },
       { path: "hr/onboarding", Component: OnboardingListPage },
       { path: "hr/onboarding/:id", Component: OnboardingDetailPage },
-      { path: "hr/probation", Component: ProbationTrackPage },
+      { path: "hr/trial", Component: TrialTrackPage },
+      { path: "hr/probation", Component: ProbationManagePage },
       { path: "hr/attendance", Component: AttendanceSummaryPage },
       { path: "hr/attendance/exceptions", Component: AttendanceExceptionsPage },
       { path: "hr/performance", Component: PerformanceListPage },

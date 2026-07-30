@@ -1,3 +1,4 @@
+// DEPRECATED: This file is superseded by travel/reimbursement/ReimbursementList.tsx. Do not modify.
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';

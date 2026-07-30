@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
+import { sanitizeHtml } from '../lib/sanitize';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
@@ -329,7 +330,7 @@ export function ContractDetail() {
                   {selectedVersion ? (
                     <div
                       className="bg-muted p-4 rounded-md max-h-[600px] overflow-auto"
-                      dangerouslySetInnerHTML={{ __html: selectedVersion.renderedHtml }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedVersion.renderedHtml) }}
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">

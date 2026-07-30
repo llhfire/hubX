@@ -1,165 +1,241 @@
-import { ArrowLeft, User } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/app/components/ui/avatar';
+import { useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router';
+import { ArrowLeft, Users } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Separator } from '@/app/components/ui/separator';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/app/components/ui/table';
+import { RECRUITMENT_NEEDS, CANDIDATE_DEMAND_RELATIONS, CANDIDATES } from '../mockData';
+import type { RecruitmentNeedStatus, CandidateStage } from '../types';
 
-type Stage = '简历筛选' | '初试' | '复试' | '待定薪' | '已录用' | '已淘汰';
+const statusConfig: Record<RecruitmentNeedStatus, { color: string }> = {
+  '待审批': { color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  '招聘中': { color: 'bg-green-100 text-green-700 border-green-200' },
+  '已暂停': { color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  '已关闭': { color: 'bg-gray-100 text-gray-600 border-gray-200' },
+  '已到岗': { color: 'bg-blue-100 text-blue-700 border-blue-200' },
+};
 
-interface Candidate {
-  id: string;
-  name: string;
-  matchScore: number;
-  interviewScore: number;
-  stage: Stage;
-  currentCompany: string;
-  experience: string;
-}
-
-const stageColorMap: Record<Stage, string> = {
-  '简历筛选': 'bg-gray-100 text-gray-600 border-gray-200',
-  '初试': 'bg-blue-100 text-blue-700 border-blue-200',
-  '复试': 'bg-purple-100 text-purple-700 border-purple-200',
-  '待定薪': 'bg-amber-100 text-amber-700 border-amber-200',
-  '已录用': 'bg-green-100 text-green-700 border-green-200',
-  '已淘汰': 'bg-red-100 text-red-700 border-red-200',
+const stageConfig: Record<CandidateStage, { color: string }> = {
+  '简历筛选': { color: 'bg-gray-100 text-gray-600 border-gray-200' },
+  '面试中': { color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  '待定薪': { color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  '已发Offer': { color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  '已接受': { color: 'bg-green-100 text-green-700 border-green-200' },
+  '已拒绝': { color: 'bg-red-100 text-red-600 border-red-200' },
+  '已淘汰': { color: 'bg-red-100 text-red-500 border-red-200' },
 };
 
 function matchScoreColor(score: number): string {
-  if (score >= 80) return 'bg-green-100 text-green-700 border-green-200';
-  if (score >= 60) return 'bg-blue-100 text-blue-700 border-blue-200';
+  if (score >= 85) return 'bg-green-100 text-green-700 border-green-200';
+  if (score >= 70) return 'bg-blue-100 text-blue-700 border-blue-200';
   return 'bg-amber-100 text-amber-700 border-amber-200';
 }
 
-const position = {
-  title: '前端开发',
-  department: '技术部',
-  status: '招聘中',
-  urgency: '高',
-  headcount: 2,
-  businessLine: '软件定制',
-};
+export function RecruitmentDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
-const candidates: Candidate[] = [
-  {
-    id: '1',
-    name: '张伟',
-    matchScore: 92,
-    interviewScore: 88,
-    stage: '待定薪',
-    currentCompany: '字节跳动',
-    experience: '5年前端经验',
-  },
-  {
-    id: '2',
-    name: '李娜',
-    matchScore: 78,
-    interviewScore: 82,
-    stage: '复试',
-    currentCompany: '美团',
-    experience: '3年前端经验',
-  },
-  {
-    id: '3',
-    name: '王磊',
-    matchScore: 55,
-    interviewScore: 65,
-    stage: '初试',
-    currentCompany: '创业公司',
-    experience: '2年前端经验',
-  },
-];
+  const need = useMemo(
+    () => RECRUITMENT_NEEDS.find((n) => n.id === id),
+    [id],
+  );
 
-export default function RecruitmentDetail() {
+  const candidates = useMemo(() => {
+    if (!id) return [];
+    const relations = CANDIDATE_DEMAND_RELATIONS.filter((r) => r.demandId === id);
+    return relations
+      .map((rel) => {
+        const candidate = CANDIDATES.find((c) => c.id === rel.candidateId);
+        return { ...rel, candidate };
+      })
+      .filter((item) => item.candidate != null);
+  }, [id]);
+
+  if (!need) {
+    return (
+      <div className="p-6 space-y-4">
+        <Button variant="ghost" onClick={() => navigate('/hr/recruitment')}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          返回
+        </Button>
+        <p className="text-muted-foreground">未找到该招聘需求</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4">
+      {/* 顶部导航 */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/hr/recruitment')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-semibold">{position.title}</h1>
-        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
-          {position.status}
+        <h1 className="text-xl font-bold text-slate-800">{need.position}</h1>
+        <Badge variant="outline" className={statusConfig[need.status].color}>
+          {need.status}
         </Badge>
-        <Badge variant="outline" className="border-red-300 text-red-600">
-          紧急程度: {position.urgency}
+        <Badge variant="outline" className={
+          need.urgentLevel === '高' ? 'border-red-300 text-red-600' :
+          need.urgentLevel === '中' ? 'border-amber-300 text-amber-600' :
+          'border-gray-300 text-gray-500'
+        }>
+          紧急程度: {need.urgentLevel}
         </Badge>
       </div>
 
+      {/* 统计卡片 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card>
+          <CardContent className="p-3 flex items-center gap-3">
+            <Users className="h-8 w-8 text-muted-foreground/30" />
+            <div>
+              <p className="text-2xl font-bold">
+                {need.hiredCount}<span className="text-sm text-muted-foreground">/{need.headcount}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">已到岗/需求人数</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <Users className="h-4 w-4 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-blue-600">{candidates.length}</p>
+              <p className="text-xs text-muted-foreground">候选人数</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">部门</p>
+            <p className="mt-1 font-medium">{need.departmentName}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">业务线</p>
+            <p className="mt-1 font-medium">{need.bizLineName}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 岗位详情 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">岗位描述</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground leading-relaxed">{need.description}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">岗位要求</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+              {need.requirements}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 时间与审批信息 */}
       <Card>
         <CardContent className="py-4">
-          <div className="grid grid-cols-4 gap-6 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
             <div>
-              <span className="text-muted-foreground">部门</span>
-              <p className="mt-1 font-medium">{position.department}</p>
+              <span className="text-muted-foreground">申请日期</span>
+              <p className="mt-1 font-medium">{need.requestDate}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">业务线</span>
-              <p className="mt-1 font-medium">{position.businessLine}</p>
+              <span className="text-muted-foreground">期望到岗</span>
+              <p className="mt-1 font-medium">{need.expectedDate}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">需求人数</span>
-              <p className="mt-1 font-medium">{position.headcount}人</p>
+              <span className="text-muted-foreground">审批人</span>
+              <p className="mt-1 font-medium">{need.approver}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">候选人总数</span>
-              <p className="mt-1 font-medium">{candidates.length}人</p>
+              <span className="text-muted-foreground">审批状态</span>
+              <p className="mt-1">
+                <Badge variant="outline" className={
+                  need.approvalStatus === '已通过' ? 'bg-green-50 text-green-600 border-green-200' :
+                  need.approvalStatus === '待审批' ? 'bg-yellow-50 text-yellow-600 border-yellow-200' :
+                  'bg-red-50 text-red-600 border-red-200'
+                }>
+                  {need.approvalStatus}
+                </Badge>
+              </p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">创建时间</span>
+              <p className="mt-1 font-medium">{need.createdAt}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">候选人列表</h2>
-        <Button variant="outline" size="sm">
-          添加候选人
-        </Button>
-      </div>
-
-      <div className="grid gap-4">
-        {candidates.map((c) => (
-          <Card key={c.id}>
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Avatar>
-                    <AvatarFallback>{c.name[0]}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{c.name}</span>
-                      <Badge variant="outline" className={stageColorMap[c.stage]}>
-                        {c.stage}
+      {/* 候选人列表 */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3">候选人列表</h2>
+        <Card>
+          <CardContent className="pt-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>姓名</TableHead>
+                  <TableHead>阶段</TableHead>
+                  <TableHead>AI匹配度</TableHead>
+                  <TableHead>来源</TableHead>
+                  <TableHead>最近更新</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {candidates.map(({ candidate, stage, matchScore, updatedAt }) => (
+                  <TableRow key={candidate!.id}>
+                    <TableCell className="font-medium">{candidate!.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={stageConfig[stage].color}>
+                        {stage}
                       </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {c.currentCompany} · {c.experience}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">AI匹配度</p>
-                    <Badge variant="outline" className={`mt-1 ${matchScoreColor(c.matchScore)}`}>
-                      {c.matchScore}分
-                    </Badge>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">面试评分</p>
-                    <Badge variant="outline" className="mt-1">
-                      {c.interviewScore}分
-                    </Badge>
-                  </div>
-                  {c.stage === '待定薪' && (
-                    <Button size="sm">发起定薪</Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={matchScoreColor(matchScore)}>
+                        {matchScore}分
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{candidate!.source}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{updatedAt}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/hr/candidates/${candidate!.id}`)}
+                      >
+                        查看详情
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {candidates.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      暂无候选人
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

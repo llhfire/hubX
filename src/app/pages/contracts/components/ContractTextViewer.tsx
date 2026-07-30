@@ -1,5 +1,6 @@
 import type { Contract } from '../types';
 import { renderTemplate } from '../templates';
+import { sanitizeHtml } from '../../../lib/sanitize';
 
 interface Props {
   contract: Contract;
@@ -25,7 +26,7 @@ export function ContractTextViewer({ contract }: Props) {
         fontSize: 13,
         lineHeight: 1.8,
       }}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
     />
   );
 }

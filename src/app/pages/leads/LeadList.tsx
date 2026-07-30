@@ -7,6 +7,7 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '../../components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
 import { Search, Plus, Eye, Pencil, Trash2, UserPlus, UserMinus, Download } from 'lucide-react';
@@ -40,6 +41,13 @@ export function LeadList({ leadType, showEntity = false, title = '全部线索' 
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [transferModalVisible, setTransferModalVisible] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+
+  // 确认弹窗状态
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // 表单状态
   const [createForm, setCreateForm] = useState({
@@ -121,8 +129,15 @@ export function LeadList({ leadType, showEntity = false, title = '全部线索' 
   // 导出功能
   const handleExport = () => {
     const headers = ['编号', '录入时间', '线索类型', '归属人', '线索名称', '售前群名称', '客户类型', '线索来源', '线索状态', '意向等级', '预算金额'];
+    const escapeCsvField = (value: string) => {
+      const str = String(value ?? '');
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    };
     const csvContent = [
-      headers.join(','),
+      headers.map(escapeCsvField).join(','),
       ...leads.map(lead => [
         lead.leadNo,
         lead.createTime,
@@ -135,7 +150,7 @@ export function LeadList({ leadType, showEntity = false, title = '全部线索' 
         lead.stage,
         lead.intentLevel || '',
         lead.budget || '',
-      ].join(','))
+      ].map(escapeCsvField).join(','))
     ].join('\n');
 
     const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -170,10 +185,15 @@ export function LeadList({ leadType, showEntity = false, title = '全部线索' 
       toast.error('请先选择线索');
       return;
     }
-    if (!confirm(`确定要删除选中的 ${selectedIds.length} 条线索吗？`)) return;
-    toast.success(`已删除 ${selectedIds.length} 条线索`);
-    setSelectedIds([]);
-    loadLeads();
+    setConfirmAction({
+      title: '批量删除',
+      description: `确定要删除选中的 ${selectedIds.length} 条线索吗？`,
+      onConfirm: () => {
+        toast.success(`已删除 ${selectedIds.length} 条线索`);
+        setSelectedIds([]);
+        loadLeads();
+      },
+    });
   };
 
   // 新建线索
@@ -247,27 +267,37 @@ export function LeadList({ leadType, showEntity = false, title = '全部线索' 
   };
 
   // 扔回公海
-  const handleRelease = async (lead: Lead) => {
-    if (!confirm('确定要将此线索扔回公海吗？')) return;
-    try {
-      await releaseToPublic(lead.id);
-      toast.success('已扔回公海');
-      loadLeads();
-    } catch (error) {
-      toast.error('操作失败');
-    }
+  const handleRelease = (lead: Lead) => {
+    setConfirmAction({
+      title: '扔回公海',
+      description: '确定要将此线索扔回公海吗？',
+      onConfirm: async () => {
+        try {
+          await releaseToPublic(lead.id);
+          toast.success('已扔回公海');
+          loadLeads();
+        } catch (error) {
+          toast.error('操作失败');
+        }
+      },
+    });
   };
 
   // 标记为垃圾
-  const handleMarkTrash = async (lead: Lead) => {
-    if (!confirm('确定要将此线索标记为垃圾吗？')) return;
-    try {
-      await markAsTrash(lead.id);
-      toast.success('已标记为垃圾');
-      loadLeads();
-    } catch (error) {
-      toast.error('操作失败');
-    }
+  const handleMarkTrash = (lead: Lead) => {
+    setConfirmAction({
+      title: '标记为垃圾',
+      description: '确定要将此线索标记为垃圾吗？',
+      onConfirm: async () => {
+        try {
+          await markAsTrash(lead.id);
+          toast.success('已标记为垃圾');
+          loadLeads();
+        } catch (error) {
+          toast.error('操作失败');
+        }
+      },
+    });
   };
 
   // 打开编辑弹窗
@@ -350,7 +380,7 @@ export function LeadList({ leadType, showEntity = false, title = '全部线索' 
   // 新建线索表单
   const renderCreateForm = () => (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>线索名称 <span className="text-destructive">*</span></Label>
           <Input placeholder="请输入线索名称" value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} />
@@ -432,7 +462,7 @@ export function LeadList({ leadType, showEntity = false, title = '全部线索' 
   // 编辑线索表单
   const renderEditForm = () => (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>线索名称 <span className="text-destructive">*</span></Label>
           <Input placeholder="请输入线索名称" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
@@ -654,21 +684,34 @@ export function LeadList({ leadType, showEntity = false, title = '全部线索' 
               <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
                 上一页
               </Button>
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                const page = i + 1;
-                return (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? 'default' : 'outline'}
-                    size="sm"
-                    className={currentPage === page ? 'bg-blue-600' : ''}
-                    onClick={() => handlePageChange(page)}
-                  >
-                    {page}
-                  </Button>
+              {(() => {
+                const pages: (number | 'ellipsis')[] = [];
+                const windowSize = 2;
+                const start = Math.max(2, currentPage - windowSize);
+                const end = Math.min(totalPages - 1, currentPage + windowSize);
+
+                pages.push(1);
+                if (start > 2) pages.push('ellipsis');
+                for (let i = start; i <= end; i++) pages.push(i);
+                if (end < totalPages - 1) pages.push('ellipsis');
+                if (totalPages > 1) pages.push(totalPages);
+
+                return pages.map((page, idx) =>
+                  page === 'ellipsis' ? (
+                    <span key={`ellipsis-${idx}`} className="text-muted-foreground px-1">...</span>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? 'default' : 'outline'}
+                      size="sm"
+                      className={currentPage === page ? 'bg-blue-600' : ''}
+                      onClick={() => handlePageChange(page)}
+                    >
+                      {page}
+                    </Button>
+                  )
                 );
-              })}
-              {totalPages > 5 && <span className="text-muted-foreground">...</span>}
+              })()}
               <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => handlePageChange(currentPage + 1)}>
                 下一页
               </Button>
@@ -729,6 +772,20 @@ export function LeadList({ leadType, showEntity = false, title = '全部线索' 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 确认操作弹窗 */}
+      <AlertDialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmAction?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmAction?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmAction(null)}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { confirmAction?.onConfirm(); setConfirmAction(null); }}>确定</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Toaster } from 'sonner';
 import { ReminderProvider } from './reminders/ReminderContext';
 import { ContractsProvider } from './pages/contracts/ContractsContext';
 import { EmployeeProvider } from './pages/employee';
+import { WeChatProvider } from './pages/wechat-bot';
 import { router } from './routes';
 
 function App() {
@@ -10,8 +11,10 @@ function App() {
     <ReminderProvider>
       <EmployeeProvider>
         <ContractsProvider>
-          <RouterProvider router={router} />
-          <Toaster position="top-right" richColors />
+          <WeChatProvider>
+            <RouterProvider router={router} />
+            <Toaster position="top-right" richColors />
+          </WeChatProvider>
         </ContractsProvider>
       </EmployeeProvider>
     </ReminderProvider>

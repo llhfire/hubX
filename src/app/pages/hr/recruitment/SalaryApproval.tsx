@@ -49,7 +49,7 @@ const approvalSteps: ApprovalStep[] = [
 const bossSummary =
   '候选人张伟，竞品电商PM经验4年，拟定底薪15K+绩效3K，低于部门预算10%。';
 
-export default function SalaryApproval() {
+export function SalaryApproval() {
   const [approvalStatus, setApprovalStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
   const handleApprove = () => {

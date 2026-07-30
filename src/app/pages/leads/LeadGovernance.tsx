@@ -119,18 +119,23 @@ const defaultRules: GovernanceRule[] = [
 // ---------- 计算治理数据 ----------
 
 function calcSalesGovernance(salesName: string): SalesGovernance {
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const weekAgo = new Date(now);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
   const leads = mockLeads.filter(l => l.owner === salesName);
   const activeLeads = leads.filter(l => !['已签单', '已终止'].includes(l.status));
   const overdueCount = leads.filter(l => {
     if (!l.nextFollowTime || ['已签单', '已终止'].includes(l.status)) return false;
-    return new Date(l.nextFollowTime) < new Date('2026-07-02');
+    return new Date(l.nextFollowTime) < now;
   }).length;
 
-  const todayFollows = leads.filter(l => l.lastFollowTime === '2026-07-02').length;
+  const todayFollows = leads.filter(l => l.lastFollowTime === todayStr).length;
   const weekFollows = leads.filter(l => {
     if (!l.lastFollowTime) return false;
     const d = new Date(l.lastFollowTime);
-    return d >= new Date('2026-06-26') && d <= new Date('2026-07-02');
+    return d >= weekAgo && d <= now;
   }).length;
 
   const conversionCount = leads.filter(l => l.status === '已签单').length;
@@ -214,7 +219,7 @@ export function LeadGovernance() {
     const active = mockLeads.filter(l => !['已签单', '已终止'].includes(l.status)).length;
     const overdue = mockLeads.filter(l => {
       if (!l.nextFollowTime || ['已签单', '已终止'].includes(l.status)) return false;
-      return new Date(l.nextFollowTime) < new Date('2026-07-02');
+      return new Date(l.nextFollowTime) < new Date();
     }).length;
     const violations = mockViolations.length;
     const avgCompliance = Math.round(salesList.reduce((s, sg) => s + sg.complianceRate, 0) / Math.max(salesList.length, 1));
@@ -256,7 +261,7 @@ export function LeadGovernance() {
   return (
     <div className="flex flex-col gap-4 w-full">
       {/* 摘要栏 */}
-      <div className="grid grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
@@ -533,7 +538,7 @@ export function LeadGovernance() {
                         <TableCell>
                           {(() => {
                             if (!row.nextFollowTime || ['已签单', '已终止'].includes(row.status)) return <span>&mdash;</span>;
-                            const isOverdue = new Date(row.nextFollowTime) < new Date('2026-07-02');
+                            const isOverdue = new Date(row.nextFollowTime) < new Date();
                             return (
                               <span className={cn(isOverdue ? 'text-red-500 font-semibold' : '')}>
                                 {row.nextFollowTime}

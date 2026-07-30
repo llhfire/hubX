@@ -23,6 +23,7 @@ import {
   DialogFooter,
 } from '../../components/ui/dialog';
 import { toast } from 'sonner';
+import { sanitizeHtml } from '../../lib/sanitize';
 import { ArrowLeft, Info } from 'lucide-react';
 import { useContracts } from './ContractsContext';
 import { findQuotation, parseQuoteAmount } from './leadContextMock';
@@ -90,7 +91,7 @@ export function ContractEditor() {
   }
 
   const isReadonly =
-    contract.status !== 'draft' && contract.status !== 'approving';
+    contract.status !== 'draft';
 
   const updateField = <K extends keyof ContractFormData>(key: K, value: ContractFormData[K]) => {
     setFormData((prev) => (prev ? { ...prev, [key]: value } : prev));
@@ -499,7 +500,7 @@ export function ContractEditor() {
               <ScrollArea className="max-h-[calc(100vh-220px)]">
                 <div
                   className="p-4 text-sm leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: renderedHtml }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderedHtml) }}
                 />
               </ScrollArea>
             </CardContent>

@@ -69,10 +69,14 @@ export interface Employee {
 
 // ==================== 招聘 ====================
 
-export type RecruitmentStatus = '招聘中' | '已暂停' | '已关闭' | '已到岗'
-export type CandidateStage = '简历筛选' | '面试中' | '待定薪' | '已发Offer' | '已入职' | '已淘汰'
+export type RecruitmentNeedStatus = '待审批' | '招聘中' | '已暂停' | '已关闭' | '已到岗'
+export type CandidateStage = '简历筛选' | '面试中' | '待定薪' | '已发Offer' | '已接受' | '已拒绝' | '已淘汰'
 export type ApprovalStatus = '待审批' | '已通过' | '已拒绝' | '已撤回'
+export type OfferStatus = '待生成' | '已生成' | '已发送' | '已查看' | '已接受' | '已拒绝' | '已过期'
+export type ResumeSource = 'Boss直聘' | '猎聘' | '拉勾' | '内部推荐' | '主动投递' | '猎头' | '其他'
+export type InterviewChannel = '现场' | '电话' | '视频' | '微信'
 
+// 招聘需求
 export interface RecruitmentNeed {
   id: string
   position: string
@@ -80,29 +84,36 @@ export interface RecruitmentNeed {
   departmentName: string
   bizLineId: string
   bizLineName: string
-  headcount: number
-  status: RecruitmentStatus
+  headcount: number           // 需招人数
+  hiredCount: number          // 已到岗人数
+  status: RecruitmentNeedStatus
   urgentLevel: '高' | '中' | '低'
   requestDate: string
   expectedDate: string
   description: string
-  candidates: Candidate[]
+  requirements: string        // 岗位要求
+  approver: string            // 审批人
+  approvalStatus: ApprovalStatus
+  createdAt: string
+  updatedAt: string
 }
 
+// 候选人（独立实体）
 export interface Candidate {
   id: string
   name: string
+  gender: '男' | '女' | '未知'
   phone: string
   email: string
   resumeUrl: string
   parsedResume: ParsedResume
-  stage: CandidateStage
-  matchScore: number
-  interviewNotes: string
-  interviewScore: number
-  recruitmentId: string
+  source: ResumeSource
+  isFavorited: boolean        // 是否收藏
+  createdAt: string
+  updatedAt: string
 }
 
+// 简历解析结果
 export interface ParsedResume {
   name: string
   phone: string
@@ -116,20 +127,56 @@ export interface ParsedResume {
   selfIntro: string
 }
 
+// 候选人与需求的关联
+export interface CandidateDemandRelation {
+  id: string
+  candidateId: string
+  demandId: string
+  stage: CandidateStage
+  matchScore: number          // AI 匹配度
+  rejectReason?: string       // 淘汰原因
+  createdAt: string
+  updatedAt: string
+}
+
+// 面试记录
+export interface InterviewRecord {
+  id: string
+  candidateId: string
+  demandId: string
+  round: number               // 面试轮次（1, 2, 3...）
+  interviewer: string         // 面试官
+  interviewTime: string
+  channel: InterviewChannel
+  duration: number            // 面试时长（分钟）
+  // 评价
+  technicalScore: number      // 技术能力 1-10
+  communicationScore: number  // 沟通能力 1-10
+  cultureScore: number        // 文化匹配 1-10
+  overallScore: number        // 综合评分 1-10
+  strengths: string           // 优势
+  weaknesses: string          // 不足
+  comment: string             // 面试评价
+  result: '通过' | '待定' | '未通过'
+  createdAt: string
+}
+
 // ==================== 定薪 ====================
 
 export interface SalaryApproval {
   id: string
   candidateId: string
   candidateName: string
+  demandId: string
   position: string
   departmentName: string
   bizLineName: string
   proposedBaseSalary: number
   proposedPerformanceBase: number
   proposedProbationSalary: number
-  trialPeriodDays: number
-  probationMonths: number
+  proposedTrialSalary: number // 试岗期薪资
+  trialPeriodDays: number    // 试岗期天数
+  probationMonths: number    // 试用期月数
   approvalStatus: ApprovalStatus
   hrComment: string
   bossComment: string
@@ -137,12 +184,50 @@ export interface SalaryApproval {
   createdAt: string
 }
 
+// 薪资沟通日志
+export interface SalaryCommunication {
+  id: string
+  candidateId: string
+  salaryApprovalId: string
+  channel: InterviewChannel
+  content: string             // 沟通内容摘要
+  result: string              // 沟通结果
+  operator: string            // 操作人
+  createdAt: string
+}
+
+// ==================== Offer ====================
+
+export interface OfferRecord {
+  id: string
+  candidateId: string
+  candidateName: string
+  demandId: string
+  position: string
+  departmentName: string
+  baseSalary: number
+  performanceBase: number
+  trialSalary: number
+  trialPeriodDays: number
+  probationMonths: number
+  benefits: string            // 福利说明
+  status: OfferStatus
+  validUntil: string          // 有效期
+  sentAt: string | null
+  viewedAt: string | null
+  respondedAt: string | null
+  rejectReason?: string
+  createdAt: string
+}
+
 // ==================== 入职 ====================
 
-export type OnboardingStatus = '待入职' | '资料收集中' | '试岗中' | '已转正' | '已淘汰'
+export type OnboardingStatus = '待入职' | '资料收集中' | '试岗中' | '试用期' | '已转正' | '已淘汰'
+export type OnboardingDocument = '身份证' | '学历证明' | '离职证明' | '体检报告' | '银行卡' | '照片' | '试岗协议' | '劳动合同'
 
 export interface OnboardingRecord {
   id: string
+  candidateId: string
   employeeId: string
   employeeName: string
   position: string
@@ -150,20 +235,37 @@ export interface OnboardingRecord {
   joinDate: string
   trialStartDate: string
   trialEndDate: string
+  probationEndDate: string
   status: OnboardingStatus
-  documentsSubmitted: boolean
+  documents: { type: OnboardingDocument; submitted: boolean; submittedAt?: string }[]
   trialAgreementSigned: boolean
   laborContractSigned: boolean
+  // 入职时写入的面试记录快照（只读）
+  interviewSnapshot: InterviewRecord[]
   trialEvaluation: TrialEvaluation | null
+  probationEvaluation: ProbationEvaluation | null
 }
 
+// 试岗评估
 export interface TrialEvaluation {
-  attendance: string
-  tasksCompleted: number
-  totalHours: number
-  communicationScore: number
-  overallScore: number
+  attendance: string          // 出勤情况
+  tasksCompleted: number      // 完成任务数
+  totalHours: number          // 工时消耗
+  communicationScore: number  // 沟通能力 1-10
+  overallScore: number        // 综合评分 1-10
   result: '通过' | '未通过'
+  comment: string
+  evaluator: string
+  evaluatedAt: string
+}
+
+// 试用期评估
+export interface ProbationEvaluation {
+  kpiScore: number            // KPI 得分
+  managerScore: number        // 主管评分
+  peerScore: number           // 同事互评
+  overallScore: number        // 综合评分
+  result: '转正' | '延长试用' | '辞退'
   comment: string
   evaluator: string
   evaluatedAt: string

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -17,6 +18,7 @@ import { getFollowRecordList, createFollowRecord, getLeadList } from './leads-ap
 import { employees } from './mock-data';
 
 export function FollowRecordList() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [records, setRecords] = useState<FollowRecord[]>([]);
   const [total, setTotal] = useState(0);
@@ -245,7 +247,7 @@ export function FollowRecordList() {
                           <Button
                             variant="link"
                             className="p-0 h-auto text-blue-600"
-                            onClick={() => window.location.href = `/leads/${record.leadId}`}
+                            onClick={() => navigate(`/leads/${record.leadId}`)}
                           >
                             {record.leadName}
                           </Button>
@@ -285,21 +287,34 @@ export function FollowRecordList() {
               <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
                 上一页
               </Button>
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                const page = i + 1;
-                return (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? 'default' : 'outline'}
-                    size="sm"
-                    className={currentPage === page ? 'bg-blue-600' : ''}
-                    onClick={() => handlePageChange(page)}
-                  >
-                    {page}
-                  </Button>
+              {(() => {
+                const pages: (number | 'ellipsis')[] = [];
+                const windowSize = 2;
+                const start = Math.max(2, currentPage - windowSize);
+                const end = Math.min(totalPages - 1, currentPage + windowSize);
+
+                pages.push(1);
+                if (start > 2) pages.push('ellipsis');
+                for (let i = start; i <= end; i++) pages.push(i);
+                if (end < totalPages - 1) pages.push('ellipsis');
+                if (totalPages > 1) pages.push(totalPages);
+
+                return pages.map((page, idx) =>
+                  page === 'ellipsis' ? (
+                    <span key={`ellipsis-${idx}`} className="text-muted-foreground px-1">...</span>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? 'default' : 'outline'}
+                      size="sm"
+                      className={currentPage === page ? 'bg-blue-600' : ''}
+                      onClick={() => handlePageChange(page)}
+                    >
+                      {page}
+                    </Button>
+                  )
                 );
-              })}
-              {totalPages > 5 && <span className="text-muted-foreground">...</span>}
+              })()}
               <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => handlePageChange(currentPage + 1)}>
                 下一页
               </Button>

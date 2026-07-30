@@ -87,6 +87,9 @@ import {
 } from './projectDetailSummary';
 import { initialDeliveryPlans } from './delivery-plan/mockData';
 import { initialRequirements, initialTasks, initialDefects } from './issues/mockData';
+import { WeChatGroupCard } from './wechat-bot/components/WeChatGroupCard';
+import { mockGroups as mockGroupsForCard, mockExtractedItems as mockExtractedItemsForCard } from './wechat-bot/mock-data';
+import { ProjectSummaryGrid } from './project-management/ProjectSummaryGrid';
 
 const SUMMARY_LEVEL_STYLE: Record<SummaryRiskLevel, string> = {
   正常: 'bg-green-100 text-green-700',
@@ -404,32 +407,18 @@ export function ProjectDetail() {
           </Button>
           <h4 className="text-lg font-semibold m-0">{project.name}</h4>
           <StatusPill status={project.status} />
+          {project.leadId && (
+            <Link to={`/leads/${project.leadId}`}>
+              <Badge variant="outline" className="text-xs cursor-pointer hover:bg-blue-50 bg-blue-50 text-blue-600 border-blue-200">
+                查看来源线索 →
+              </Badge>
+            </Link>
+          )}
         </div>
       </div>
 
       {/* ── Summary Cards ───────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
-        {summaryCards.map((card) => (
-          <SummaryHighlightCard
-            key={card.key}
-            card={card}
-            href={
-              card.key === 'delivery'
-                ? `/projects/${project.id}/delivery`
-                : card.key === 'hours'
-                  ? `/projects/${project.id}/dailyreports`
-                  : undefined
-            }
-            onClick={
-              card.key === 'workItems'
-                ? () => navigate(`/projects/${project.id}/issues`)
-                : card.key === 'hours'
-                  ? () => navigate(`/projects/${project.id}/dailyreports`)
-                  : undefined
-            }
-          />
-        ))}
-      </div>
+      <ProjectSummaryGrid projectId={project.id} from="project" />
 
       {/* ── Info Alert ──────────────────────────────────────── */}
       <Alert className="mb-4">
@@ -558,10 +547,8 @@ export function ProjectDetail() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">项目团队成员</h4>
-                      <Button size="sm" onClick={() => {
-                        setEditingProject(project);
-                        setProjectModalVisible(true);
-                      }}>
+                      {/* TODO: 编辑人员功能 — 需要添加对应的 ProjectModal 组件和状态变量 */}
+                      <Button size="sm" disabled>
                         <Pencil className="h-4 w-4 mr-1" />
                         编辑人员
                       </Button>
@@ -849,8 +836,23 @@ export function ProjectDetail() {
           </Card>
         </div>
 
-        {/* Right: Timeline */}
-        <div className="lg:col-span-2">
+        {/* Right: WeChat Group Card + Timeline */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* 群聊智能分析卡片 */}
+          {(() => {
+            const group = mockGroupsForCard.find(g => g.projectId === project.id);
+            if (!group) return null;
+            const items = mockExtractedItemsForCard.filter(i => i.groupId === group.id);
+            return (
+              <WeChatGroupCard
+                group={group}
+                extractedItems={items}
+                basePath="/projects"
+                entityId={project.id}
+              />
+            );
+          })()}
+
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between w-full">

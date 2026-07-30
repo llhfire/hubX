@@ -8,7 +8,6 @@ import { RequirementList } from './components/RequirementList';
 import { TaskList } from './components/TaskList';
 import { DefectList } from './components/DefectList';
 import { getProjectName } from './mockData';
-import { SPACING } from './constants';
 
 interface WorkItemsPageProps {
   /** 嵌入模式：不显示返回导航和项目标题 */
@@ -30,17 +29,25 @@ export function WorkItemsPage({ embedded = false, projectId: propProjectId }: Wo
     <div className="bg-white min-h-full">
       {/* 顶部导航栏 — TAPD 风格 */}
       <div
-        className="flex items-center justify-between border-b border-[#e5e6eb]"
-        style={{ padding: `${SPACING.md}px ${SPACING.lg}px` }}
+        className="flex items-center justify-between border-b border-[#e5e6eb] py-3 px-4"
       >
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             className="text-[#86909c]"
-            onClick={() => projectId ? navigate(`/projects/${projectId}`) : navigate('/projects')}
+            onClick={() => {
+              const state = window.history.state?.usr;
+              if (state?.from === 'lead' && state?.leadId) {
+                navigate(`/leads/${state.leadId}`);
+              } else if (projectId) {
+                navigate(`/projects/${projectId}`);
+              } else {
+                navigate('/projects');
+              }
+            }}
           >
             <ArrowLeft />
-            返回{projectId ? '项目' : '项目列表'}
+            返回
           </Button>
           <Tabs
             value={activeTab}
@@ -80,7 +87,7 @@ export function WorkItemsPage({ embedded = false, projectId: propProjectId }: Wo
       </div>
 
       {/* 内容区域 */}
-      <div style={{ padding: `${SPACING.lg}px` }}>
+      <div className="p-4">
         {activeTab === 'requirement' && (
           <RequirementList
             items={workItems.requirements}

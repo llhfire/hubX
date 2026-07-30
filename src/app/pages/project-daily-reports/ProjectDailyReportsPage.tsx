@@ -78,9 +78,16 @@ export function ProjectDailyReportsPage() {
     <div>
       {/* 顶部导航 */}
       <div className="flex items-center gap-2 mb-4">
-        <Button variant="ghost" onClick={() => navigate(`/projects/${projectId}`)}>
+        <Button variant="ghost" onClick={() => {
+          const state = window.history.state?.usr;
+          if (state?.from === 'lead' && state?.leadId) {
+            navigate(`/leads/${state.leadId}`);
+          } else {
+            navigate(`/projects/${projectId}`);
+          }
+        }}>
           <ArrowLeft className="h-4 w-4" />
-          返回项目
+          返回
         </Button>
         <h4 className="text-lg font-semibold m-0">
           关联日报 — {project.name}
