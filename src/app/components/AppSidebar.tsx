@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import {
   Home,
@@ -255,6 +255,15 @@ function NavItem({ item, isActive, onNavigate }: {
 
   const hasActiveChild = item.children?.some(child => isActive(child.key));
 
+  // 使用受控模式，当子菜单激活时自动展开
+  const [isOpen, setIsOpen] = useState(hasActiveChild);
+
+  useEffect(() => {
+    if (hasActiveChild) {
+      setIsOpen(true);
+    }
+  }, [hasActiveChild]);
+
   if (!item.children || item.children.length === 0) {
     return (
       <SidebarMenuItem>
@@ -271,7 +280,7 @@ function NavItem({ item, isActive, onNavigate }: {
   }
 
   return (
-    <Collapsible defaultOpen={hasActiveChild} className="group/collapsible">
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="group/collapsible">
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton
@@ -295,21 +304,25 @@ function NavItem({ item, isActive, onNavigate }: {
         {isExpanded && (
           <CollapsibleContent>
             <SidebarMenuSub>
-              {item.children.map((child) => (
-                <SidebarMenuSubItem key={child.key}>
-                  <SidebarMenuSubButton
-                    isActive={isActive(child.key)}
-                    onClick={() => onNavigate(child.key)}
-                  >
-                    <span>{child.label}</span>
-                    {child.badge && (
-                      <Badge variant="outline" className="ml-auto h-4 px-1 text-xs">
-                        {child.badge}
-                      </Badge>
-                    )}
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              ))}
+              {item.children.map((child) => {
+                const childIsActive = isActive(child.key);
+                return (
+                  <SidebarMenuSubItem key={child.key}>
+                    <SidebarMenuSubButton
+                      isActive={childIsActive}
+                      onClick={() => onNavigate(child.key)}
+                      style={childIsActive ? { backgroundColor: 'hsl(220, 15%, 94%)', color: 'hsl(220, 15%, 16%)' } : undefined}
+                    >
+                      <span>{child.label}</span>
+                      {child.badge && (
+                        <Badge variant="outline" className="ml-auto h-4 px-1 text-xs">
+                          {child.badge}
+                        </Badge>
+                      )}
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                );
+              })}
             </SidebarMenuSub>
           </CollapsibleContent>
         )}
@@ -351,8 +364,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r">
-      {/* Logo */}
-      <SidebarHeader className="border-b px-4 py-3">
+      {/* Logo - 与主内容区 header 对齐 */}
+      <SidebarHeader className="border-b px-4 h-14 flex items-center">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center flex-shrink-0 text-white font-bold text-sm">
             H
@@ -366,7 +379,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      {/* Search */}
+      {/* Search - 菜单上方 */}
       {isExpanded && (
         <div className="px-3 py-2">
           <div className="relative">

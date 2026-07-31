@@ -22,27 +22,20 @@ import { mockGroups, mockExtractedItems } from '../wechat-bot/mock-data';
 import { initialProjects } from '../project-management/mockData';
 import { ProjectSummaryGrid } from '../project-management/ProjectSummaryGrid';
 import { Link } from 'react-router';
+import { FollowTimeline, FollowForm } from '../follow-up';
+import type { FollowRecord as UnifiedFollowRecord } from '../follow-up/types';
 
 export function LeadDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [lead, setLead] = useState<Lead | null>(null);
-  const [followRecords, setFollowRecords] = useState<FollowRecord[]>([]);
+  const [followRecords, setFollowRecords] = useState<UnifiedFollowRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   // 弹窗状态
   const [followModalVisible, setFollowModalVisible] = useState(false);
   const [transferModalVisible, setTransferModalVisible] = useState(false);
-
-  // 跟进表单
-  const [followForm, setFollowForm] = useState({
-    method: '微信沟通' as FollowMethod,
-    stage: '初步建联' as LeadStage,
-    intentLevel: '意向中' as IntentLevel,
-    content: '',
-    duration: 1,
-    nextFollowTime: '',
-  });
+  const [editingRecord, setEditingRecord] = useState<UnifiedFollowRecord | null>(null);
 
   // 转移表单
   const [transferForm, setTransferForm] = useState({
@@ -62,7 +55,26 @@ export function LeadDetail() {
       const leadData = await getLeadDetail(id);
       setLead(leadData);
       const records = await getFollowRecordList({ leadId: id });
-      setFollowRecords(records.list);
+      // 转换为统一格式
+      const unifiedRecords: UnifiedFollowRecord[] = records.list.map(r => ({
+        id: r.id,
+        entityType: 'lead' as const,
+        entityId: r.leadId,
+        entityNo: r.leadNo,
+        entityName: r.leadName,
+        type: '普通跟进' as const,
+        method: r.method,
+        content: r.content,
+        duration: r.duration,
+        operatorId: r.followerId,
+        operatorName: r.followerName,
+        nextFollowTime: r.nextFollowTime,
+        attachments: r.attachments || [],
+        createdAt: r.createTime,
+        leadStage: r.stage,
+        intentLevel: r.intentLevel,
+      }));
+      setFollowRecords(unifiedRecords);
     } catch (error) {
       toast.error('加载数据失败');
     } finally {
@@ -71,27 +83,24 @@ export function LeadDetail() {
   };
 
   // 创建跟进记录
-  const handleCreateFollow = async () => {
+  const handleCreateFollow = async (data: Omit<UnifiedFollowRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!lead) return;
-    if (!followForm.content) {
-      toast.error('请输入跟进详情');
-      return;
-    }
     try {
       await createFollowRecord({
         leadId: lead.id,
         leadNo: lead.leadNo,
         leadName: lead.name,
-        ...followForm,
-        followerId: 'emp-001',
-        followerName: '当前用户',
+        method: data.method,
+        stage: data.leadStage || '初步建联',
+        intentLevel: data.intentLevel,
+        content: data.content,
+        duration: data.duration,
+        followerId: data.operatorId,
+        followerName: data.operatorName,
+        nextFollowTime: data.nextFollowTime,
       });
       toast.success('跟进记录已添加');
       setFollowModalVisible(false);
-      setFollowForm({
-        method: '微信沟通', stage: '初步建联', intentLevel: '意向中',
-        content: '', duration: 1, nextFollowTime: '',
-      });
       loadData();
     } catch (error) {
       toast.error('创建失败');
@@ -356,70 +365,20 @@ export function LeadDetail() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-base">跟进记录</CardTitle>
-                  <Button size="sm" onClick={() => setFollowModalVisible(true)}>
+                  <Button size="sm" onClick={() => { setEditingRecord(null); setFollowModalVisible(true); }}>
                     <Plus className="h-4 w-4 mr-1" />记录
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {followRecords.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">暂无跟进记录</div>
-                    ) : (
-                      followRecords.map((record, index) => {
-                        const remaining = getRemainingTime(record.nextFollowTime);
-                        return (
-                          <div key={record.id} className="relative pl-6 pb-4">
-                            {/* 时间线圆点 */}
-                            <div className={`absolute left-0 top-1 w-3 h-3 rounded-full border-2 ${
-                              index === 0 ? 'bg-blue-600 border-blue-600' : 'bg-gray-200 border-gray-300'
-                            }`} />
-                            {/* 连接线 */}
-                            {index < followRecords.length - 1 && (
-                              <div className="absolute left-[5px] top-4 w-0.5 h-full bg-gray-200" />
-                            )}
-
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="outline" className="bg-green-50 text-green-600 border-green-300">
-                                  {record.method}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">{record.createTime}</span>
-                              </div>
-
-                              <div className="flex items-center gap-4 text-xs">
-                                <span>客户状态：<Badge variant="outline">{leadStageConfig[record.stage]?.label}</Badge></span>
-                                {record.intentLevel && (
-                                  <span>意向等级：<Badge variant="outline">{intentLevelConfig[record.intentLevel]?.label}</Badge></span>
-                                )}
-                                <span className="text-muted-foreground">消耗工时：{record.duration || 0}分钟</span>
-                              </div>
-
-                              {record.content && (
-                                <div className="text-sm">{record.content}</div>
-                              )}
-
-                              <div className="text-xs text-muted-foreground">
-                                跟进人：{record.followerName}
-                                {record.nextFollowTime && (
-                                  <span className="ml-2">
-                                    下次跟进时间：{record.nextFollowTime}
-                                    <span className={`ml-1 ${remaining.isOverdue ? 'text-red-600' : 'text-orange-600'}`}>
-                                      ({remaining.text})
-                                    </span>
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className="flex gap-2">
-                                <Button variant="ghost" size="sm" className="h-6 text-xs">编辑</Button>
-                                <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive">删除</Button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
+                  <FollowTimeline
+                    records={followRecords}
+                    entityType="lead"
+                    onEdit={(record) => { setEditingRecord(record); setFollowModalVisible(true); }}
+                    onDelete={(id) => {
+                      setFollowRecords(prev => prev.filter(r => r.id !== id));
+                      toast.success('跟进记录已删除');
+                    }}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -464,98 +423,18 @@ export function LeadDetail() {
       </div>
 
       {/* 添加跟进记录弹窗 */}
-      <Dialog open={followModalVisible} onOpenChange={setFollowModalVisible}>
-        <DialogContent className="max-w-[600px]">
-          <DialogHeader><DialogTitle>添加跟进记录</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>跟进方式 <span className="text-destructive">*</span></Label>
-              <div className="flex gap-4">
-                {(['电话沟通', '微信沟通', '上门拜访', '其他'] as FollowMethod[]).map((method) => (
-                  <label key={method} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="method"
-                      value={method}
-                      checked={followForm.method === method}
-                      onChange={(e) => setFollowForm({ ...followForm, method: e.target.value as FollowMethod })}
-                      className="accent-blue-600"
-                    />
-                    {method}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>客户状态 <span className="text-destructive">*</span></Label>
-              <Select value={followForm.stage} onValueChange={(v) => setFollowForm({ ...followForm, stage: v as LeadStage })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(leadStageConfig).map(([key, config]) => (
-                    <SelectItem key={key} value={key}>{config.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>意向等级</Label>
-              <div className="flex gap-4">
-                {(['意向高', '意向中', '意向低', '无意向'] as IntentLevel[]).map((level) => (
-                  <label key={level} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="intentLevel"
-                      value={level}
-                      checked={followForm.intentLevel === level}
-                      onChange={(e) => setFollowForm({ ...followForm, intentLevel: e.target.value as IntentLevel })}
-                      className="accent-blue-600"
-                    />
-                    {level}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>消耗时间（分钟）</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={followForm.duration}
-                  onChange={(e) => setFollowForm({ ...followForm, duration: Number(e.target.value) })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>下次跟进提醒</Label>
-                <Input
-                  type="datetime-local"
-                  value={followForm.nextFollowTime}
-                  onChange={(e) => setFollowForm({ ...followForm, nextFollowTime: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>跟进详情 <span className="text-destructive">*</span></Label>
-              <Textarea
-                rows={4}
-                placeholder="请详细记录本次沟通的内容、客户反馈、关键信息等"
-                value={followForm.content}
-                onChange={(e) => setFollowForm({ ...followForm, content: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>附件上传</Label>
-              <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
-                点击或拖拽文件到此处上传
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFollowModalVisible(false)}>取消</Button>
-            <Button onClick={handleCreateFollow}>确定</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {lead && (
+        <FollowForm
+          open={followModalVisible}
+          onOpenChange={setFollowModalVisible}
+          entityType="lead"
+          entityId={lead.id}
+          entityNo={lead.leadNo}
+          entityName={lead.name}
+          initialData={editingRecord || undefined}
+          onSubmit={handleCreateFollow}
+        />
+      )}
 
       {/* 转移弹窗 */}
       <Dialog open={transferModalVisible} onOpenChange={setTransferModalVisible}>

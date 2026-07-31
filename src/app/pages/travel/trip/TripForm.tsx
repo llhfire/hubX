@@ -468,7 +468,7 @@ export function TripForm() {
       </div>
 
       {/* 借款申请 */}
-      <Card>
+      <Card className="max-w-2xl">
         <CardHeader>
           <CardTitle>借款申请</CardTitle>
         </CardHeader>

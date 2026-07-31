@@ -6,4 +6,5 @@ export { ExtractedItemCard } from './ExtractedItemCard';
 export { ExtractedItemList } from './ExtractedItemList';
 export { ProjectContextSummary } from './ProjectContextSummary';
 export { SatisfactionSignal } from './SatisfactionSignal';
+export { ScriptSuggestions } from './ScriptSuggestions';
 export { WeChatGroupCard } from './WeChatGroupCard';

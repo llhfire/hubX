@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '../../components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
-import { Search, Plus, Eye, Pencil, Trash2, UserPlus, UserMinus, Download } from 'lucide-react';
+import { Search, Plus, Eye, Pencil, Trash2, UserPlus, UserMinus, Download, RotateCcw } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
 import { toast } from 'sonner';
 import type { Lead, LeadType, LeadStage, CustomerType, IntentLevel, LeadSource } from './types';
 import { leadStageConfig, intentLevelConfig, customerTypeConfig, leadTypeConfig } from './types';
@@ -667,7 +668,14 @@ export function LeadList({ leadType, showEntity = false, title = '全部线索' 
                             <Button variant="ghost" size="sm" onClick={() => handleClaim(lead)}><UserPlus className="h-4 w-4" /></Button>
                           )}
                           {lead.leadType !== '公海' && (
-                            <Button variant="ghost" size="sm" onClick={() => handleRelease(lead)}>扔回公海</Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="sm" onClick={() => handleRelease(lead)}><RotateCcw className="h-4 w-4" /></Button>
+                                </TooltipTrigger>
+                                <TooltipContent>扔回公海</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
                           <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleMarkTrash(lead)}><Trash2 className="h-4 w-4" /></Button>
                         </div>

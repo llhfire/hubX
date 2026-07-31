@@ -90,6 +90,8 @@ import { initialRequirements, initialTasks, initialDefects } from './issues/mock
 import { WeChatGroupCard } from './wechat-bot/components/WeChatGroupCard';
 import { mockGroups as mockGroupsForCard, mockExtractedItems as mockExtractedItemsForCard } from './wechat-bot/mock-data';
 import { ProjectSummaryGrid } from './project-management/ProjectSummaryGrid';
+import { FollowTimeline, FollowForm } from './follow-up';
+import type { FollowRecord as UnifiedFollowRecord } from './follow-up/types';
 
 const SUMMARY_LEVEL_STYLE: Record<SummaryRiskLevel, string> = {
   正常: 'bg-green-100 text-green-700',
@@ -196,6 +198,7 @@ export function ProjectDetail() {
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
   const [contractModalOpen, setContractModalOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<ProjectDocument | null>(null);
+  const [editingFollowRecord, setEditingFollowRecord] = useState<UnifiedFollowRecord | null>(null);
 
   // Follow form state
   const [followStatus, setFollowStatus] = useState<ProjectStatus>(project.status);
@@ -329,6 +332,54 @@ export function ProjectDetail() {
     setFollowModalOpen(false);
     toast.success('跟进记录已新增');
   };
+
+  // 统一跟进表单提交
+  const handleUnifiedFollowSubmit = (data: Omit<UnifiedFollowRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const nextFollow: ProjectFollowUp = {
+      id: `follow-${Date.now()}`,
+      projectId: project.id,
+      status: data.projectStatus || project.status,
+      progress: data.progress || project.progress,
+      content: data.content,
+      attachments: data.attachments.map(a => ({ id: a.id, name: a.name, size: String(a.size) })),
+      operator: data.operatorName,
+      createdAt: new Date().toISOString(),
+    };
+    setFollowUps([nextFollow, ...followUps]);
+    setProject({
+      ...project,
+      status: data.projectStatus || project.status,
+      progress: data.progress || project.progress,
+      latestProgress: summarizeProgress(data.content),
+    });
+    setFollowModalOpen(false);
+    setEditingFollowRecord(null);
+    toast.success('跟进记录已添加');
+  };
+
+  // 将 ProjectFollowUp 转换为统一格式
+  const toUnifiedRecord = (follow: ProjectFollowUp): UnifiedFollowRecord => ({
+    id: follow.id,
+    entityType: 'project',
+    entityId: follow.projectId,
+    entityNo: project.projectNo,
+    entityName: project.name,
+    type: '普通跟进',
+    method: '其他',
+    content: follow.content,
+    operatorId: '',
+    operatorName: follow.operator,
+    attachments: follow.attachments.map(a => ({
+      id: a.id,
+      name: a.name,
+      size: 0,
+      url: '',
+      type: '',
+    })),
+    createdAt: follow.createdAt,
+    projectStatus: follow.status,
+    progress: follow.progress,
+  });
 
   const saveLeadRelation = () => {
     if (!selectedLeadNo) {
@@ -856,102 +907,38 @@ export function ProjectDetail() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between w-full">
-                <CardTitle>跟进记录</CardTitle>
-                <Button variant="ghost" size="sm" onClick={openFollowModal}>
-                  <Plus className="h-4 w-4" />
-                  新增
+                <CardTitle className="text-base">跟进记录</CardTitle>
+                <Button size="sm" onClick={() => { setEditingFollowRecord(null); setFollowModalOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1" />记录
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="relative pl-6">
-                {/* Vertical line */}
-                <div className="absolute left-[9px] top-2 bottom-2 w-px bg-border" />
-                <div className="flex flex-col gap-6">
-                  {projectFollowUps.map((follow) => (
-                    <div key={follow.id} className="relative">
-                      {/* Dot */}
-                      <div className="absolute -left-6 top-1.5 w-[10px] h-[10px] rounded-full bg-primary border-2 border-background" />
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <StatusPill status={follow.status} />
-                        <Badge variant="secondary">{follow.progress}%</Badge>
-                        <span className="text-xs text-muted-foreground">{follow.operator}</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground mb-1 block">{follow.createdAt}</span>
-                      <div className="text-sm">{follow.content}</div>
-                      {follow.attachments.map((file) => (
-                        <Badge key={file.id} variant="outline" className="mt-1.5 gap-1 w-fit">
-                          <FileText className="h-3 w-3" />
-                          {file.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <FollowTimeline
+                records={projectFollowUps.map(toUnifiedRecord)}
+                entityType="project"
+                onEdit={(record) => { setEditingFollowRecord(record); setFollowModalOpen(true); }}
+                onDelete={(id) => {
+                  setFollowUps(prev => prev.filter(f => f.id !== id));
+                  toast.success('跟进记录已删除');
+                }}
+              />
             </CardContent>
           </Card>
         </div>
       </div>
 
       {/* ── Follow Modal ────────────────────────────────────── */}
-      <Dialog open={followModalOpen} onOpenChange={setFollowModalOpen}>
-        <DialogContent className="sm:max-w-[620px]">
-          <DialogHeader>
-            <DialogTitle>添加跟进</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label>状态</Label>
-              <Select value={followStatus} onValueChange={(v) => setFollowStatus(v as ProjectStatus)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="请选择状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projectStatuses.map((item) => (
-                    <SelectItem key={item} value={item}>{item}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label>总进度</Label>
-              <div className="relative">
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={followProgress}
-                  onChange={(e) => setFollowProgress(e.target.value)}
-                  className="pr-8"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
-              </div>
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <Label>跟进详情</Label>
-            <Textarea
-              rows={4}
-              value={followContent}
-              onChange={(e) => setFollowContent(e.target.value)}
-              placeholder="请输入跟进详情"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label>附件上传</Label>
-            <Input
-              placeholder="第一版模拟上传，填写附件名称"
-              value={followAttachmentName}
-              onChange={(e) => setFollowAttachmentName(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFollowModalOpen(false)}>取消</Button>
-            <Button onClick={saveFollow}>确认</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FollowForm
+        open={followModalOpen}
+        onOpenChange={setFollowModalOpen}
+        entityType="project"
+        entityId={project.id}
+        entityNo={project.projectNo}
+        entityName={project.name}
+        initialData={editingFollowRecord || undefined}
+        onSubmit={handleUnifiedFollowSubmit}
+      />
 
       {/* ── Lead Modal ──────────────────────────────────────── */}
       <Dialog open={leadModalOpen} onOpenChange={setLeadModalOpen}>

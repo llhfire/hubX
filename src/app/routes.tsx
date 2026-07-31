@@ -99,8 +99,13 @@ import { LeadList as NewLeadList } from "./pages/leads/LeadList";
 import { FollowRecordList } from "./pages/leads/FollowRecordList";
 import { LeadDetail as NewLeadDetail } from "./pages/leads/LeadDetail";
 import { ChatAnalysisPage, WeChatBotManagement, WeChatGroupList } from "./pages/wechat-bot";
+import ChatPage from "./pages/chat/ChatPage";
 
 export const router = createBrowserRouter([
+  {
+    path: "/chat",
+    Component: ChatPage,
+  },
   {
     path: "/",
     Component: MainLayout,

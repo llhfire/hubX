@@ -36,6 +36,8 @@ import { ScanFileList } from './contracts/components/ScanFileList';
 import { ContractFlowProgress } from './contracts/components/ContractFlowProgress';
 import { CONTRACT_STATUS_LABEL } from './contracts/utils';
 import type { Contract, ContractStatus } from './contracts/types';
+import { ContractFollowUp } from './follow-up';
+import type { FollowRecord as UnifiedFollowRecord } from './follow-up/types';
 
 interface FollowUpRecord {
   id: string;
@@ -60,6 +62,108 @@ const mockFollowUps: FollowUpRecord[] = [
   { id: 'fu-4', type: 'requirement_change', title: '登录方式调整', content: '客户要求增加微信扫码登录，原有手机验证码登录保留。已评估技术可行性，无额外成本。', author: '李四', date: '2026-06-18' },
   { id: 'fu-5', type: 'ui_confirm', title: '移动端原型确认', content: '客户已签字确认移动端 APP 原型设计，包含 12 个核心页面流程图。', author: '陈明', date: '2026-06-15' },
   { id: 'fu-6', type: 'dunning', title: '首期款项到账确认', content: '已收到客户首期款项 ¥480,000，银行回单已归档。', author: '张三', date: '2026-06-10' },
+];
+
+// 模拟线索跟进记录（用于抽取关键节点）
+const mockLeadFollowUps: UnifiedFollowRecord[] = [
+  {
+    id: 'lf-1',
+    entityType: 'lead',
+    entityId: 'lead-001',
+    entityNo: 'L20260315001',
+    entityName: 'CRM系统开发项目',
+    type: '合同签订',
+    method: '上门拜访',
+    content: '合同已正式签订，合同金额 ¥1,200,000，分三期回款。',
+    operatorId: 'emp-001',
+    operatorName: '张三',
+    attachments: [],
+    createdAt: '2026-03-15T10:00:00',
+    leadStage: '已签单',
+    intentLevel: '意向高',
+  },
+  {
+    id: 'lf-2',
+    entityType: 'lead',
+    entityId: 'lead-001',
+    entityNo: 'L20260315001',
+    entityName: 'CRM系统开发项目',
+    type: '催款',
+    method: '电话沟通',
+    content: '首期款项 ¥480,000 已到账，银行回单已归档。',
+    operatorId: 'emp-001',
+    operatorName: '张三',
+    attachments: [],
+    createdAt: '2026-04-10T14:30:00',
+    leadStage: '已签单',
+  },
+  {
+    id: 'lf-3',
+    entityType: 'lead',
+    entityId: 'lead-001',
+    entityNo: 'L20260315001',
+    entityName: 'CRM系统开发项目',
+    type: '催款',
+    method: '电话沟通',
+    content: '第二期款项 ¥360,000 已到账，客户财务确认本周内支付。',
+    operatorId: 'emp-001',
+    operatorName: '张三',
+    attachments: [],
+    createdAt: '2026-06-22T16:00:00',
+    leadStage: '已签单',
+  },
+];
+
+// 模拟项目跟进记录（用于抽取关键节点）
+const mockProjectFollowUps: UnifiedFollowRecord[] = [
+  {
+    id: 'pf-1',
+    entityType: 'project',
+    entityId: 'proj-001',
+    entityNo: 'P20260320001',
+    entityName: 'CRM系统开发项目',
+    type: '原型确认',
+    method: '上门拜访',
+    content: '客户已签字确认移动端 APP 原型设计，包含 12 个核心页面流程图。',
+    operatorId: 'emp-002',
+    operatorName: '陈明',
+    attachments: [],
+    createdAt: '2026-06-15T10:00:00',
+    projectStatus: '进行中',
+    progress: 30,
+  },
+  {
+    id: 'pf-2',
+    entityType: 'project',
+    entityId: 'proj-001',
+    entityNo: 'P20260320001',
+    entityName: 'CRM系统开发项目',
+    type: 'UI确认',
+    method: '上门拜访',
+    content: '客户已确认 CRM 首页设计稿 V2，无修改意见，可以进入开发阶段。',
+    operatorId: 'emp-002',
+    operatorName: '陈明',
+    attachments: [],
+    createdAt: '2026-06-25T14:00:00',
+    projectStatus: '进行中',
+    progress: 45,
+  },
+  {
+    id: 'pf-3',
+    entityType: 'project',
+    entityId: 'proj-001',
+    entityNo: 'P20260320001',
+    entityName: 'CRM系统开发项目',
+    type: '需求变更',
+    method: '微信沟通',
+    content: '客户要求增加微信扫码登录，原有手机验证码登录保留。已评估技术可行性，无额外成本。',
+    operatorId: 'emp-003',
+    operatorName: '李四',
+    attachments: [],
+    createdAt: '2026-06-18T11:30:00',
+    projectStatus: '进行中',
+    progress: 40,
+  },
 ];
 
 function BadgeForColor({ color, children }: { color: string; children: React.ReactNode }) {
@@ -376,32 +480,23 @@ export function ContractDetail() {
               <Card className="rounded-lg">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-center">
-                    <CardTitle className="text-sm" />
-                    <Button variant="ghost" size="sm" onClick={() => setFollowUpModalVisible(true)}>
-                      <Plus className="size-4" />
+                    <CardTitle className="text-sm">跟进记录</CardTitle>
+                    <Button size="sm" onClick={() => setFollowUpModalVisible(true)}>
+                      <Plus className="h-4 w-4 mr-1" />记录
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="relative pl-6">
-                    <div className="absolute left-[11px] top-0 bottom-0 w-px bg-border" />
-                    {followUps.map(fu => {
-                      const typeMeta = FOLLOW_UP_TYPES[fu.type];
-                      return (
-                        <div key={fu.id} className="relative pb-6">
-                          <div className="absolute left-[-13px] top-1 size-2.5 rounded-full bg-primary" />
-                          <div className="mb-1">
-                            <BadgeForColor color={typeMeta.color}>{typeMeta.label}</BadgeForColor>
-                            <span className="font-semibold text-sm ml-1">{fu.title}</span>
-                          </div>
-                          <div className="text-xs text-muted-foreground mb-1">{fu.date} · {fu.author}</div>
-                          <div className="text-xs text-muted-foreground p-2 bg-muted rounded">
-                            {fu.content}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <ContractFollowUp
+                    leadFollowUps={mockLeadFollowUps}
+                    projectFollowUps={mockProjectFollowUps}
+                    contractInfo={{
+                      id: contract.id,
+                      name: contract.name,
+                      signingDate: contract.signingDate,
+                      totalAmount: contract.totalAmount,
+                    }}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

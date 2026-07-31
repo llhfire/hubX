@@ -61,6 +61,7 @@ import { useReminders } from '../reminders/ReminderContext';
 import { HRPolicyBot } from '../pages/hr/components/HRPolicyBot';
 import { AppSidebar } from './AppSidebar';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from './ui/sidebar';
+import { BottomDock } from './BottomDock';
 
 // ── 主布局组件 ──────────────────────────────────────────────
 export function MainLayout() {
@@ -175,6 +176,9 @@ export function MainLayout() {
         onSelect={handleRoleSelect}
       />
       <HRPolicyBot />
+
+      {/* 底部 Dock 栏 - 企业聊天 */}
+      <BottomDock />
     </SidebarProvider>
   );
 }

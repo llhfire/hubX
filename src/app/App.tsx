@@ -4,6 +4,7 @@ import { ReminderProvider } from './reminders/ReminderContext';
 import { ContractsProvider } from './pages/contracts/ContractsContext';
 import { EmployeeProvider } from './pages/employee';
 import { WeChatProvider } from './pages/wechat-bot';
+import { ChatProvider } from './pages/chat';
 import { router } from './routes';
 
 function App() {
@@ -12,8 +13,10 @@ function App() {
       <EmployeeProvider>
         <ContractsProvider>
           <WeChatProvider>
-            <RouterProvider router={router} />
-            <Toaster position="top-right" richColors />
+            <ChatProvider>
+              <RouterProvider router={router} />
+              <Toaster position="top-right" richColors />
+            </ChatProvider>
           </WeChatProvider>
         </ContractsProvider>
       </EmployeeProvider>

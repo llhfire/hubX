@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Separator } from '../../components/ui/separator';
 import { ArrowLeft, Search, Filter, MessageSquare, Users, Loader2, RefreshCw, Clock, Image, File, Mic, Link as LinkIcon, Video } from 'lucide-react';
-import { ChatMessageList, ExtractedItemList, ProjectContextSummary, SatisfactionSignal, ActivityIndicator, AlertRuleList } from './components';
+import { ChatMessageList, ExtractedItemList, ProjectContextSummary, SatisfactionSignal, ActivityIndicator, AlertRuleList, ScriptSuggestions } from './components';
 import type { ChatMessage, ExtractedItem, ProjectContext, ExtractedItemStatus, ExtractedItemType, GroupMember } from './types';
 import { useWeChat } from './WeChatContext';
 import { getGroupMembers } from './wechat-api';
@@ -233,6 +233,7 @@ export default function ChatAnalysisPage() {
                 </TabsTrigger>
                 <TabsTrigger value="context" className="text-xs h-6">项目摘要</TabsTrigger>
                 <TabsTrigger value="signals" className="text-xs h-6">满意度</TabsTrigger>
+                <TabsTrigger value="scripts" className="text-xs h-6">话术</TabsTrigger>
                 <TabsTrigger value="rules" className="text-xs h-6">规则</TabsTrigger>
               </TabsList>
             </div>
@@ -287,6 +288,14 @@ export default function ChatAnalysisPage() {
                       <div>最后消息: <strong>{group.lastMessageTime ? new Date(group.lastMessageTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '-'}</strong></div>
                     </div>
                   </div>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="scripts" className="flex-1 min-h-0 m-0">
+              <ScrollArea className="h-full">
+                <div className="p-4">
+                  <ScriptSuggestions messages={messages} members={members} />
                 </div>
               </ScrollArea>
             </TabsContent>
