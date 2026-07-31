@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card'
 import { Button } from '@/app/components/ui/button'
 import { Badge } from '@/app/components/ui/badge'
@@ -54,22 +54,39 @@ const categoryIcons: Record<string, typeof FileText> = {
 
 // ==================== 风险检查项卡片 ====================
 
-function RiskCheckCard({ item, index }: { item: RiskCheckItem; index: number }) {
+interface RiskCheckCardProps {
+  item: RiskCheckItem
+  index: number
+  isActive?: boolean
+  onAnchorClick?: (item: RiskCheckItem) => void
+}
+
+function RiskCheckCard({ item, index, isActive, onAnchorClick }: RiskCheckCardProps) {
   const [expanded, setExpanded] = useState(false)
   const config = statusConfig[item.status]
   const Icon = config.icon
+
+  const handleClick = () => {
+    // 如果点击的是锚点区域，触发动画滚动
+    if (onAnchorClick && item.anchor) {
+      onAnchorClick(item)
+    }
+    setExpanded(!expanded)
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className={`border rounded-lg overflow-hidden ${config.border} ${config.bg}/30`}
+      className={`border rounded-lg overflow-hidden ${config.border} ${config.bg}/30 ${
+        isActive ? 'ring-2 ring-indigo-400 ring-offset-2' : ''
+      }`}
     >
       {/* 头部行 */}
       <div
         className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50/50 transition-colors"
-        onClick={() => setExpanded(!expanded)}
+        onClick={handleClick}
       >
         <Icon className={`h-4 w-4 ${config.color} shrink-0`} />
         <div className="flex-1 min-w-0">
@@ -125,6 +142,11 @@ export function ContractRiskDemo() {
   const [activeCategory, setActiveCategory] = useState('all')
   const [showLogs, setShowLogs] = useState(false)
 
+  // 高亮状态管理
+  const [highlightedText, setHighlightedText] = useState<string | null>(null)
+  const [activeRiskId, setActiveRiskId] = useState<string | null>(null)
+  const contractTextContainerRef = useRef<HTMLDivElement>(null)
+
   const handleSubmit = () => {
     submitAction()
     setTimeout(() => setDrawerOpen(true), 5700)
@@ -133,7 +155,39 @@ export function ContractRiskDemo() {
   const handleReset = () => {
     setDrawerOpen(false)
     reset()
+    setHighlightedText(null)
+    setActiveRiskId(null)
   }
+
+  // 处理锚点点击，滚动并高亮合同正文
+  const handleAnchorClick = useCallback((item: RiskCheckItem) => {
+    if (!item.anchor) return
+
+    setHighlightedText(item.anchor.text)
+    setActiveRiskId(item.id)
+
+    // 查找并滚动到对应位置
+    if (contractTextContainerRef.current) {
+      const textContent = contractTextContainerRef.current.textContent || ''
+      const anchorText = item.anchor.text
+
+      // 查找文本在合同中的位置
+      const startIndex = textContent.indexOf(anchorText)
+      if (startIndex !== -1) {
+        // 计算滚动位置（基于文本长度估算）
+        const textBeforeAnchor = textContent.substring(0, startIndex)
+        const lineHeight = 20 // 估计行高
+        const linesBefore = textBeforeAnchor.split('\n').length
+        const scrollPosition = linesBefore * lineHeight - 100
+
+        // 滚动到对应位置
+        contractTextContainerRef.current.scrollTo({
+          top: Math.max(0, scrollPosition),
+          behavior: 'smooth'
+        })
+      }
+    }
+  }, [])
 
   // 按类别分组
   const checks = result?.checks ?? []
@@ -148,6 +202,36 @@ export function ContractRiskDemo() {
     warning: checks.filter((c) => c.status === 'warning').length,
     danger: checks.filter((c) => c.status === 'danger').length,
     info: checks.filter((c) => c.status === 'info').length,
+  }
+
+  // 渲染高亮的合同正文
+  const renderHighlightedContractText = () => {
+    if (!highlightedText) {
+      return (
+        <pre className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap font-sans">
+          {CONTRACT_FULL_TEXT}
+        </pre>
+      )
+    }
+
+    // 分割文本并在匹配位置添加高亮
+    const parts = CONTRACT_FULL_TEXT.split(new RegExp(`(${highlightedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'))
+
+    return (
+      <pre className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap font-sans">
+        {parts.map((part, index) => {
+          const isMatch = part.toLowerCase() === highlightedText.toLowerCase()
+          return (
+            <span
+              key={index}
+              className={isMatch ? 'bg-blue-100 text-blue-800 font-bold px-0.5 rounded' : ''}
+            >
+              {part}
+            </span>
+          )
+        })}
+      </pre>
+    )
   }
 
   return (
@@ -193,13 +277,26 @@ export function ContractRiskDemo() {
               <FileText className="h-4 w-4" />
               合同全文
               <Badge variant="secondary" className="text-xs font-mono">HT-2026-0718-001</Badge>
+              {highlightedText && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto h-6 text-xs"
+                  onClick={() => {
+                    setHighlightedText(null)
+                    setActiveRiskId(null)
+                  }}
+                >
+                  清除高亮
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[600px]">
-              <pre className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap font-sans">
-                {CONTRACT_FULL_TEXT}
-              </pre>
+              <div ref={contractTextContainerRef} className="max-h-[600px] overflow-auto">
+                {renderHighlightedContractText()}
+              </div>
             </ScrollArea>
           </CardContent>
         </Card>
@@ -315,7 +412,13 @@ export function ContractRiskDemo() {
                     <ScrollArea className="h-[380px]">
                       <div className="space-y-2 pr-2">
                         {filteredChecks.map((item, index) => (
-                          <RiskCheckCard key={item.id} item={item} index={index} />
+                          <RiskCheckCard
+                            key={item.id}
+                            item={item}
+                            index={index}
+                            isActive={activeRiskId === item.id}
+                            onAnchorClick={handleAnchorClick}
+                          />
                         ))}
                       </div>
                     </ScrollArea>
@@ -404,7 +507,13 @@ export function ContractRiskDemo() {
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-slate-700">全量审查明细</h4>
               {result.checks.map((item, index) => (
-                <RiskCheckCard key={item.id} item={item} index={index} />
+                <RiskCheckCard
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  isActive={activeRiskId === item.id}
+                  onAnchorClick={handleAnchorClick}
+                />
               ))}
             </div>
           </div>

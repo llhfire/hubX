@@ -57,6 +57,13 @@ export interface RiskCheckItem {
   summary: string
   detail: string
   suggestion?: string
+  // 合同正文锚点：点击时定位到对应的合同条款
+  anchor?: {
+    // 要高亮的文本片段（用于在合同正文中查找）
+    text: string
+    // 可选：正则表达式匹配
+    pattern?: string
+  }
 }
 
 export interface ContractReviewResult {
@@ -344,6 +351,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       detail:
         '合同 1.2 条列出了 4 大模块（学生端、教师端、管理后台、第三方集成），功能描述较清晰。但"学习进度跟踪""数据报表"等功能未定义具体的验收指标（如数据精度、报表维度），可能导致验收争议。',
       suggestion: '建议在附件中补充各功能模块的详细验收标准，明确"完成"的定义。',
+      anchor: {
+        text: '1.2 项目范围',
+      },
     },
     {
       id: 'content-deliverable',
@@ -353,6 +363,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       summary: '交付物清单完整，覆盖设计、开发、测试、文档全阶段',
       detail:
         '合同 1.3 条列出了 8 项交付物，包含需求文档、设计稿、源代码、测试报告、部署文档等，覆盖软件交付全生命周期。特别包含了"三个月免费维护期"，符合行业惯例。',
+      anchor: {
+        text: '1.3 交付物清单',
+      },
     },
     {
       id: 'content-timeline',
@@ -363,6 +376,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       detail:
         '穿透项目模块历史数据：近 6 个月同类教育小程序项目（含管理后台）平均交付周期为 45 个工作日，最短 38 天。本合同承诺 30 天完成 4 个模块（学生端+教师端+管理后台+第三方集成），工期压缩 33%。当前前端组 8 月饱和度 90%，可用高级前端仅 1 人（王磊），后端组张伟已排期至 8 月底。',
       suggestion: '建议将工期延长至 45 个工作日，或增加 1 名高级前端开发。如客户坚持 30 天，需明确告知交付范围可能需要分期。',
+      anchor: {
+        text: '2.1 项目总工期',
+      },
     },
     // === 法律审查 ===
     {
@@ -373,6 +389,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       summary: '知识产权归属明确，乙方保留通用工具权利',
       detail:
         '合同 4.1 条明确全部成果知识产权归甲方所有，4.2 条合理保留了乙方通用工具/框架的权利，4.3 条设置了知识产权侵权担保条款。条款设计合理，符合外包行业惯例。',
+      anchor: {
+        text: '第四条  知识产权',
+      },
     },
     {
       id: 'legal-confidential',
@@ -382,6 +401,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       summary: '保密条款完整，期限合理',
       detail:
         '合同 5.1-5.3 条设置了保密义务、保密期限（3 年）和违约金（合同总额 20%）。保密范围涵盖了商业秘密、技术方案、客户信息等关键信息。3 年保密期符合行业标准。',
+      anchor: {
+        text: '第五条  保密条款',
+      },
     },
     {
       id: 'legal-liability',
@@ -392,6 +414,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       detail:
         '合同 8.1 条约定乙方延期违约金为每天 0.5%，累计上限为合同总额 10%（即 ¥15,300）。对比行业标准（通常 15%-20%），违约金上限偏低。若项目延期 20 天，违约金仅 ¥15,300，不足以覆盖甲方的延期损失（如运营成本、机会成本）。',
       suggestion: '建议将违约金累计上限提升至合同总额的 15%-20%，或设置阶梯式违约金（延期 1-10 天 0.5%/天，10 天以上 1%/天）。',
+      anchor: {
+        text: '第八条  违约责任',
+      },
     },
     {
       id: 'legal-dispute',
@@ -402,6 +427,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       detail:
         '合同 10.2 条约定"向乙方所在地人民法院提起诉讼"。由于乙方注册地在深圳福田，甲方注册地在深圳南山，两地法院距离不远，实际影响有限。但如果未来乙方变更注册地，可能增加甲方维权成本。',
       suggestion: '可考虑约定"向合同签订地人民法院提起诉讼"或"提交深圳国际仲裁院仲裁"，更中立。',
+      anchor: {
+        text: '第十条  争议解决',
+      },
     },
     // === 商务合作审查 ===
     {
@@ -413,6 +441,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       detail:
         '合同 3.2 条约定付款节奏为 40%/30%/30%。穿透财务模块数据：该客户（深圳前海智学教育）过去 1 年合作 3 次，平均回款周期 45 天（公司标准 30 天），其中 2 次出现尾款逾期（最长逾期 22 天）。当前尾款 ¥45,900 仅在"验收通过后 7 个工作日"支付，但合同未定义验收不通过时的处理机制，可能导致尾款长期悬而未决。',
       suggestion: '建议调整为 40%/30%/30% 但设置验收超时自动视为通过的条款（如甲方收到验收申请后 10 个工作日未提出异议视为验收通过），或将尾款拆分为 25% 验收款 + 5% 质保金。',
+      anchor: {
+        text: '3.2 付款方式',
+      },
     },
     {
       id: 'biz-acceptance',
@@ -423,6 +454,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       detail:
         '合同 6.1 条设置了功能完整性、性能指标（加载≤3s、API≤500ms、并发≥500）、兼容性等量化标准，较为规范。但 6.2 条仅约定甲方"5 个工作日内完成验收"，未设置超时自动通过机制，可能导致甲方拖延验收从而延迟付款。',
       suggestion: '建议增加"甲方收到验收申请后 10 个工作日内未提出书面异议的，视为验收通过"。',
+      anchor: {
+        text: '第六条  验收标准与流程',
+      },
     },
     {
       id: 'biz-price',
@@ -432,6 +466,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       summary: '报价略低于同类项目均价，利润率承压',
       detail:
         '穿透合同模块历史数据：近 6 个月教育类小程序项目（含管理后台）的合同均价为 ¥182,000，本合同报价 ¥153,000，低于均价 16%。按当前工时估算（需求调研 20h + UI 设计 30h + 前端 60h + 后端 50h + 测试 20h + 部署 10h = 190h），以平均时薪 ¥300 计算，人力成本约 ¥57,000，毛利率约 62.7%，处于合理范围但偏低。',
+      anchor: {
+        text: '3.1 合同总金额',
+      },
     },
     // === 行业限制审查 ===
     {
@@ -443,6 +480,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       detail:
         '穿透行业知识库：根据《民办教育促进法》及教育部等六部门《关于规范校外线上培训的实施意见》，面向中小学生提供学科类在线培训需取得办学许可证。本合同项目"智学云课堂"包含"在线考试""学习报告"等功能，如涉及 K12 学科类培训，甲方可能需要额外资质。合同中未约定甲方资质合规的免责声明。',
       suggestion: '建议在合同中增加甲方资质保证条款："甲方保证其使用本平台开展的业务已取得或无需取得相关行政许可，因甲方资质问题导致的法律责任由甲方承担。"',
+      anchor: {
+        text: '1.1 项目名称',
+      },
     },
     {
       id: 'industry-payment',
@@ -452,6 +492,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       summary: '微信支付接入需商户资质，属甲方责任',
       detail:
         '合同 1.2 条约定集成微信支付。微信支付接入需要甲方提供营业执照、法人身份证、对公账户等材料申请商户号。合同中未明确此为甲方义务，但从行业惯例看，商户资质申请属于甲方责任，实际操作中不会产生争议。',
+      anchor: {
+        text: '（4）第三方集成',
+      },
     },
     {
       id: 'industry-data',
@@ -462,6 +505,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       detail:
         '穿透行业知识库：本平台面向教育场景，可能涉及未成年人个人信息（姓名、年龄、学习数据等）。根据《个人信息保护法》第 28 条，处理不满 14 周岁未成年人个人信息应取得其监护人同意。合同中未约定数据安全责任划分和隐私保护要求。',
       suggestion: '建议增加数据安全条款：明确甲乙双方的数据安全责任，约定乙方不得留存用户数据，开发完成后应删除所有测试数据。',
+      anchor: {
+        text: '第五条  保密条款',
+      },
     },
     {
       id: 'industry-content',
@@ -471,6 +517,9 @@ export const CONTRACT_REVIEW_RESULT: ContractReviewResult = {
       summary: '管理后台含内容审核功能，符合监管要求',
       detail:
         '合同 1.2 条管理后台包含"内容审核"功能，符合教育类平台的内容监管要求。平台内容审核责任归属甲方，乙方仅提供技术工具。此约定合理。',
+      anchor: {
+        text: '（3）Web 管理后台',
+      },
     },
   ],
 }
