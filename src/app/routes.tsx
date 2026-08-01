@@ -87,6 +87,7 @@ import { AIDriven } from "./pages/ai/AIDriven";
 import { WorkItemsPage } from "./pages/issues/WorkItemsPage";
 import { ProjectDailyReportsPage } from "./pages/project-daily-reports/ProjectDailyReportsPage";
 import { TripList } from "./pages/travel/trip/TripList";
+import FinancialDelivery from "./pages/financial-delivery";
 import { TripForm } from "./pages/travel/trip/TripForm";
 import { TripDetail } from "./pages/travel/trip/TripDetail";
 import { ReimbursementList } from "./pages/travel/reimbursement/ReimbursementList";
@@ -212,6 +213,7 @@ export const router = createBrowserRouter([
       { path: "finance/project-cost", Component: ProjectCostAccounting },
       { path: "finance/salary", Component: SalaryPage },
       { path: "finance/contract-cost/:contractId", Component: ContractCostDetail },
+      { path: "financial-delivery/*", Component: FinancialDelivery },
     ],
   },
 ]);

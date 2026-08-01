@@ -190,6 +190,19 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    key: 'financial-delivery',
+    icon: <FileCheck className="h-4 w-4" />,
+    label: '精益交付',
+    badge: 'New',
+    children: [
+      { key: '/financial-delivery/dashboard', label: '财务仪表盘' },
+      { key: '/financial-delivery/cases', label: '业务单管理' },
+      { key: '/financial-delivery/feature-lists', label: '工时评估' },
+      { key: '/financial-delivery/quotations', label: '报价单管理' },
+      { key: '/financial-delivery/post-mortems', label: '项目决算' },
+    ],
+  },
+  {
     key: 'operations',
     icon: <Wrench className="h-4 w-4" />,
     label: '运营支持',
