@@ -27,6 +27,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from '../components/ui/alert-dialog';
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from '../components/ui/tooltip';
 
 import { contractCostPermissions } from './contract-cost/contractCostData';
 
@@ -68,16 +71,41 @@ const STATUS_OPTIONS = ['已支付', '未支付', '分期'];
 
 function SummaryCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
-    <div style={{
-      padding: '16px 20px',
-      border: '1px solid var(--color-border-2)',
-      borderRadius: 8,
-      background: '#fff',
-      borderTop: `3px solid ${color || '#165dff'}`,
-    }}>
-      <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-1)' }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginTop: 4 }}>{sub}</div>}
+    <div className="
+      relative overflow-hidden
+      rounded-xl
+      bg-white
+      border border-gray-100
+      shadow-sm
+      hover:shadow-md
+      transition-shadow duration-200
+    ">
+      {/* 顶部渐变条 */}
+      <div
+        className="absolute top-0 left-0 right-0 h-[3px]"
+        style={{
+          background: `linear-gradient(90deg, ${color || '#165dff'}, ${color || '#165dff'}80)`
+        }}
+      />
+
+      <div className="p-5 pt-6">
+        {/* 标签 */}
+        <div className="text-[13px] font-medium text-gray-500 mb-3 tracking-wide">
+          {label}
+        </div>
+
+        {/* 数值 */}
+        <div className="text-[28px] font-bold text-gray-900 tracking-tight leading-none font-mono tabular-nums">
+          {value}
+        </div>
+
+        {/* 副标题 */}
+        {sub && (
+          <div className="mt-3 flex items-center gap-1.5">
+            <span className="text-[13px] text-gray-400">{sub}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -203,118 +231,138 @@ export function FinancialDashboard() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
-        <h4 className="text-lg font-semibold m-0">财务统计</h4>
+      {/* 页面标题 */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+              财务统计
+            </h1>
+            <p className="mt-1 text-[14px] text-gray-500">
+              查看合同收入、成本和利润数据
+            </p>
+          </div>
+        </div>
       </div>
 
       <Tabs defaultValue="contract">
-        <TabsList>
-          <TabsTrigger value="contract">合同统计</TabsTrigger>
-          <TabsTrigger value="operation">运营成本</TabsTrigger>
+        <TabsList className="mb-6">
+          <TabsTrigger value="contract" className="px-4">合同统计</TabsTrigger>
+          <TabsTrigger value="operation" className="px-4">运营成本</TabsTrigger>
         </TabsList>
 
         {/* ── 合同统计 ── */}
         <TabsContent value="contract">
           {/* Summary cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
-            <SummaryCard label="合同总额" value={`¥${(totalContract / 10000).toFixed(0)}万`} color="#165dff" />
-            <SummaryCard label="到账金额" value={`¥${(totalReceived / 10000).toFixed(0)}万`} sub={`回款率 ${(totalReceived / totalContract * 100).toFixed(1)}%`} color="#00b42a" />
-            <SummaryCard label="待收款" value={`¥${(totalPending / 10000).toFixed(0)}万`} color="#ff7d00" />
-            <SummaryCard label="成本总额" value={`¥${(totalCost / 10000).toFixed(0)}万`} sub={`利润率 ${((totalContract - totalCost) / totalContract * 100).toFixed(1)}%`} color="#7816ff" />
+          <div className="grid grid-cols-4 gap-5 mb-6">
+            <SummaryCard label="合同总额" value={`¥${(totalContract / 10000).toFixed(1)}万`} color="#165dff" />
+            <SummaryCard label="到账金额" value={`¥${(totalReceived / 10000).toFixed(1)}万`} sub={`回款率 ${(totalReceived / totalContract * 100).toFixed(1)}%`} color="#00b42a" />
+            <SummaryCard label="待收款" value={`¥${(totalPending / 10000).toFixed(1)}万`} color="#ff7d00" />
+            <SummaryCard label="成本总额" value={`¥${(totalCost / 10000).toFixed(1)}万`} sub={`利润率 ${((totalContract - totalCost) / totalContract * 100).toFixed(1)}%`} color="#7816ff" />
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>合同费用明细</CardTitle>
+          <Card className="rounded-xl border-gray-100">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold text-gray-900">合同费用明细</CardTitle>
               <CardAction>
-                <Button variant="outline" size="sm"><Download className="size-4" />导出报表</Button>
+                <Button variant="outline" size="sm" className="rounded-lg h-9 px-4">
+                  <Download className="size-4 mr-2" />
+                  导出报表
+                </Button>
               </CardAction>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead style={{ minWidth: 220 }}>合同名称</TableHead>
-                    <TableHead style={{ minWidth: 200 }}>客户</TableHead>
-                    <TableHead style={{ minWidth: 110 }}>合同总额</TableHead>
-                    <TableHead style={{ minWidth: 110 }}>回款金额</TableHead>
-                    <TableHead style={{ minWidth: 110 }}>成本总额</TableHead>
-                    <TableHead style={{ minWidth: 120 }}>利润</TableHead>
-                    <TableHead style={{ minWidth: 100 }}>科研成本</TableHead>
-                    <TableHead style={{ minWidth: 100 }}>商务成本</TableHead>
-                    <TableHead style={{ minWidth: 100 }}>外包成本</TableHead>
-                    <TableHead style={{ minWidth: 100 }}>其他成本</TableHead>
-                    <TableHead style={{ minWidth: 110 }}>合同起始</TableHead>
-                    <TableHead style={{ minWidth: 110 }}>合同截止</TableHead>
+                  <TableRow className="border-b border-gray-200 hover:bg-transparent">
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50 tracking-wide" style={{ minWidth: 220 }}>合同名称</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50" style={{ minWidth: 200 }}>客户</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50 text-right font-mono" style={{ minWidth: 110 }}>合同总额</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50 text-right font-mono" style={{ minWidth: 110 }}>回款金额</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50 text-right font-mono" style={{ minWidth: 110 }}>成本总额</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50 text-right font-mono" style={{ minWidth: 120 }}>利润</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50 text-right font-mono" style={{ minWidth: 100 }}>科研成本</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50 text-right font-mono" style={{ minWidth: 100 }}>商务成本</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50 text-right font-mono" style={{ minWidth: 100 }}>外包成本</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50 text-right font-mono" style={{ minWidth: 100 }}>其他成本</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50" style={{ minWidth: 110 }}>合同起始</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50" style={{ minWidth: 110 }}>合同截止</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {contractData.map((r) => {
+                  {contractData.map((r, index) => {
                     const cost = r.costRD + r.costBiz + r.costOutsource + r.costOther;
                     const profit = r.total - cost;
                     const ratio = cost / r.total;
                     const isWarning = ratio >= 0.8;
                     return (
-                      <TableRow key={r.key}>
-                        <TableCell>
+                      <TableRow
+                        key={r.key}
+                        className={`
+                          h-[52px] border-b border-gray-100
+                          hover:bg-gray-50/50 transition-colors duration-150
+                          ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}
+                        `}
+                      >
+                        <TableCell className="px-4 py-0">
                           {contractCostPermissions.contractCostView ? (
                             <a
-                              className="text-primary cursor-pointer px-1 py-0.5 rounded hover:bg-[var(--color-fill-1)]"
+                              className="text-primary font-medium hover:underline underline-offset-2 cursor-pointer"
                               onClick={() => navigate(`/finance/contract-cost/${r.key}`)}
                             >
                               {r.name}
                             </a>
                           ) : (
-                            <span>{r.name}</span>
+                            <span className="font-medium text-gray-900">{r.name}</span>
                           )}
                         </TableCell>
-                        <TableCell>{r.customer}</TableCell>
-                        <TableCell>¥{(r.total / 10000).toFixed(0)}万</TableCell>
-                        <TableCell>¥{(r.received / 10000).toFixed(0)}万</TableCell>
-                        <TableCell>¥{(cost / 10000).toFixed(0)}万</TableCell>
-                        <TableCell>
-                          <span style={{ color: isWarning ? '#ff7d00' : '#00b42a', fontWeight: 600 }}>
-                            ¥{(profit / 10000).toFixed(0)}万
-                            {isWarning && <span style={{ fontSize: 11, marginLeft: 4 }}>⚠</span>}
+                        <TableCell className="px-4 py-0 text-gray-600">{r.customer}</TableCell>
+                        <TableCell className="px-4 py-0 text-right font-mono tabular-nums text-gray-900">¥{(r.total / 10000).toFixed(1)}万</TableCell>
+                        <TableCell className="px-4 py-0 text-right font-mono tabular-nums text-gray-900">¥{(r.received / 10000).toFixed(1)}万</TableCell>
+                        <TableCell className="px-4 py-0 text-right font-mono tabular-nums text-gray-900">¥{(cost / 10000).toFixed(1)}万</TableCell>
+                        <TableCell className="px-4 py-0 text-right font-mono tabular-nums">
+                          <span className={`font-semibold ${isWarning ? 'text-amber-600' : 'text-emerald-600'}`}>
+                            ¥{(profit / 10000).toFixed(1)}万
+                            {isWarning && <span className="text-[11px] ml-1">⚠</span>}
                           </span>
                         </TableCell>
-                        <TableCell>¥{(r.costRD / 10000).toFixed(0)}万</TableCell>
-                        <TableCell>¥{(r.costBiz / 10000).toFixed(0)}万</TableCell>
-                        <TableCell>¥{(r.costOutsource / 10000).toFixed(0)}万</TableCell>
-                        <TableCell>¥{(r.costOther / 10000).toFixed(0)}万</TableCell>
-                        <TableCell>{r.start}</TableCell>
-                        <TableCell>{r.end}</TableCell>
+                        <TableCell className="px-4 py-0 text-right font-mono tabular-nums text-gray-600">¥{(r.costRD / 10000).toFixed(1)}万</TableCell>
+                        <TableCell className="px-4 py-0 text-right font-mono tabular-nums text-gray-600">¥{(r.costBiz / 10000).toFixed(1)}万</TableCell>
+                        <TableCell className="px-4 py-0 text-right font-mono tabular-nums text-gray-600">¥{(r.costOutsource / 10000).toFixed(1)}万</TableCell>
+                        <TableCell className="px-4 py-0 text-right font-mono tabular-nums text-gray-600">¥{(r.costOther / 10000).toFixed(1)}万</TableCell>
+                        <TableCell className="px-4 py-0 text-gray-600">{r.start}</TableCell>
+                        <TableCell className="px-4 py-0 text-gray-600">{r.end}</TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
                 <TableFooter>
-                  <TableRow>
-                    <TableCell className="font-semibold">合计</TableCell>
+                  <TableRow className="h-14 bg-gray-50 border-t-2 border-gray-200 hover:bg-gray-50">
+                    <TableCell className="px-4 font-semibold text-gray-700">合计</TableCell>
                     <TableCell />
-                    <TableCell className="font-semibold">
-                      ¥{(contractData.reduce((s, r) => s + r.total, 0) / 10000).toFixed(0)}万
+                    <TableCell className="px-4 text-right font-semibold font-mono tabular-nums text-gray-900">
+                      ¥{(contractData.reduce((s, r) => s + r.total, 0) / 10000).toFixed(1)}万
                     </TableCell>
-                    <TableCell className="font-semibold">
-                      ¥{(contractData.reduce((s, r) => s + r.received, 0) / 10000).toFixed(0)}万
+                    <TableCell className="px-4 text-right font-semibold font-mono tabular-nums text-gray-900">
+                      ¥{(contractData.reduce((s, r) => s + r.received, 0) / 10000).toFixed(1)}万
                     </TableCell>
-                    <TableCell className="font-semibold">
-                      ¥{(contractData.reduce((s, r) => s + r.costRD + r.costBiz + r.costOutsource + r.costOther, 0) / 10000).toFixed(0)}万
+                    <TableCell className="px-4 text-right font-semibold font-mono tabular-nums text-gray-900">
+                      ¥{(contractData.reduce((s, r) => s + r.costRD + r.costBiz + r.costOutsource + r.costOther, 0) / 10000).toFixed(1)}万
                     </TableCell>
-                    <TableCell className="font-semibold text-green-600">
-                      ¥{((contractData.reduce((s, r) => s + r.total, 0) - contractData.reduce((s, r) => s + r.costRD + r.costBiz + r.costOutsource + r.costOther, 0)) / 10000).toFixed(0)}万
+                    <TableCell className="px-4 text-right font-semibold font-mono tabular-nums text-emerald-600">
+                      ¥{((contractData.reduce((s, r) => s + r.total, 0) - contractData.reduce((s, r) => s + r.costRD + r.costBiz + r.costOutsource + r.costOther, 0)) / 10000).toFixed(1)}万
                     </TableCell>
-                    <TableCell>
-                      ¥{(contractData.reduce((s, r) => s + r.costRD, 0) / 10000).toFixed(0)}万
+                    <TableCell className="px-4 text-right font-mono tabular-nums text-gray-600">
+                      ¥{(contractData.reduce((s, r) => s + r.costRD, 0) / 10000).toFixed(1)}万
                     </TableCell>
-                    <TableCell>
-                      ¥{(contractData.reduce((s, r) => s + r.costBiz, 0) / 10000).toFixed(0)}万
+                    <TableCell className="px-4 text-right font-mono tabular-nums text-gray-600">
+                      ¥{(contractData.reduce((s, r) => s + r.costBiz, 0) / 10000).toFixed(1)}万
                     </TableCell>
-                    <TableCell>
-                      ¥{(contractData.reduce((s, r) => s + r.costOutsource, 0) / 10000).toFixed(0)}万
+                    <TableCell className="px-4 text-right font-mono tabular-nums text-gray-600">
+                      ¥{(contractData.reduce((s, r) => s + r.costOutsource, 0) / 10000).toFixed(1)}万
                     </TableCell>
-                    <TableCell>
-                      ¥{(contractData.reduce((s, r) => s + r.costOther, 0) / 10000).toFixed(0)}万
+                    <TableCell className="px-4 text-right font-mono tabular-nums text-gray-600">
+                      ¥{(contractData.reduce((s, r) => s + r.costOther, 0) / 10000).toFixed(1)}万
                     </TableCell>
                     <TableCell /><TableCell />
                   </TableRow>
@@ -326,11 +374,11 @@ export function FinancialDashboard() {
 
         {/* ── 运营成本 ── */}
         <TabsContent value="operation">
-          <div className="grid grid-cols-[1fr_2fr] gap-4 mb-4">
+          <div className="grid grid-cols-[1fr_2fr] gap-5 mb-6">
             {/* Pie chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>支出分布</CardTitle>
+            <Card className="rounded-xl border-gray-100">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold text-gray-900">支出分布</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={280}>
@@ -345,9 +393,9 @@ export function FinancialDashboard() {
             </Card>
 
             {/* Line chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>月度支出趋势</CardTitle>
+            <Card className="rounded-xl border-gray-100">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold text-gray-900">月度支出趋势</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={280}>
@@ -367,13 +415,13 @@ export function FinancialDashboard() {
           </div>
 
           {/* Op expense list */}
-          <Card>
-            <CardHeader>
-              <CardTitle>运营费用明细</CardTitle>
+          <Card className="rounded-xl border-gray-100">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold text-gray-900">运营费用明细</CardTitle>
               <CardAction>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <Select value={periodFilter || undefined} onValueChange={(v) => setPeriodFilter(v === '__all__' ? '' : v)}>
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-[120px] h-9 rounded-lg border-gray-200 text-[13px]">
                       <SelectValue placeholder="筛选周期" />
                     </SelectTrigger>
                     <SelectContent>
@@ -382,7 +430,7 @@ export function FinancialDashboard() {
                     </SelectContent>
                   </Select>
                   <Select value={typeFilter || undefined} onValueChange={(v) => setTypeFilter(v === '__all__' ? '' : v)}>
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-[120px] h-9 rounded-lg border-gray-200 text-[13px]">
                       <SelectValue placeholder="费用类型" />
                     </SelectTrigger>
                     <SelectContent>
@@ -390,65 +438,124 @@ export function FinancialDashboard() {
                       {EXPENSE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button size="sm" onClick={openCreate}>
-                    <Plus className="size-4" />录入费用
+                  <Button size="sm" className="rounded-lg h-9 px-4" onClick={openCreate}>
+                    <Plus className="size-4 mr-2" />
+                    录入费用
                   </Button>
                 </div>
               </CardAction>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead style={{ minWidth: 110 }}>发生日期</TableHead>
-                    <TableHead style={{ minWidth: 110 }}>成本类型</TableHead>
-                    <TableHead style={{ minWidth: 100 }}>金额</TableHead>
-                    <TableHead style={{ minWidth: 100 }}>归属周期</TableHead>
-                    <TableHead style={{ minWidth: 100 }}>分摊对象</TableHead>
-                    <TableHead style={{ minWidth: 140 }}>关联审批单号</TableHead>
-                    <TableHead style={{ minWidth: 100 }}>付款状态</TableHead>
-                    <TableHead style={{ minWidth: 80 }}>录入人</TableHead>
-                    <TableHead style={{ minWidth: 110 }} className="sticky right-0 bg-background">操作</TableHead>
+                  <TableRow className="border-b border-gray-200 hover:bg-transparent">
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50" style={{ minWidth: 110 }}>发生日期</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50" style={{ minWidth: 110 }}>成本类型</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50 text-right font-mono" style={{ minWidth: 100 }}>金额</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50" style={{ minWidth: 100 }}>归属周期</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50" style={{ minWidth: 100 }}>分摊对象</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50" style={{ minWidth: 140 }}>关联审批单号</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50" style={{ minWidth: 100 }}>付款状态</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50" style={{ minWidth: 80 }}>录入人</TableHead>
+                    <TableHead className="h-12 px-4 text-[13px] font-semibold text-gray-500 bg-gray-50/50 sticky right-0 bg-gray-50/50" style={{ minWidth: 110 }}>操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOp.map((record) => (
-                    <TableRow key={record.key}>
-                      <TableCell>{record.date}</TableCell>
-                      <TableCell><Badge className="bg-cyan-500 text-white">{record.type}</Badge></TableCell>
-                      <TableCell>¥{record.amount.toLocaleString()}</TableCell>
-                      <TableCell>{record.period}</TableCell>
-                      <TableCell>{record.allocation}</TableCell>
-                      <TableCell>{record.approvalNo}</TableCell>
-                      <TableCell>
-                        <Badge className={
-                          record.status === '已支付' ? 'bg-green-500 text-white'
-                            : record.status === '未支付' ? 'bg-orange-500 text-white'
-                            : 'bg-purple-500 text-white'
-                        }>
+                  {filteredOp.map((record, index) => (
+                    <TableRow
+                      key={record.key}
+                      className={`
+                        h-[52px] border-b border-gray-100
+                        hover:bg-gray-50/50 transition-colors duration-150
+                        ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}
+                      `}
+                    >
+                      <TableCell className="px-4 py-0 text-gray-600">{record.date}</TableCell>
+                      <TableCell className="px-4 py-0">
+                        <Badge className="bg-sky-50 text-sky-700 border border-sky-200 rounded-full px-2.5 py-0.5 text-[12px] font-medium">
+                          {record.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-0 text-right font-mono tabular-nums text-gray-900 font-medium">
+                        ¥{record.amount.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="px-4 py-0 text-gray-600">{record.period}</TableCell>
+                      <TableCell className="px-4 py-0 text-gray-600">{record.allocation}</TableCell>
+                      <TableCell className="px-4 py-0 font-mono text-[13px] text-gray-500">{record.approvalNo}</TableCell>
+                      <TableCell className="px-4 py-0">
+                        <Badge
+                          className={`
+                            inline-flex items-center gap-1.5
+                            px-2.5 py-1
+                            rounded-full
+                            text-[12px] font-medium
+                            ${record.status === '已支付'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : record.status === '未支付'
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                : 'bg-purple-50 text-purple-700 border border-purple-200'
+                            }
+                          `}
+                        >
+                          <span
+                            className={`
+                              w-1.5 h-1.5 rounded-full
+                              ${record.status === '已支付' ? 'bg-emerald-500'
+                                : record.status === '未支付' ? 'bg-amber-500'
+                                : 'bg-purple-500'}
+                            `}
+                          />
                           {record.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{record.enteredBy}</TableCell>
-                      <TableCell className="sticky right-0 bg-background">
+                      <TableCell className="px-4 py-0 text-gray-600">{record.enteredBy}</TableCell>
+                      <TableCell className="px-4 py-0 sticky right-0 bg-white">
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(record)}>
-                            <Pencil className="size-4" />
-                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                                  onClick={() => openEdit(record)}
+                                >
+                                  <Pencil className="size-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>编辑</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                                <Trash2 className="size-4" />
-                              </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50"
+                                    >
+                                      <Trash2 className="size-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>删除</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </AlertDialogTrigger>
-                            <AlertDialogContent>
+                            <AlertDialogContent className="rounded-xl">
                               <AlertDialogHeader>
                                 <AlertDialogTitle>确认删除？</AlertDialogTitle>
                                 <AlertDialogDescription>此操作不可撤销，确定要删除这条费用记录吗？</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>取消</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(record.key)}>确认</AlertDialogAction>
+                                <AlertDialogCancel className="rounded-lg">取消</AlertDialogCancel>
+                                <AlertDialogAction className="rounded-lg bg-red-500 hover:bg-red-600" onClick={() => handleDelete(record.key)}>确认删除</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -458,9 +565,9 @@ export function FinancialDashboard() {
                   ))}
                 </TableBody>
                 <TableFooter>
-                  <TableRow>
-                    <TableCell colSpan={2} className="text-right font-semibold">合计</TableCell>
-                    <TableCell className="font-semibold text-primary">
+                  <TableRow className="h-14 bg-gray-50 border-t-2 border-gray-200 hover:bg-gray-50">
+                    <TableCell colSpan={2} className="px-4 text-right font-semibold text-gray-700">合计</TableCell>
+                    <TableCell className="px-4 text-right font-semibold font-mono tabular-nums text-primary">
                       ¥{filteredTotal.toLocaleString()}
                     </TableCell>
                     <TableCell colSpan={6} />
@@ -474,64 +581,111 @@ export function FinancialDashboard() {
 
       {/* Entry Dialog */}
       <Dialog open={entryVisible} onOpenChange={setEntryVisible}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>{editingEntry ? '编辑费用记录' : '录入运营费用'}</DialogTitle>
+        <DialogContent className="sm:max-w-[600px] rounded-xl">
+          <DialogHeader className="pb-4 border-b border-gray-100">
+            <DialogTitle className="text-lg font-semibold text-gray-900">
+              {editingEntry ? '编辑费用记录' : '录入运营费用'}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-              <div>
-                <Label>成本类型</Label>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-5 p-1">
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-gray-600 block">成本类型</Label>
                 <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
-                  <SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger>
+                  <SelectTrigger className="h-10 rounded-lg border-gray-200 text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    <SelectValue placeholder="请选择成本类型" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {EXPENSE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    {EXPENSE_TYPES.map((t) => <SelectItem key={t} value={t} className="text-[14px]">{t}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>归属周期</Label>
-                <Input placeholder="如：2026-05" value={formData.period} onChange={(e) => setFormData({ ...formData, period: e.target.value })} />
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-gray-600 block">归属周期</Label>
+                <Input
+                  placeholder="如：2026-05"
+                  value={formData.period}
+                  onChange={(e) => setFormData({ ...formData, period: e.target.value })}
+                  className="h-10 rounded-lg border-gray-200 text-[14px] placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
               </div>
-              <div>
-                <Label>发生日期</Label>
-                <Input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-gray-600 block">发生日期</Label>
+                <Input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="h-10 rounded-lg border-gray-200 text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
               </div>
-              <div>
-                <Label>金额（元）</Label>
-                <Input type="number" min={0} placeholder="请输入金额" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} />
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-gray-600 block">金额（元）</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="请输入金额"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  className="h-10 rounded-lg border-gray-200 text-[14px] placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
               </div>
-              <div>
-                <Label>付款状态</Label>
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-gray-600 block">付款状态</Label>
                 <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
-                  <SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger>
+                  <SelectTrigger className="h-10 rounded-lg border-gray-200 text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    <SelectValue placeholder="请选择状态" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s} className="text-[14px]">{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>分摊对象</Label>
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-gray-600 block">分摊对象</Label>
                 <Select value={formData.allocation || undefined} onValueChange={(v) => setFormData({ ...formData, allocation: v === '__none__' ? '' : v })}>
-                  <SelectTrigger><SelectValue placeholder="请选择" /></SelectTrigger>
+                  <SelectTrigger className="h-10 rounded-lg border-gray-200 text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    <SelectValue placeholder="请选择分摊对象" />
+                  </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">无</SelectItem>
-                    {ALLOCATION_OPTIONS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                    <SelectItem value="__none__" className="text-[14px]">无</SelectItem>
+                    {ALLOCATION_OPTIONS.map((a) => <SelectItem key={a} value={a} className="text-[14px]">{a}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>关联审批单号</Label>
-                <Input placeholder="如：AP2026050001" value={formData.approvalNo} onChange={(e) => setFormData({ ...formData, approvalNo: e.target.value })} />
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-gray-600 block">关联审批单号</Label>
+                <Input
+                  placeholder="如：AP2026050001"
+                  value={formData.approvalNo}
+                  onChange={(e) => setFormData({ ...formData, approvalNo: e.target.value })}
+                  className="h-10 rounded-lg border-gray-200 text-[14px] placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
+                />
               </div>
-              <div>
-                <Label>录入人</Label>
-                <Input disabled value={formData.enteredBy} onChange={(e) => setFormData({ ...formData, enteredBy: e.target.value })} />
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-gray-600 block">录入人</Label>
+                <Input
+                  disabled
+                  value={formData.enteredBy}
+                  onChange={(e) => setFormData({ ...formData, enteredBy: e.target.value })}
+                  className="h-10 rounded-lg border-gray-200 text-[14px] bg-gray-50 cursor-not-allowed"
+                />
               </div>
             </div>
-            <DialogFooter className="mt-4">
-              <Button type="button" variant="outline" onClick={() => setEntryVisible(false)}>取消</Button>
-              <Button type="submit">保存</Button>
+            <DialogFooter className="mt-6 pt-4 border-t border-gray-100">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-lg"
+                onClick={() => setEntryVisible(false)}
+              >
+                取消
+              </Button>
+              <Button
+                type="submit"
+                className="rounded-lg px-6"
+              >
+                保存
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
