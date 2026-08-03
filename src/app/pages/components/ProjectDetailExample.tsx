@@ -295,14 +295,26 @@ function ProjectLeftContent() {
                 )}
               </div>
 
-              {/* 合同关联 */}
+              {/* 合同信息 */}
               <div className="bg-white rounded-2xl border border-gray-200 p-5">
-                <h4 className="text-[15px] font-semibold text-gray-900 mb-3">合同关联</h4>
-                <div className="flex items-center gap-2 text-[13px]">
-                  <span className="text-gray-500">关联合同：</span>
-                  <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[12px] font-medium rounded">{projectData.contractId}</span>
-                  <button className="text-gray-500 hover:text-gray-700">更换</button>
-                  <button className="text-red-500 hover:text-red-700">解除</button>
+                <h4 className="text-[15px] font-semibold text-gray-900 mb-3">合同信息</h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[13px] text-gray-500 w-20">合同名称</span>
+                    <span className="text-[13px] font-medium text-blue-600 hover:text-blue-700 cursor-pointer">A公司CRM系统开发合同</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[13px] text-gray-500 w-20">客户名称</span>
+                    <span className="text-[13px] font-medium text-blue-600 hover:text-blue-700 cursor-pointer">A公司</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[13px] text-gray-500 w-20">合同金额</span>
+                    <span className="text-[13px] font-medium text-gray-900">¥280,000</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[13px] text-gray-500 w-20">签约日期</span>
+                    <span className="text-[13px] font-medium text-gray-900">2026-05-01</span>
+                  </div>
                 </div>
               </div>
 
@@ -310,11 +322,19 @@ function ProjectLeftContent() {
               <div className="bg-white rounded-2xl border border-gray-200 p-5">
                 <h4 className="text-[15px] font-semibold text-gray-900 mb-3">附件列表</h4>
                 {projectData.attachments.length > 0 ? (
-                  <div className="flex flex-col gap-2">
+                  <div className="space-y-2">
                     {projectData.attachments.map(file => (
-                      <div key={file.id} className="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg w-fit">
-                        <FileText className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-[12px] text-gray-700">{file.name} · {file.size}</span>
+                      <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase">PDF</span>
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-medium text-gray-900">{file.name}</p>
+                            <p className="text-[11px] text-gray-500">{file.size}</p>
+                          </div>
+                        </div>
+                        <Download className="w-4 h-4 text-gray-400 hover:text-gray-600" />
                       </div>
                     ))}
                   </div>
@@ -341,14 +361,6 @@ function ProjectLeftContent() {
                       <span className="px-2 py-0.5 bg-green-50 text-green-600 text-[11px] font-medium rounded-full">{lead.stage}</span>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* 关联客户 */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-5">
-                <h4 className="text-[15px] font-semibold text-gray-900 mb-3">关联客户</h4>
-                <div className="text-center py-6 text-[13px] text-gray-500">
-                  关联客户将在后续客户模块联动阶段实现
                 </div>
               </div>
             </div>
