@@ -86,6 +86,9 @@ import { FullChainROI } from "./pages/roi/FullChainROI";
 import { AIDriven } from "./pages/ai/AIDriven";
 import { WorkItemsPage } from "./pages/issues/WorkItemsPage";
 import { ProjectDailyReportsPage } from "./pages/project-daily-reports/ProjectDailyReportsPage";
+import DeliverablesListPage from "./pages/deliverables/DeliverablesListPage";
+import ComponentShowcase from "./pages/components/ComponentShowcase";
+import LeadDetailExample from "./pages/components/LeadDetailExample";
 import { TripList } from "./pages/travel/trip/TripList";
 import FinancialDelivery from "./pages/financial-delivery";
 import { TripForm } from "./pages/travel/trip/TripForm";
@@ -135,6 +138,9 @@ export const router = createBrowserRouter([
       { path: "projects/:id/issues", Component: WorkItemsPage },
       { path: "projects/:id/dailyreports", Component: ProjectDailyReportsPage },
       { path: "projects/:id/chat-analysis", Component: ChatAnalysisPage },
+      { path: "deliverables", Component: DeliverablesListPage },
+      { path: "components", Component: ComponentShowcase },
+      { path: "components/lead-detail", Component: LeadDetailExample },
       { path: "issues", Component: WorkItemsPage },
       { path: "dailyreport/list", Component: DailyReportList },
       { path: "dailyreport/view", Component: DailyReportView },
