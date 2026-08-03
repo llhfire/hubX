@@ -978,6 +978,141 @@ function SidebarShowcase() {
   );
 }
 
+// ========== 项目管理组件 ==========
+
+// 项目概览卡片组件
+function ProjectSummaryShowcase() {
+  const summaryCards = [
+    {
+      title: '交付进度',
+      level: '严重',
+      levelColor: 'bg-red-50 text-red-600',
+      value: '项目交付执行 / 34%',
+      subtitle: '域名注册与实名认证逾期 70 天',
+      extra: '下一座碑：一期交付（2026-06-15）',
+    },
+    {
+      title: '工作项目',
+      level: '预警',
+      levelColor: 'bg-orange-50 text-orange-600',
+      value: '11',
+      subtitle: '3 需求 / 5 任务 / 3 缺陷',
+      extra: '含 3 个待处理缺陷',
+    },
+    {
+      title: '负责人',
+      level: '正常',
+      levelColor: 'bg-green-50 text-green-600',
+      value: '李四',
+      subtitle: '当前无高优先行项目',
+      extra: '当前项目可优先推进',
+    },
+    {
+      title: '交付时间',
+      level: '严重',
+      levelColor: 'bg-red-50 text-red-600',
+      value: '已逾期 34 天',
+      subtitle: '合同约定交付日：2026-06-30',
+      extra: '已逾期',
+    },
+    {
+      title: '总工时',
+      level: '预警',
+      levelColor: 'bg-orange-50 text-orange-600',
+      value: '18.5H',
+      subtitle: '王五 7.5H / 李四 6H / 赵六 5H',
+      extra: '前三成员占比 100%',
+    },
+    {
+      title: '客户动态',
+      level: '正常',
+      levelColor: 'bg-green-50 text-green-600',
+      value: '5',
+      subtitle: '3 个新需求 / 5 个任务',
+      extra: '共 11 个工作日',
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {summaryCards.map((card, i) => (
+        <div key={i} className="bg-[#F5F6F8] rounded-2xl p-[3px]">
+          <div className="bg-white rounded-[13px] p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[12px] text-gray-500">{card.title}</span>
+              <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${card.levelColor}`}>
+                {card.level}
+              </span>
+            </div>
+            <p className="text-[18px] font-bold text-gray-900 mb-1">{card.value}</p>
+            <p className="text-[11px] text-gray-500 leading-relaxed">{card.subtitle}</p>
+            <p className="text-[11px] text-gray-400 mt-1">{card.extra}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// 微信群卡片组件
+function WeChatGroupShowcase() {
+  return (
+    <div className="bg-[#F5F6F8] rounded-2xl p-[3px]">
+      <div className="bg-white rounded-[13px] p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+              <MessageCircle className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-green-50 text-green-600 text-[11px] font-medium rounded-full">微信群</span>
+                <span className="text-[14px] font-semibold text-gray-900">【0721】家具小程序开发</span>
+              </div>
+              <span className="text-[12px] text-gray-400 mt-1">👥 4人</span>
+            </div>
+          </div>
+          <span className="text-[12px] text-gray-400">高</span>
+        </div>
+        <div className="flex items-center gap-6 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] text-gray-500">今日</span>
+            <span className="text-[16px] font-bold text-gray-900">47</span>
+            <span className="text-[13px] text-gray-500">条消息</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[16px] font-bold text-red-500">5</span>
+            <span className="text-[13px] text-red-500">条待审核</span>
+          </div>
+          <div className="flex items-center gap-4 ml-auto">
+            <span className="text-[13px] text-gray-500 flex items-center gap-1.5">
+              <FileText className="w-4 h-4" />
+              需求 <span className="font-medium text-gray-700">4</span>
+            </span>
+            <span className="text-[13px] text-gray-500 flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4" />
+              任务 <span className="font-medium text-gray-700">1</span>
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-4 text-[12px] text-gray-400">
+            <span className="flex items-center gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5" />
+              上次采集: 07/29 10:30:00
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              下次采集: 07/29 10:30:30
+            </span>
+          </div>
+          <span className="text-[13px] text-blue-500 cursor-pointer hover:text-blue-600">查看详情 →</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 主页面组件
 export default function ComponentShowcase() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -1109,6 +1244,18 @@ export default function ComponentShowcase() {
       name: '跟进表单',
       description: '添加跟进记录的表单组件',
       component: <FollowFormShowcase />,
+    },
+    {
+      id: 'project-summary',
+      name: '项目概览卡片',
+      description: '项目概览统计卡片组件',
+      component: <ProjectSummaryShowcase />,
+    },
+    {
+      id: 'wechat-group',
+      name: '微信群卡片',
+      description: '微信群消息统计卡片组件',
+      component: <WeChatGroupShowcase />,
     },
   ];
 

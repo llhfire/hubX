@@ -89,6 +89,7 @@ import { ProjectDailyReportsPage } from "./pages/project-daily-reports/ProjectDa
 import DeliverablesListPage from "./pages/deliverables/DeliverablesListPage";
 import ComponentShowcase from "./pages/components/ComponentShowcase";
 import LeadDetailExample from "./pages/components/LeadDetailExample";
+import ProjectDetailExample from "./pages/components/ProjectDetailExample";
 import { TripList } from "./pages/travel/trip/TripList";
 import FinancialDelivery from "./pages/financial-delivery";
 import { TripForm } from "./pages/travel/trip/TripForm";
@@ -141,6 +142,7 @@ export const router = createBrowserRouter([
       { path: "deliverables", Component: DeliverablesListPage },
       { path: "components", Component: ComponentShowcase },
       { path: "components/lead-detail", Component: LeadDetailExample },
+      { path: "components/project-detail", Component: ProjectDetailExample },
       { path: "issues", Component: WorkItemsPage },
       { path: "dailyreport/list", Component: DailyReportList },
       { path: "dailyreport/view", Component: DailyReportView },

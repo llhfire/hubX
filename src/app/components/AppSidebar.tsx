@@ -245,6 +245,7 @@ const menuItems: MenuItem[] = [
     children: [
       { key: '/components', label: '组件库' },
       { key: '/components/lead-detail', label: '线索详情示例' },
+      { key: '/components/project-detail', label: '项目详情示例' },
     ],
   },
   {
