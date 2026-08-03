@@ -239,6 +239,15 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    key: 'components',
+    icon: <Layers className="h-4 w-4" />,
+    label: '页面组件',
+    children: [
+      { key: '/components', label: '组件库' },
+      { key: '/components/lead-detail', label: '线索详情示例' },
+    ],
+  },
+  {
     key: 'system',
     icon: <Settings className="h-4 w-4" />,
     label: '系统管理',
