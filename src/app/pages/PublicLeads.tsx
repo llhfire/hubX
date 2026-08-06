@@ -367,7 +367,7 @@ export function PublicLeads() {
               <Button>搜索</Button>
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
+            <div className="rounded-2xl border overflow-x-auto">
               <Table style={{ minWidth: 1400 }}>
                 <TableHeader>
                   <TableRow>
@@ -813,7 +813,7 @@ export function PublicLeads() {
               <div className="space-y-2">
                 <Label>附件上传</Label>
                 <div
-                  className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary"
+                  className="border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer hover:border-primary"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Upload className="mx-auto h-8 w-8 text-muted-foreground" />

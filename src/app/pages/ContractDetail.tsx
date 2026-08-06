@@ -477,7 +477,7 @@ export function ContractDetail() {
               <TabsTrigger value="versions"><History className="size-3.5 mr-1" /> 版本</TabsTrigger>
             </TabsList>
             <TabsContent value="followup">
-              <Card className="rounded-lg">
+              <Card className="rounded-2xl">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-sm">跟进记录</CardTitle>
@@ -501,7 +501,7 @@ export function ContractDetail() {
               </Card>
             </TabsContent>
             <TabsContent value="approval">
-              <Card className="rounded-lg">
+              <Card className="rounded-2xl">
                 <CardContent className="pt-4">
                   {showApprovalForSelected ? (
                     <div className="relative pl-6">

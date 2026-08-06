@@ -317,9 +317,10 @@ function MultiSelect({
 
   return (
     <div ref={ref} className="relative" style={{ width: width ?? 200 }}>
-      <button
+      <Button
         type="button"
-        className="border-input bg-background hover:bg-accent flex h-9 w-full items-center justify-between rounded-md border px-3 text-sm"
+        variant="outline"
+        className="w-full justify-between"
         onClick={() => setOpen(!open)}
       >
         <span className={value.length === 0 ? 'text-muted-foreground' : ''}>
@@ -330,7 +331,7 @@ function MultiSelect({
               : `已选 ${value.length} 项`}
         </span>
         <ChevronDown className="size-4 opacity-50" />
-      </button>
+      </Button>
       {open && (
         <div className="bg-popover text-popover-foreground absolute z-50 mt-1 w-full rounded-md border shadow-md">
           <div className="max-h-60 overflow-y-auto p-1">

@@ -471,14 +471,6 @@ export function ProjectDetail() {
       {/* ── Summary Cards ───────────────────────────────────── */}
       <ProjectSummaryGrid projectId={project.id} from="project" />
 
-      {/* ── Info Alert ──────────────────────────────────────── */}
-      <Alert className="mb-4">
-        <Info className="h-4 w-4" />
-        <AlertDescription>
-          成本核算将在后续阶段接入人工成本设置、项目报销、投放日消耗、回款和利润分析；当前阶段先沉淀项目工时入口。
-        </AlertDescription>
-      </Alert>
-
       {/* ── Main Content ────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
         {/* Left: Tabs */}
@@ -697,7 +689,7 @@ export function ProjectDetail() {
                       关联线索
                     </Button>
                   </div>
-                  <div className="border rounded-lg overflow-x-auto">
+                  <div className="border rounded-2xl overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -778,7 +770,7 @@ export function ProjectDetail() {
                     </Button>
                   </div>
                   <h6 className="text-base font-semibold mb-3">工时概览</h6>
-                  <div className="border rounded-lg overflow-x-auto">
+                  <div className="border rounded-2xl overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -817,7 +809,7 @@ export function ProjectDetail() {
                       添加文档
                     </Button>
                   </div>
-                  <div className="border rounded-lg overflow-x-auto">
+                  <div className="border rounded-2xl overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>

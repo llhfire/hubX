@@ -264,7 +264,7 @@ export function LeadDetail() {
                     {lead.remark && (
                       <div className="mt-3">
                         <div className="text-sm font-medium mb-1">客户需求</div>
-                        <div className="p-3 bg-muted rounded-md text-sm">{lead.remark}</div>
+                        <div className="p-3 bg-muted rounded-2xl text-sm">{lead.remark}</div>
                       </div>
                     )}
                   </div>
@@ -274,7 +274,7 @@ export function LeadDetail() {
                     {lead.attachments && lead.attachments.length > 0 ? (
                       <div className="space-y-2">
                         {lead.attachments.map((file) => (
-                          <div key={file.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                          <div key={file.id} className="flex items-center justify-between p-2 bg-muted rounded-2xl">
                             <span className="text-sm">{file.name} ({file.size})</span>
                             <Button variant="ghost" size="sm"><Download className="h-4 w-4 mr-1" />下载</Button>
                           </div>
@@ -311,7 +311,7 @@ export function LeadDetail() {
                               <Separator />
                               <div>
                                 <div className="text-sm font-medium mb-1">项目备注</div>
-                                <div className="p-3 bg-muted rounded-md text-sm">{project.remark}</div>
+                                <div className="p-3 bg-muted rounded-2xl text-sm">{project.remark}</div>
                               </div>
                             </>
                           )}

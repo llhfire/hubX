@@ -367,7 +367,7 @@ export function BusinessMappingList() {
                 {editing.assignments.map((a, idx) => (
                   <div key={a.nodeId} className="flex items-start gap-2">
                     <div className="pt-2.5 text-muted-foreground text-xs min-w-[12px]">&#8595;</div>
-                    <div className="flex-1 border rounded-lg p-3 px-4 bg-muted/50">
+                    <div className="flex-1 border rounded-2xl p-3 px-4 bg-muted/50">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">环节 {idx + 1}：{a.nodeName}</span>
                         <Badge className={a.strategy === '会签' ? 'bg-purple-500 text-white' : ''}>

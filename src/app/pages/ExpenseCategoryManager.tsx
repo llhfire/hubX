@@ -296,26 +296,26 @@ export function ExpenseCategoryManager() {
             </div>
           </CardHeader>
           <CardContent>
-            <table className="w-full border-collapse text-[13px]">
-              <thead>
-                <tr className="bg-muted border-b border-border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted">
                   {['分类名称', '编码', '会计科目', '适用场景', '状态', '操作'].map((h) => (
-                    <th key={h} className="px-3 py-2.5 text-left font-medium text-muted-foreground">
+                    <TableHead key={h} className="text-left font-medium text-muted-foreground">
                       {h}
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {displayList.map((item) => {
                   const isParent = item.level === 1;
                   const childCount = categories.filter((c) => c.parentId === item.id).length;
                   return (
-                    <tr
+                    <TableRow
                       key={item.id}
-                      className={`border-b border-border ${isParent ? 'bg-muted/50' : 'bg-background'}`}
+                      className={isParent ? 'bg-muted/50' : 'bg-background'}
                     >
-                      <td className="px-3 py-2.5">
+                      <TableCell>
                         <div className="flex items-center gap-2">
                           {isParent
                             ? <Badge variant="default" className="text-xs">一级</Badge>
@@ -326,28 +326,28 @@ export function ExpenseCategoryManager() {
                             <span className="text-muted-foreground text-[11px]">({childCount})</span>
                           )}
                         </div>
-                      </td>
-                      <td className="px-3 py-2.5 font-mono text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="font-mono text-muted-foreground">
                         {item.code}
-                      </td>
-                      <td className="px-3 py-2.5">
+                      </TableCell>
+                      <TableCell>
                         <span className="text-muted-foreground">{item.accountCode}</span>
                         <span className="text-muted-foreground/70 ml-1.5">— {item.accountName}</span>
-                      </td>
-                      <td className="px-3 py-2.5">
+                      </TableCell>
+                      <TableCell>
                         <div className="flex gap-1">
                           {item.bizScopes.map((s) => (
                             <Badge key={s} className="bg-cyan-500 text-white text-xs">{s}</Badge>
                           ))}
                         </div>
-                      </td>
-                      <td className="px-3 py-2.5">
+                      </TableCell>
+                      <TableCell>
                         <Switch
                           checked={item.status}
                           onCheckedChange={(v) => handleToggleStatus(item.id, v)}
                         />
-                      </td>
-                      <td className="px-3 py-2.5">
+                      </TableCell>
+                      <TableCell className="px-3 py-2.5">
                         <div className="flex gap-2">
                           <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>
                             <Pencil className="mr-1 h-3.5 w-3.5" />编辑
@@ -361,19 +361,19 @@ export function ExpenseCategoryManager() {
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
                 {displayList.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-8 py-8 text-center text-muted-foreground">
+                  <TableRow>
+                    <TableCell colSpan={6} className="px-8 py-8 text-center text-muted-foreground">
                       暂无数据
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>

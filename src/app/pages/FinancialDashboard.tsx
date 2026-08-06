@@ -73,12 +73,9 @@ function SummaryCard({ label, value, sub, color }: { label: string; value: strin
   return (
     <div className="
       relative overflow-hidden
-      rounded-xl
+      rounded-2xl
       bg-white
-      border border-gray-100
-      shadow-sm
-      hover:shadow-md
-      transition-shadow duration-200
+      border border-gray-200
     ">
       {/* 顶部渐变条 */}
       <div
@@ -261,11 +258,11 @@ export function FinancialDashboard() {
             <SummaryCard label="成本总额" value={`¥${(totalCost / 10000).toFixed(1)}万`} sub={`利润率 ${((totalContract - totalCost) / totalContract * 100).toFixed(1)}%`} color="#7816ff" />
           </div>
 
-          <Card className="rounded-xl border-gray-100">
+          <Card className="rounded-2xl border-gray-100">
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-semibold text-gray-900">合同费用明细</CardTitle>
               <CardAction>
-                <Button variant="outline" size="sm" className="rounded-lg h-9 px-4">
+                <Button variant="outline" size="sm" className="rounded-2xl h-9 px-4">
                   <Download className="size-4 mr-2" />
                   导出报表
                 </Button>
@@ -376,7 +373,7 @@ export function FinancialDashboard() {
         <TabsContent value="operation">
           <div className="grid grid-cols-[1fr_2fr] gap-5 mb-6">
             {/* Pie chart */}
-            <Card className="rounded-xl border-gray-100">
+            <Card className="rounded-2xl border-gray-100">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold text-gray-900">支出分布</CardTitle>
               </CardHeader>
@@ -393,7 +390,7 @@ export function FinancialDashboard() {
             </Card>
 
             {/* Line chart */}
-            <Card className="rounded-xl border-gray-100">
+            <Card className="rounded-2xl border-gray-100">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold text-gray-900">月度支出趋势</CardTitle>
               </CardHeader>
@@ -415,13 +412,13 @@ export function FinancialDashboard() {
           </div>
 
           {/* Op expense list */}
-          <Card className="rounded-xl border-gray-100">
+          <Card className="rounded-2xl border-gray-100">
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-semibold text-gray-900">运营费用明细</CardTitle>
               <CardAction>
                 <div className="flex items-center gap-3">
                   <Select value={periodFilter || undefined} onValueChange={(v) => setPeriodFilter(v === '__all__' ? '' : v)}>
-                    <SelectTrigger className="w-[120px] h-9 rounded-lg border-gray-200 text-[13px]">
+                    <SelectTrigger className="w-[120px] h-9 rounded-2xl border-gray-200 text-[13px]">
                       <SelectValue placeholder="筛选周期" />
                     </SelectTrigger>
                     <SelectContent>
@@ -430,7 +427,7 @@ export function FinancialDashboard() {
                     </SelectContent>
                   </Select>
                   <Select value={typeFilter || undefined} onValueChange={(v) => setTypeFilter(v === '__all__' ? '' : v)}>
-                    <SelectTrigger className="w-[120px] h-9 rounded-lg border-gray-200 text-[13px]">
+                    <SelectTrigger className="w-[120px] h-9 rounded-2xl border-gray-200 text-[13px]">
                       <SelectValue placeholder="费用类型" />
                     </SelectTrigger>
                     <SelectContent>
@@ -438,7 +435,7 @@ export function FinancialDashboard() {
                       {EXPENSE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button size="sm" className="rounded-lg h-9 px-4" onClick={openCreate}>
+                  <Button size="sm" className="rounded-2xl h-9 px-4" onClick={openCreate}>
                     <Plus className="size-4 mr-2" />
                     录入费用
                   </Button>
@@ -517,7 +514,7 @@ export function FinancialDashboard() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 w-8 p-0 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                                  className="h-8 w-8 p-0 rounded-2xl text-gray-400 hover:text-gray-600 hover:bg-gray-100"
                                   onClick={() => openEdit(record)}
                                 >
                                   <Pencil className="size-4" />
@@ -537,7 +534,7 @@ export function FinancialDashboard() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-8 w-8 p-0 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50"
+                                      className="h-8 w-8 p-0 rounded-2xl text-gray-400 hover:text-red-500 hover:bg-red-50"
                                     >
                                       <Trash2 className="size-4" />
                                     </Button>
@@ -548,14 +545,14 @@ export function FinancialDashboard() {
                                 </Tooltip>
                               </TooltipProvider>
                             </AlertDialogTrigger>
-                            <AlertDialogContent className="rounded-xl">
+                            <AlertDialogContent className="rounded-2xl">
                               <AlertDialogHeader>
                                 <AlertDialogTitle>确认删除？</AlertDialogTitle>
                                 <AlertDialogDescription>此操作不可撤销，确定要删除这条费用记录吗？</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel className="rounded-lg">取消</AlertDialogCancel>
-                                <AlertDialogAction className="rounded-lg bg-red-500 hover:bg-red-600" onClick={() => handleDelete(record.key)}>确认删除</AlertDialogAction>
+                                <AlertDialogCancel className="rounded-2xl">取消</AlertDialogCancel>
+                                <AlertDialogAction className="rounded-2xl bg-red-500 hover:bg-red-600" onClick={() => handleDelete(record.key)}>确认删除</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -581,7 +578,7 @@ export function FinancialDashboard() {
 
       {/* Entry Dialog */}
       <Dialog open={entryVisible} onOpenChange={setEntryVisible}>
-        <DialogContent className="sm:max-w-[600px] rounded-xl">
+        <DialogContent className="sm:max-w-[600px] rounded-2xl">
           <DialogHeader className="pb-4 border-b border-gray-100">
             <DialogTitle className="text-lg font-semibold text-gray-900">
               {editingEntry ? '编辑费用记录' : '录入运营费用'}
@@ -592,7 +589,7 @@ export function FinancialDashboard() {
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-gray-600 block">成本类型</Label>
                 <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
-                  <SelectTrigger className="h-10 rounded-lg border-gray-200 text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                  <SelectTrigger className="h-10 rounded-2xl border-gray-200 text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary">
                     <SelectValue placeholder="请选择成本类型" />
                   </SelectTrigger>
                   <SelectContent>
@@ -606,7 +603,7 @@ export function FinancialDashboard() {
                   placeholder="如：2026-05"
                   value={formData.period}
                   onChange={(e) => setFormData({ ...formData, period: e.target.value })}
-                  className="h-10 rounded-lg border-gray-200 text-[14px] placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="h-10 rounded-2xl border-gray-200 text-[14px] placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
               </div>
               <div className="space-y-2">
@@ -615,7 +612,7 @@ export function FinancialDashboard() {
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="h-10 rounded-lg border-gray-200 text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="h-10 rounded-2xl border-gray-200 text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
               </div>
               <div className="space-y-2">
@@ -626,13 +623,13 @@ export function FinancialDashboard() {
                   placeholder="请输入金额"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className="h-10 rounded-lg border-gray-200 text-[14px] placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="h-10 rounded-2xl border-gray-200 text-[14px] placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-gray-600 block">付款状态</Label>
                 <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
-                  <SelectTrigger className="h-10 rounded-lg border-gray-200 text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                  <SelectTrigger className="h-10 rounded-2xl border-gray-200 text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary">
                     <SelectValue placeholder="请选择状态" />
                   </SelectTrigger>
                   <SelectContent>
@@ -643,7 +640,7 @@ export function FinancialDashboard() {
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-gray-600 block">分摊对象</Label>
                 <Select value={formData.allocation || undefined} onValueChange={(v) => setFormData({ ...formData, allocation: v === '__none__' ? '' : v })}>
-                  <SelectTrigger className="h-10 rounded-lg border-gray-200 text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                  <SelectTrigger className="h-10 rounded-2xl border-gray-200 text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary">
                     <SelectValue placeholder="请选择分摊对象" />
                   </SelectTrigger>
                   <SelectContent>
@@ -658,7 +655,7 @@ export function FinancialDashboard() {
                   placeholder="如：AP2026050001"
                   value={formData.approvalNo}
                   onChange={(e) => setFormData({ ...formData, approvalNo: e.target.value })}
-                  className="h-10 rounded-lg border-gray-200 text-[14px] placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
+                  className="h-10 rounded-2xl border-gray-200 text-[14px] placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
                 />
               </div>
               <div className="space-y-2">
@@ -667,7 +664,7 @@ export function FinancialDashboard() {
                   disabled
                   value={formData.enteredBy}
                   onChange={(e) => setFormData({ ...formData, enteredBy: e.target.value })}
-                  className="h-10 rounded-lg border-gray-200 text-[14px] bg-gray-50 cursor-not-allowed"
+                  className="h-10 rounded-2xl border-gray-200 text-[14px] bg-gray-50 cursor-not-allowed"
                 />
               </div>
             </div>
@@ -675,14 +672,14 @@ export function FinancialDashboard() {
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-lg"
+                className="rounded-2xl"
                 onClick={() => setEntryVisible(false)}
               >
                 取消
               </Button>
               <Button
                 type="submit"
-                className="rounded-lg px-6"
+                className="rounded-2xl px-6"
               >
                 保存
               </Button>

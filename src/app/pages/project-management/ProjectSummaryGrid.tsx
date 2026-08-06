@@ -62,7 +62,7 @@ export function ProjectSummaryGrid({ projectId, from, leadId, leadName }: Projec
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-semibold text-muted-foreground">项目概览</h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {summaryCards.map((card) => {
           const href = CARD_HREF_MAP[card.key]?.(project.id);
           const state = from === 'lead' && leadId
@@ -70,19 +70,16 @@ export function ProjectSummaryGrid({ projectId, from, leadId, leadName }: Projec
             : undefined;
 
           const cardContent = (
-            <Card key={card.key} className="h-full cursor-pointer transition-all hover:shadow-md">
-              <CardContent className="p-3">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">{card.title}</span>
-                    <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${SUMMARY_LEVEL_STYLE[card.level]}`}>
-                      {card.level}
-                    </span>
-                  </div>
-                  <div className="text-lg font-semibold text-foreground leading-tight">{card.value}</div>
-                  <div className="text-xs font-medium text-foreground">{card.alert}</div>
-                  <span className="text-[10px] text-muted-foreground">{card.detail}</span>
+            <Card key={card.key} className="h-[100px] cursor-pointer transition-all hover:shadow-md">
+              <CardContent className="p-3 h-full flex flex-col">
+                <div className="flex items-center justify-between gap-2 mb-auto">
+                  <span className="text-xs text-muted-foreground">{card.title}</span>
+                  <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${SUMMARY_LEVEL_STYLE[card.level]}`}>
+                    {card.level}
+                  </span>
                 </div>
+                <div className="text-lg font-semibold text-foreground leading-tight mt-2">{card.value}</div>
+                <div className="text-xs font-medium text-foreground line-clamp-1">{card.alert}</div>
               </CardContent>
             </Card>
           );

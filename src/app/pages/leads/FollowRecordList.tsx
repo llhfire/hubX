@@ -416,7 +416,7 @@ export function FollowRecordList() {
             </div>
             <div className="space-y-2">
               <Label>附件上传</Label>
-              <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
+              <div className="border-2 border-dashed rounded-2xl p-8 text-center text-muted-foreground">
                 点击或拖拽文件到此处上传
               </div>
             </div>

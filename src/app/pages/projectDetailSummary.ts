@@ -295,6 +295,5 @@ export function buildProjectSummaryCards(
     buildOwnerCard(project, allProjects),
     buildDeadlineCard(project, today),
     buildHoursCard(memberHours, totalHours),
-    buildCustomerActivityCard(project, workItemCounts),
   ];
 }

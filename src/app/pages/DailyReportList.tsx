@@ -143,20 +143,18 @@ export function DailyReportList() {
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2">
-              <input
+              <Input
                 type="date"
-                className="flex h-10 w-[130px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                className="w-[130px]"
                 value={searchForm.dateRange[0] || ''}
                 onChange={(e) => setSearchForm({ ...searchForm, dateRange: [e.target.value, searchForm.dateRange[1] || ''] })}
-                placeholder="开始日期"
               />
               <span className="text-muted-foreground">至</span>
-              <input
+              <Input
                 type="date"
-                className="flex h-10 w-[130px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                className="w-[130px]"
                 value={searchForm.dateRange[1] || ''}
                 onChange={(e) => setSearchForm({ ...searchForm, dateRange: [searchForm.dateRange[0] || '', e.target.value] })}
-                placeholder="结束日期"
               />
             </div>
             <Button variant="default" onClick={handleSearch}>

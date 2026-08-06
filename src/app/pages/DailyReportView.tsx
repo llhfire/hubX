@@ -308,11 +308,11 @@ export function DailyReportView() {
       <Card className="w-80 shrink-0 flex flex-col">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>组织架构</CardTitle>
-          <input
+          <Input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="h-8 w-36 rounded-md border border-input bg-background px-2 text-sm"
+            className="w-36 h-8"
           />
         </CardHeader>
         <CardContent className="flex-1 overflow-auto">

@@ -358,7 +358,7 @@ export function Projects() {
                 <p className="text-sm text-muted-foreground">全部项目</p>
                 <div className="text-3xl font-semibold mt-1">{projects.length}</div>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-blue-500/10">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
                 <FileText className="size-5 text-blue-600" />
               </div>
             </div>
@@ -373,7 +373,7 @@ export function Projects() {
                   {pendingProjectsCount}
                 </div>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-orange-500/10">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-orange-500/10">
                 <CheckCircle className="size-5 text-orange-600" />
               </div>
             </div>
@@ -388,7 +388,7 @@ export function Projects() {
                   {projects.filter((p) => p.status === '进行中').length}
                 </div>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-green-500/10">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-green-500/10">
                 <Send className="size-5 text-green-600" />
               </div>
             </div>
@@ -403,7 +403,7 @@ export function Projects() {
                   {projects.filter((p) => p.status === '已完成' || p.status === '验收中').length}
                 </div>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-red-500/10">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-red-500/10">
                 <Trash2 className="size-5 text-red-600" />
               </div>
             </div>
@@ -943,23 +943,17 @@ function MultiSelect({
 
   return (
     <div className="relative">
-      <button
+      <Button
         type="button"
-        className="border-input data-[placeholder]:text-muted-foreground flex h-9 w-full items-center justify-between gap-2 rounded-md border bg-input-background px-3 py-2 text-sm whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+        variant="outline"
+        className="w-full justify-between"
         onClick={() => setOpen(!open)}
       >
         <span className={value.length ? '' : 'text-muted-foreground'}>
           {value.length ? `已选 ${value.length} 项` : '请选择'}
         </span>
-        <svg
-          className="size-4 opacity-50"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+        <ChevronDown className="size-4 opacity-50" />
+      </Button>
       {open && (
         <div className="bg-popover text-popover-foreground absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-md border p-1 shadow-md">
           {options.map((item) => (

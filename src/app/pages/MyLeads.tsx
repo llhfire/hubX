@@ -302,7 +302,7 @@ export function MyLeads() {
               <Button>搜索</Button>
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
+            <div className="rounded-2xl border overflow-x-auto">
               <Table style={{ minWidth: 1600 }}>
                 <TableHeader>
                   <TableRow>
