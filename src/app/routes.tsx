@@ -92,6 +92,7 @@ import LeadDetailExample from "./pages/components/LeadDetailExample";
 import ProjectDetailExample from "./pages/components/ProjectDetailExample";
 import { TripList } from "./pages/travel/trip/TripList";
 import FinancialDelivery from "./pages/financial-delivery";
+import FinancialCost from "./pages/financial-cost";
 import { TripForm } from "./pages/travel/trip/TripForm";
 import { TripDetail } from "./pages/travel/trip/TripDetail";
 import { ReimbursementList } from "./pages/travel/reimbursement/ReimbursementList";
@@ -222,6 +223,7 @@ export const router = createBrowserRouter([
       { path: "finance/salary", Component: SalaryPage },
       { path: "finance/contract-cost/:contractId", Component: ContractCostDetail },
       { path: "financial-delivery/*", Component: FinancialDelivery },
+      { path: "financial-cost/*", Component: FinancialCost },
     ],
   },
 ]);

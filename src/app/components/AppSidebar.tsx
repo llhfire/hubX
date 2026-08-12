@@ -203,6 +203,18 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    key: 'financial-cost',
+    icon: <DollarSign className="h-4 w-4" />,
+    label: '运营成本',
+    children: [
+      { key: '/financial-cost/dashboard', label: '费用总览' },
+      { key: '/financial-cost/records', label: '费用记录' },
+      { key: '/financial-cost/templates', label: '费用模板' },
+      { key: '/financial-cost/categories', label: '费用分类' },
+      { key: '/financial-cost/reports', label: '报表统计' },
+    ],
+  },
+  {
     key: 'operations',
     icon: <Wrench className="h-4 w-4" />,
     label: '运营支持',
