@@ -1,3 +1,18 @@
 node_modules
 dist
 .claude/worktrees
+.env.local
+.env.*.local
+
+# 构建与测试产物
+.next/
+playwright-report/
+test-results/
+
+# 本地产物
+tmp/
+output/
+dist 2.zip
+
+# 锁文件（本仓库统一使用 npm）
+pnpm-lock.yaml
