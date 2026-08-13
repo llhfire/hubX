@@ -27,7 +27,7 @@ export const cloudServiceTemplate: ContractTemplate = {
 
       <h2>第三条 服务费用与支付方式</h2>
       ${renderAmountClause(formData)}
-      <p>付款方式：<strong>${escape(formData.paymentMethod || '公对公')}</strong>，按以下分期支付：</p>
+      <p>付款方式：<strong>${escape(formData.paymentMethod || '对公')}</strong>，按以下分期支付：</p>
       ${renderPaymentPlanTable(formData.paymentPlans)}
 
       <h2>第四条 服务等级（SLA）</h2>

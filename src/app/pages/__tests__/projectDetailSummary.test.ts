@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { DeliveryPlan, SopPhase, SopStep } from '../delivery-plan/types';
-import type { Project, ProjectMemberHours } from '../project-management/mockData';
+import {
+  initialDailyReports,
+  initialFollowUps,
+  initialLeadRelations,
+  initialProjects,
+  type Project,
+  type ProjectMemberHours,
+} from '../project-management/mockData';
+import { buildInitialContracts } from '../contracts/mockData';
+import { initialDeliveryPlans } from '../delivery-plan/mockData';
+import { getLeadDetailProfile } from '../leads/leadDetailProfiles';
 import { buildProjectSummaryCards } from '../projectDetailSummary';
 
 function createProject(overrides: Partial<Project> = {}): Project {
@@ -118,6 +128,56 @@ const defaultHours: ProjectMemberHours[] = [
 ];
 
 describe('buildProjectSummaryCards', () => {
+  it('保留外部 OA 流程优化项目的线索、交付、团队、跟进和工时数据', () => {
+    const project = initialProjects.find(item => item.id === '3');
+    const dailyReports = initialDailyReports.filter(item => item.projectId === '3');
+    const followUps = initialFollowUps.filter(item => item.projectId === '3');
+    const leadRelation = initialLeadRelations.find(item => item.projectId === '3');
+    const contract = buildInitialContracts().find(item => item.id === '9');
+    const leadProfile = getLeadDetailProfile('lead-9', '');
+
+    expect(project).toMatchObject({
+      name: '内部OA流程优化',
+      status: '进行中',
+      progress: 58,
+      businessLine: '外包',
+      leadId: 'lead-9',
+    });
+    expect(project?.contractId).toBeUndefined();
+    expect(project?.productUsers).toEqual(['李四']);
+    expect(project?.frontendUsers).toEqual(['王五']);
+    expect(project?.backendUsers).toEqual(['赵六']);
+    expect(project?.testUsers).toEqual(['钱九']);
+    expect(dailyReports).toHaveLength(5);
+    expect(dailyReports.reduce((total, item) => total + item.hours, 0)).toBe(30.5);
+    expect(followUps).toHaveLength(2);
+    expect(followUps[0]).toMatchObject({ status: '进行中', progress: 58 });
+    expect(leadRelation).toMatchObject({ id: 'relation-3', leadNo: 'LD202606009', customerCategory: '企业客户' });
+    expect(contract).toMatchObject({
+      leadId: 'lead-9',
+      quoteId: 'quote-9',
+      status: 'archived',
+      executionStatus: '履行中',
+    });
+    expect(contract?.projectId).toBeUndefined();
+    expect(initialDeliveryPlans['3']?.contractId).toBeUndefined();
+    expect(initialDeliveryPlans['3']?.milestones).toHaveLength(4);
+    const deliveryCard = buildProjectSummaryCards({
+      project: project!,
+      allProjects: initialProjects,
+      deliveryPlan: initialDeliveryPlans['3'],
+      memberHours: [],
+      totalHours: 0,
+      today: '2026-07-21',
+    }).find(item => item.key === 'delivery');
+    expect(deliveryCard?.alert).toBe('当前无逾期');
+    expect(leadProfile.quotationHistory[0]).toMatchObject({
+      id: 'quote-9',
+      amount: '960,000',
+      flowStatus: '已审核',
+    });
+  });
+
   it('存在延期步骤时，交付进度卡显示延期最严重的工作项', () => {
     const cards = buildProjectSummaryCards({
       project: createProject(),

@@ -1,8 +1,7 @@
 // 合同模块的核心类型定义。
 //
-// 数据模型采用 C 模型：合同是主体，版本（ContractVersion）只是用户行为
-// 在关键节点产生的完整快照，不是独立可审批的对象；审批和"已审批"标记
-// 都贴在合同对象本身上（approvalFlow / approvedVersionNo）。
+// 合同是主体，每次修改保存为完整版本快照。审批轮次通过 versionNo
+// 归属到具体版本，approvedVersionNo 指向当前审批通过的终稿。
 
 export type ContractStatus =
   | 'draft' // 草稿
@@ -14,7 +13,7 @@ export type ContractStatus =
 
 export type ApprovalNodeStatus = 'pending' | 'approved' | 'rejected';
 
-export type ApprovalStepName = '发起申请' | '商务审核' | '财务审核' | '法务审核';
+export type ApprovalStepName = '发起申请' | '商务审核' | '财务审核' | '法务审核' | '总经理审批';
 
 export interface ApprovalNode {
   step: ApprovalStepName;
@@ -24,14 +23,51 @@ export interface ApprovalNode {
   comment: string;
 }
 
-export interface PaymentPlanItem {
-  period: number;
-  expectedDate: string;
-  amount: number;
-  percentage: number;
+export type ContractApprovalRoundStatus = 'approving' | 'approved' | 'rejected' | 'withdrawn';
+
+export interface ContractApprovalRound {
+  id: string;
+  roundNo: number;
+  versionNo: string;
+  status: ContractApprovalRoundStatus;
+  submittedAt: string;
+  submittedBy: string;
+  updatedAt: string;
+  nodes: ApprovalNode[];
 }
 
-export type PaymentMethod = '公对公' | '私对公' | '分期付款';
+export type PaymentPlanPeriodName =
+  | '首期款'
+  | '二期款'
+  | '三期款'
+  | '四期款'
+  | '五期款'
+  | '六期款'
+  | '七期款'
+  | '八期款'
+  | '验收款'
+  | '尾款'
+  | '需求变更款'
+  | '全款';
+
+export type PaymentPlanDateType = 'workday' | 'natural' | 'fixed';
+export type PaymentPlanAmountType = 'percentage' | 'fixed';
+
+export interface PaymentPlanItem {
+  period: number;
+  periodName?: PaymentPlanPeriodName;
+  expectedDate: string;
+  expectedDateType?: PaymentPlanDateType;
+  expectedDays?: number;
+  condition?: string;
+  amount: number;
+  percentage: number;
+  amountType?: PaymentPlanAmountType;
+}
+
+export type PaymentMethod = '对公' | '对私';
+export type PrivatePaymentChannel = '微信' | '支付宝' | '银行转账';
+export type PaymentRatio = '3:3:3:1' | '4:5:1';
 
 export type ExecutionStatus = '履行中' | '已完成' | '已终止';
 
@@ -41,12 +77,19 @@ export interface ContractFormData {
   contractName: string;
   productCategory: string;
   signingEntity: string; // 我方（乙方）签约主体
+  signingEntityTaxNo?: string;
+  signingPerson?: string;
+  signingEntityAddress?: string;
+  signingEntityPhone?: string;
+  signingEntityEmail?: string;
+  signingEntityPostalCode?: string;
   customerName: string;
   customerContact: string;
   customerPhone: string;
   customerEmail: string;
   customerAddress: string;
   customerTaxNo: string;
+  customerPostalCode?: string;
   bankName: string;
   bankAccount: string;
   contractContent: string;
@@ -54,10 +97,16 @@ export interface ContractFormData {
   effectiveDate: string;
   endDate: string;
   paymentMethod: PaymentMethod;
+  paymentRatio?: PaymentRatio;
+  publicPaymentAccountId?: string;
+  privatePaymentChannel?: PrivatePaymentChannel;
+  privatePaymentRecipient?: string;
+  privatePaymentAccount?: string;
   totalAmount: number;
   rebateAmount: number;
   paymentPlans: PaymentPlanItem[];
   templateId: string;
+  customContractHtml?: string; // 在模板预览中手动编辑后的合同正文
 }
 
 export interface ContractVersion {
@@ -67,6 +116,24 @@ export interface ContractVersion {
   label: string; // 自动："首次保存草稿" / "提交审批前自动保存" / "驳回后再次提交"；手动：用户填的说明
   createdAt: string;
   createdBy: string;
+  changeTypes?: string[];
+  changeSummary?: string;
+  attachments?: ContractVersionAttachment[];
+}
+
+export interface ContractVersionAttachment {
+  id: string;
+  name: string;
+  size: string;
+  url?: string;
+}
+
+export interface UploadedWordContract {
+  fileName: string;
+  fileSize: number;
+  blobUrl?: string;
+  uploadedAt: string;
+  uploadedBy: string;
 }
 
 export interface ScanFile {
@@ -99,6 +166,7 @@ export interface Contract {
   // 关联（身份字段，锁死）
   leadId?: string;
   quoteId?: string;
+  projectId?: string;
 
   // 当前编辑内容
   current: ContractFormData;
@@ -108,12 +176,14 @@ export interface Contract {
 
   // 审批（贴在合同上）
   approvalFlow: ApprovalNode[];
+  approvalRounds?: ContractApprovalRound[];
   approvedVersionNo?: string;
   approvedAt?: string;
 
   // 邮寄/扫描
   mailedAt?: string;
   archivedScans: ScanArchiveEntry[];
+  uploadedWordContract?: UploadedWordContract;
 
   // 元信息
   createdAt: string;
@@ -162,6 +232,7 @@ export const BLOCKER_TYPE_LABELS: Record<BlockerType, string> = {
 export interface CollectionRecord {
   id: string;
   contractId: string;
+  period?: number | 'other';
   amount: number;
   date: string;
   method: string;
@@ -203,5 +274,6 @@ export interface ContractTemplate {
 export interface WizardInput {
   leadId?: string;
   quoteId?: string;
+  projectId?: string;
   formData: ContractFormData;
 }

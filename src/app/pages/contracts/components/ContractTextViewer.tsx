@@ -1,5 +1,5 @@
 import type { Contract } from '../types';
-import { renderTemplate } from '../templates';
+import { renderTemplate, renderContractDocument } from '../templates';
 import { sanitizeHtml } from '../../../lib/sanitize';
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 export function ContractTextViewer({ contract }: Props) {
   const html = (() => {
     try {
-      return renderTemplate(contract.current.templateId, contract.current);
+      return renderContractDocument(contract.current);
     } catch {
       return `<p style="color:#94a3b8">合同模板渲染失败</p>`;
     }

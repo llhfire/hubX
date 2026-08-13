@@ -4,9 +4,7 @@
 
 // ---------- 基础枚举 ----------
 
-export type Position =
-  | '销售' | '前端开发' | '后端开发' | '全栈开发' | 'UI设计师'
-  | '产品经理' | '项目经理' | '人事' | '财务' | '行政';
+export type Position = string;
 
 export type JobLevel = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6' | 'L7' | 'L8' | 'L9' | 'L10';
 export type EmploymentStatus = '在职' | '试用期' | '已转正' | '已离职' | '休假中';
@@ -184,9 +182,18 @@ export interface Employee {
   转正Date: string;
   contractEndDate: string;
   standardHourlyRate: number;
+  probationSalary?: number;
+  regularSalary?: number;
+  socialSecurity?: number;
+  housingFund?: number;
+  salaryAdjustment?: number;
+  salaryEffectiveDate?: string;
+  sharedOverheadCost?: number;
+  monthlyWorkdays?: number;
   idCard?: string;
   bankAccount?: string;
   emergencyContact?: string;
+  resumeAttachment?: string;
   education?: string;
   school?: string;
   previousExperience?: string;
@@ -226,8 +233,8 @@ export interface PerformanceReview {
 }
 
 export interface LevelRateConfig {
-  level: JobLevel;
-  position: Position;
+  level: string;
+  position: string;
   minRate: number;
   standardRate: number;
   maxRate: number;
@@ -473,10 +480,30 @@ const abilitySeedMap: Record<string, AbilityScores> = {
   '16': { tech: 32, biz: 68, mgmt: 55, tool: 42, domain: 60 },
 };
 
+function getFutureSalaryEffectiveDate(employeeId: string) {
+  const date = new Date();
+  date.setDate(date.getDate() + Number(employeeId) % 20 + 1);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export const initialEmployees: Employee[] = employeeBaseData.map(emp => {
   const scores = abilitySeedMap[emp.id] || { tech: 50, biz: 50, mgmt: 50, tool: 50, domain: 50 };
+  const regularSalary = emp.standardHourlyRate * 160;
+  const salaryAdjustment = Number(emp.id) % 7 === 0 ? -1000 : Number(emp.id) % 3 === 0 ? 1000 : Number(emp.id) % 5 === 0 ? 2000 : 0;
   return {
     ...emp,
+    probationSalary: Math.round(regularSalary * 0.8),
+    regularSalary,
+    socialSecurity: Math.round(regularSalary * 0.1),
+    housingFund: Math.round(regularSalary * 0.07),
+    salaryAdjustment,
+    salaryEffectiveDate: salaryAdjustment ? getFutureSalaryEffectiveDate(emp.id) : '',
+    resumeAttachment: `${emp.name}-个人简历.pdf`,
+    sharedOverheadCost: 1200 + Number(emp.id) % 4 * 300,
+    monthlyWorkdays: Number(emp.id) % 3 === 0 ? 21.5 : 22,
     capability: makeCapability(scores, emp.position, emp.level),
     personality: initialPersonalityData[emp.id],
   };

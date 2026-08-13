@@ -4,7 +4,11 @@
 // 一组小函数把容易出错或重复的部分封装起来。
 
 import type { ContractFormData, PaymentPlanItem } from '../types';
-import { convertAmountToChinese } from '../utils';
+import {
+  convertAmountToChinese,
+  getPaymentPlanExpectedDateLabel,
+  getPaymentPlanPeriodLabel,
+} from '../utils';
 
 // 防 XSS：所有从 formData 进入 HTML 的字符串都过这里。
 export function escape(input: string | number | undefined | null): string {
@@ -34,8 +38,9 @@ export function renderPaymentPlanTable(plans: PaymentPlanItem[]): string {
   const rows = plans
     .map(
       (p) => `<tr>
-        <td>第${p.period}期</td>
-        <td>${escape(p.expectedDate || '—')}</td>
+        <td>${escape(getPaymentPlanPeriodLabel(p))}</td>
+        <td>${escape(getPaymentPlanExpectedDateLabel(p))}</td>
+        <td>${escape(p.condition || '—')}</td>
         <td>¥${(p.amount || 0).toLocaleString()}</td>
         <td>${(p.percentage || 0).toFixed(2)}%</td>
       </tr>`,
@@ -45,12 +50,13 @@ export function renderPaymentPlanTable(plans: PaymentPlanItem[]): string {
   const totalPct = plans.reduce((sum, p) => sum + (p.percentage || 0), 0);
   return `<table class="payment-plan-table">
     <thead>
-      <tr><th>期数</th><th>预计回款日期</th><th>金额</th><th>占比</th></tr>
+      <tr><th>期数</th><th>预计回款日期</th><th>回款条件</th><th>金额</th><th>占比</th></tr>
     </thead>
     <tbody>${rows}</tbody>
     <tfoot>
       <tr>
         <td><strong>合计</strong></td>
+        <td>—</td>
         <td>—</td>
         <td><strong>¥${total.toLocaleString()}</strong></td>
         <td><strong>${totalPct.toFixed(2)}%</strong></td>

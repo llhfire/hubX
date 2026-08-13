@@ -1,5 +1,4 @@
-// DEPRECATED: This file is superseded by leads/LeadDetail.tsx. Do not modify.
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import {
   Card,
@@ -12,6 +11,7 @@ import {
   Modal,
   Form,
   Input,
+  InputNumber,
   Select,
   Radio,
   Message,
@@ -23,6 +23,39 @@ import {
   Alert,
 } from '@arco-design/web-react';
 import { useReminders } from '@/app/reminders/ReminderContext';
+import { CURRENT_LOGIN_USER } from '@/app/currentUser';
+import { useContracts } from '@/app/pages/contracts/ContractsContext';
+import { useEmployee } from '@/app/pages/employee';
+import { buildLeadContextFromDetail } from '@/app/pages/contracts/leadContextMock';
+import type { Contract, ContractVersion } from '@/app/pages/contracts/types';
+import type { UploadItem } from '@arco-design/web-react/es/Upload';
+import { DocumentUploadPanel } from '@/app/pages/contracts/components/DocumentUploadPanel';
+import {
+  downloadAttachment,
+  formatDateTime,
+  mapUploadFilesToAttachments,
+} from '@/app/pages/contracts/contractModification';
+import { getLeadDetailProfile, type LeadQuotationItem } from '@/app/pages/leads/leadDetailProfiles';
+import { LeadPaymentInvoicePanel } from '@/app/pages/leads/components/LeadPaymentInvoicePanel';
+import { LeadFinalContractPanel } from '@/app/pages/leads/components/LeadFinalContractPanel';
+import { LeadQuotationHistoryPanel } from '@/app/pages/leads/components/LeadQuotationHistoryPanel';
+import { LeadFeatureListPanel, initialLeadBusinessEnds, type LeadBusinessEnd } from '@/app/pages/leads/components/LeadFeatureListPanel';
+import { LeadContractHistoryPanel } from '@/app/pages/leads/components/LeadContractHistoryPanel';
+import { LeadCustomerCommunicationPanel } from '@/app/pages/leads/components/LeadCustomerCommunicationPanel';
+import { calculateQuotationAmount, calculateQuotationAmountByFixed, calculateUpliftRate } from '@/app/pages/leads/quotationPricing';
+import {
+  QuotationDocumentPreviewModal,
+  type GeneratedQuotationDocument,
+  type QuotationDocumentData,
+} from '@/app/pages/leads/components/QuotationDocumentPreviewModal';
+import { ProjectDemoPanel } from '@/app/pages/project-management/ProjectDetailWorkspace';
+import { ProjectQuotationConfigurator } from '@/app/pages/project-management/ProjectQuotationConfigurator';
+import {
+  QuotationSummaryReport,
+  createQuotationSummaryImageUrl,
+  createQuotationSystemRecordFileName,
+} from '@/app/pages/project-management/QuotationSummaryReport';
+import type { ProjectQuotationConfig, ProjectQuotationSummary } from '@/app/pages/project-management/projectQuotationConfigModel';
 import {
   IconLeft,
   IconEdit,
@@ -39,10 +72,28 @@ import {
   IconEye,
 } from '@arco-design/web-react/icon';
 
-const { Title, Text: ArcoText } = Typography;
+const { Text: ArcoText } = Typography;
 const TabPane = Tabs.TabPane;
 const { Row, Col } = Grid;
 const FormItem = Form.Item;
+
+const DEMO_TYPE_OPTIONS = [
+  '前端',
+  '后台',
+  'UI',
+  '原型',
+  '其他',
+] as const;
+
+interface LeadDemoRecord {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  uploader: string;
+  uploadTime: string;
+  description: string;
+}
 
 export function normalizeLeadReminderId(id?: string) {
   if (!id) {
@@ -51,64 +102,124 @@ export function normalizeLeadReminderId(id?: string) {
   return id.startsWith('lead-') ? id : `lead-${id}`;
 }
 
-export function LeadDetail() {
-  const { id } = useParams();
+export function LeadDetail({ leadId, initialSideTab }: { leadId?: string; initialSideTab?: string } = {}) {
+  const routeParams = useParams();
+  const id = leadId ?? routeParams.id;
   const leadReminderId = normalizeLeadReminderId(id);
   const { isLeadReminderActive } = useReminders();
   const hasLeadReminder = isLeadReminderActive(leadReminderId);
   const navigate = useNavigate();
   const location = useLocation();
-  const from = ((location?.state as any)?.from) || 'my'; // 默认为我的线索
+  const from = (
+    (location.state as { from?: string } | null)?.from
+    || new URLSearchParams(location.search).get('from')
+    || 'my'
+  ); // 默认为我的线索，地址参数用于刷新后保留来源。
+  const leadProfile = useMemo(() => getLeadDetailProfile(id, from), [id, from]);
+  const { leadInfo, quotationHistory, useLiveContracts, demoContracts } = leadProfile;
+  const { contracts: allContracts } = useContracts();
+  const { employees } = useEmployee();
+  const useProjectStyleSideTabs = from === 'my' || from === 'public';
+
+  const relatedContracts = useMemo<Contract[]>(() => {
+    if (useLiveContracts) {
+      return allContracts.filter(contract => contract.leadId === id);
+    }
+    return demoContracts
+      .map(demoContract => allContracts.find(contract => contract.id === demoContract.id))
+      .filter((contract): contract is Contract => Boolean(contract));
+  }, [allContracts, demoContracts, id, useLiveContracts]);
+
+  const approvedContracts = useMemo(
+    () => relatedContracts.filter(contract => (
+      Boolean(contract.approvedVersionNo) && contract.status !== 'voided'
+    )),
+    [relatedContracts],
+  );
+  const approvedContract = approvedContracts[0];
+  const hasApprovedContract = Boolean(approvedContract);
+
+  const handleViewContractDetail = (contractId: string) => {
+    navigate(`/contracts/${contractId}`, {
+      state: {
+        contractDetailReturn: {
+          pathname: `/leads/${id}`,
+          state: { from, activeMainTab: 'contracts-history' },
+        },
+      },
+    });
+  };
+
+  const handleCreateContract = () => {
+    const latestApproved = quotationHistory.find(
+      quote => quote.flowStatus === '已审核' && quote.status === '已报价',
+    );
+    const params = new URLSearchParams({
+      leadId: id ?? '',
+      returnTo: 'lead',
+      from,
+    });
+    if (latestApproved) {
+      params.set('quoteId', latestApproved.id);
+    }
+
+    navigate(`/contracts/new?${params.toString()}`, {
+      state: {
+        leadContractPrefill: {
+          lead: buildLeadContextFromDetail(id ?? '', leadInfo, quotationHistory),
+          quoteId: latestApproved?.id,
+        },
+        from,
+      },
+    });
+  };
+
   const [followVisible, setFollowVisible] = useState(false);
   const [bindCustomerVisible, setBindCustomerVisible] = useState(false);
   const [editLeadVisible, setEditLeadVisible] = useState(false);
   const [customTagVisible, setCustomTagVisible] = useState(false);
   const [trashVisible, setTrashVisible] = useState(false);
   const [returnPublicVisible, setReturnPublicVisible] = useState(false);
-  const [quotationEditVisible, setQuotationEditVisible] = useState(false);
-  const [travelModalVisible, setTravelModalVisible] = useState(false);
-  const [reimbursementModalVisible, setReimbursementModalVisible] = useState(false);
-  const [paymentPeriodVisible, setPaymentPeriodVisible] = useState(false);
-  const [paymentEditVisible, setPaymentEditVisible] = useState(false);
-  const [invoiceEditVisible, setInvoiceEditVisible] = useState(false);
-  const [paymentPeriods, setPaymentPeriods] = useState<number>(2);
-  const [rightTabKey, setRightTabKey] = useState('follow');
-  const [paymentRecords, setPaymentRecords] = useState([
-    {
-      id: '1',
-      period: '一期',
-      name: '首期款',
-      expectedAmount: '204,000',
-      expectedDate: '2026-04-15',
-      actualDate: '2026-04-14',
-      status: '已到账',
-      overdueDays: 0,
-      voucher: '回款凭证1.jpg',
-      invoiceStatus: '已开票',
-      taxRate: '6%',
-      invoiceDate: '2026-04-16',
-      taxAmount: '12,240',
-      invoiceVoucher: '发票1.pdf',
-      paymentMethod: '公对公',
-    },
-    {
-      id: '2',
-      period: '二期',
-      name: '周期款',
-      expectedAmount: '204,000',
-      expectedDate: '2026-05-15',
-      actualDate: '',
-      status: '未到账',
-      overdueDays: 0,
-      voucher: '',
-      invoiceStatus: '未开票',
-      taxRate: '6%',
-      invoiceDate: '',
-      taxAmount: '12,240',
-      invoiceVoucher: '',
-      paymentMethod: '公对公',
-    },
-  ]);
+  const [quotationConfigVisible, setQuotationConfigVisible] = useState(false);
+  const [quotationModalVisible, setQuotationModalVisible] = useState(false);
+  const [quotationDocumentVisible, setQuotationDocumentVisible] = useState(false);
+  const [quotationDocumentData, setQuotationDocumentData] = useState<QuotationDocumentData | null>(null);
+  const [leadFeatureList, setLeadFeatureList] = useState<LeadBusinessEnd[]>(initialLeadBusinessEnds);
+  const [quotationConfigSummary, setQuotationConfigSummary] = useState<ProjectQuotationSummary | null>(null);
+  const [quotationConfigDraft, setQuotationConfigDraft] = useState<ProjectQuotationConfig | null>(null);
+  const [editingQuotation, setEditingQuotation] = useState<LeadQuotationItem | null>(null);
+  const [projectQuotationHistory, setProjectQuotationHistory] = useState<LeadQuotationItem[]>(quotationHistory);
+  const [approvalLinkType, setApprovalLinkType] = useState<'travel' | 'reimbursement' | null>(null);
+  const [approvalNoInput, setApprovalNoInput] = useState('');
+  const [demoModalVisible, setDemoModalVisible] = useState(false);
+  const [activeMainTab, setActiveMainTab] = useState('basic');
+  const [activeSideTab, setActiveSideTab] = useState(initialSideTab ?? 'follow');
+  const [presalesGroupName, setPresalesGroupName] = useState(leadInfo.presalesGroupName || '');
+
+  useEffect(() => {
+    const state = location.state as { activeMainTab?: string; activeSideTab?: string } | null;
+    if (state?.activeMainTab) {
+      setActiveMainTab(state.activeMainTab);
+    }
+    if (state?.activeSideTab) {
+      setActiveSideTab(state.activeSideTab);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    setProjectQuotationHistory(quotationHistory);
+  }, [quotationHistory]);
+
+  useEffect(() => {
+    setPresalesGroupName(leadInfo.presalesGroupName || '');
+  }, [leadInfo.presalesGroupName]);
+
+  useEffect(() => {
+    if (!hasApprovedContract && ['contracts-history', 'payments-invoice'].includes(activeMainTab)) {
+      setActiveMainTab('basic');
+    }
+  }, [activeMainTab, hasApprovedContract]);
+
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState(['APP', '小程序', '管理系统', '官网', '电商系统', 'CMS', 'OA系统']);
   const [form] = Form.useForm();
@@ -116,41 +227,9 @@ export function LeadDetail() {
   const [editLeadForm] = Form.useForm();
   const [customTagForm] = Form.useForm();
   const [quotationForm] = Form.useForm();
-  const [travelForm] = Form.useForm();
-  const [reimbursementForm] = Form.useForm();
-  const [paymentPeriodForm] = Form.useForm();
-  const [paymentForm] = Form.useForm();
-  const [invoiceForm] = Form.useForm();
   const [trashForm] = Form.useForm();
+  const [demoForm] = Form.useForm();
   const [customerSearchKeyword, setCustomerSearchKeyword] = useState('');
-  const [expenseItems, setExpenseItems] = useState([
-    { id: 1, category: '', description: '', amount: '' },
-  ]);
-
-  const leadInfo = {
-    name: '某科技公司APP开发需求',
-    customer: '北京科技有限公司',
-    contact: '张经理',
-    phone: '13800138000',
-    wechat: '13800138000',
-    source: '百度推广',
-    keyword: 'APP开发',
-    level: '高',
-    intention: '强烈',
-    status: '需求调研',
-    tags: ['APP', '移动应用'],
-    requirement: '需要开发一款企业内部管理APP，支持iOS和Android双平台，包含考勤、审批、通知等功能模块。',
-    createTime: '2026-03-25 10:30:00',
-    updateTime: '2026-04-09 10:30:00',
-    claimTime: '2026-03-25 11:20:00',
-    lastFollowTime: '2026-04-09 10:30:00',
-    owner: '张三',
-    entity: '中科软艺',
-    agent: '巴蜀文攻',
-    followCount: 8,
-    daysHeld: 15,
-  };
-
   const followHistory = [
     {
       time: '2026-04-09',
@@ -178,48 +257,6 @@ export function LeadDetail() {
       content: '',
       operator: '张三',
       attachments: [],
-    },
-  ];
-
-  const quotationHistory = [
-    {
-      id: '1',
-      name: 'APP开发项目报价方案V2',
-      status: '已报价',
-      period: '3个月',
-      operator: '张三',
-      entity: '中科软艺',
-      amount: '680,000',
-      cost: '450,000',
-      profit: '230,000',
-      file: 'APP开发报价单V2.xlsx',
-      flowStatus: '已审核',
-      createTime: '2026-04-10 14:30',
-      approvalFlow: [
-        { step: '发起申请', approver: '张三', status: 'approved', time: '2026-04-10 14:30', comment: '' },
-        { step: '商务初审', approver: '王经理 - 商务主管', status: 'approved', time: '2026-04-10 16:20', comment: '项目背景属实，支持该折扣' },
-        { step: '财务审核', approver: '陈财务 - 财务总监', status: 'approved', time: '2026-04-11 09:15', comment: '毛利率符合标准，准予报价' },
-      ],
-    },
-    {
-      id: '2',
-      name: 'APP开发项目初步报价',
-      status: '未报价',
-      period: '4个月',
-      operator: '李四',
-      entity: '软艺信息',
-      amount: '750,000',
-      cost: '500,000',
-      profit: '250,000',
-      file: 'APP开发初步报价.xlsx',
-      flowStatus: '已审核',
-      createTime: '2026-04-05 10:20',
-      approvalFlow: [
-        { step: '发起申请', approver: '李四', status: 'approved', time: '2026-04-05 10:20', comment: '' },
-        { step: '商务初审', approver: '王经理 - 商务主管', status: 'approved', time: '2026-04-05 14:30', comment: '项目背景合理' },
-        { step: '财务审核', approver: '陈财务 - 财务总监', status: 'rejected', time: '2026-04-05 16:00', comment: '该线索目前的运营成本已超支，且折扣已低于公司基准毛利（30%），请重新核算或申请特批。' },
-        { step: '总经理特批', approver: '赵总 - 总经理', status: 'pending', time: '', comment: '' },
-      ],
     },
   ];
 
@@ -312,34 +349,26 @@ export function LeadDetail() {
     },
   ];
 
-  const contractSummary = {
-    totalAmount: '680,000',
-    receivedAmount: '408,000',
-    pendingAmount: '272,000',
-    invoicedAmount: '680,000',
-    rdCost: '280,000',
-    businessCost: '45,000',
-    otherCost: '15,000',
-    outsourcingCost: '80,000',
-  };
-
-  const contracts = [
+  const [demoRecords, setDemoRecords] = useState<LeadDemoRecord[]>([
     {
-      id: '1',
-      name: 'APP开发项目合同',
-      contractNo: 'ZKRY202604080001',
-      startDate: '2026-04-08',
-      contractEntity: '中科软艺',
-      signingEntity: '北京科技有限公司',
-      amount: '680,000',
-      receivedAmount: '408,000',
-      paymentMethod: '对公转账',
-      totalCost: '420,000',
-      signer: '张三',
-      status: '执行中',
-      createTime: '2026-04-08 10:30',
+      id: 'demo-1',
+      name: 'APP 前端演示',
+      url: 'https://demo.hubx.local/app-frontend',
+      type: '前端',
+      uploader: '张三',
+      uploadTime: '2026-04-12 10:20',
+      description: '客户演示版前端页面和主流程。',
     },
-  ];
+    {
+      id: 'demo-2',
+      name: '后台管理原型',
+      url: 'https://demo.hubx.local/admin-prototype',
+      type: '原型',
+      uploader: '李四',
+      uploadTime: '2026-04-13 15:40',
+      description: '后台权限、合同和回款模块原型。',
+    },
+  ]);
 
 
   const customerList = [
@@ -414,6 +443,7 @@ export function LeadDetail() {
       entity: leadInfo.entity,
       status: leadInfo.status,
       requirement: leadInfo.requirement,
+      presalesGroupName,
     });
     setEditLeadVisible(true);
   };
@@ -421,6 +451,7 @@ export function LeadDetail() {
   const handleEditLeadSubmit = () => {
     editLeadForm.setFieldValue('tags', selectedTags);
     editLeadForm.validate().then((values) => {
+      setPresalesGroupName(values.presalesGroupName?.trim() || '');
       console.log(values);
       Message.success('线索更新成功');
       setEditLeadVisible(false);
@@ -472,242 +503,428 @@ export function LeadDetail() {
     });
   };
 
-  const handleAddPaymentPeriod = () => {
-    const periodNames = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
-    const newPeriodNumber = paymentRecords.length + 1;
-    const newPeriod = {
-      id: String(newPeriodNumber),
-      period: `${periodNames[newPeriodNumber - 1] || newPeriodNumber}期`,
-      name: '周期款',
-      expectedAmount: '204,000',
-      expectedDate: '',
-      actualDate: '',
-      status: '未到账',
-      overdueDays: 0,
-      voucher: '',
-      invoiceStatus: '未开票',
-      taxRate: '6%',
-      invoiceDate: '',
-      taxAmount: '12,240',
-      invoiceVoucher: '',
-      paymentMethod: '公对公',
-    };
-    setPaymentRecords([...paymentRecords, newPeriod]);
-    Message.success(`已添加${newPeriod.period}`);
+  const handleAddDemo = () => {
+    demoForm.resetFields();
+    setDemoModalVisible(true);
   };
 
-  const handleResetPaymentPeriods = () => {
-    if (paymentPeriods > 0) {
-      Modal.confirm({
-        title: '确认重设回款期数?',
-        content: '重设期数将清空所有现有的回款与发票记录，此操作不可撤销。确定要继续吗？',
-        okText: '确定重设',
-        cancelText: '取消',
-        okButtonProps: {
-          status: 'warning'
-        },
-        onOk: () => {
-          setPaymentPeriodVisible(true);
-        }
-      });
-    } else {
-      setPaymentPeriodVisible(true);
+  const handleCreateApprovalLink = () => {
+    const approvalNo = approvalNoInput.trim();
+    if (!approvalNo) {
+      Message.error('请填写审批编号');
+      return;
     }
+    const typeLabel = approvalLinkType === 'travel' ? '出差' : '报销';
+    Message.success(`已关联${typeLabel}审批记录：${approvalNo}`);
+    setApprovalLinkType(null);
+    setApprovalNoInput('');
   };
 
-  const handleInitializePaymentPeriods = () => {
-    paymentPeriodForm.validate().then((values) => {
-      const periodCount = values.periods === 'custom' ? parseInt(values.customPeriods) : parseInt(values.periods);
-      const periodNames = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+  const handleSubmitDemo = () => {
+    demoForm.validate().then((values) => {
+      const nextRecord: LeadDemoRecord = {
+        id: `demo-${Date.now()}`,
+        name: values.name.trim(),
+        url: values.url.trim(),
+        type: values.type,
+        uploader: '张三',
+        uploadTime: formatDateTime(new Date()),
+        description: (values.description || '').trim(),
+      };
 
-      // 生成空白期数记录
-      const newRecords = Array.from({ length: periodCount }, (_, index) => ({
-        id: String(index + 1),
-        period: `${periodNames[index] || (index + 1)}期`,
-        name: index === 0 ? '首期款' : (index === periodCount - 1 ? '尾款' : '周期款'),
-        expectedAmount: '',
-        expectedDate: '',
-        actualDate: '',
-        status: '未到账',
-        overdueDays: 0,
-        voucher: '',
-        invoiceStatus: '未开票',
-        taxRate: '6%',
-        invoiceDate: '',
-        taxAmount: '',
-        invoiceVoucher: '',
-        paymentMethod: '公对公',
-      }));
-
-      setPaymentRecords(newRecords);
-      setPaymentPeriods(periodCount);
-      Message.success(`已${paymentPeriods > 0 ? '重设' : '初始化'}回款期数为${periodCount}期`);
-      setPaymentPeriodVisible(false);
-      paymentPeriodForm.resetFields();
+      setDemoRecords((prev) => [nextRecord, ...prev]);
+      Message.success('演示记录已新增');
+      setDemoModalVisible(false);
+      demoForm.resetFields();
     });
   };
 
+  const closeQuotationModal = () => {
+    setQuotationModalVisible(false);
+    setQuotationConfigSummary(null);
+    setQuotationConfigDraft(null);
+    setEditingQuotation(null);
+    quotationForm.resetFields();
+  };
+
+  const closeQuotationDocument = () => {
+    setQuotationDocumentVisible(false);
+    setQuotationModalVisible(true);
+  };
+
+  const closeQuotationConfig = () => {
+    setQuotationConfigVisible(false);
+    setQuotationConfigSummary(null);
+    setQuotationConfigDraft(null);
+    setEditingQuotation(null);
+    quotationForm.resetFields();
+  };
+
+  const openQuotationConfig = () => {
+    setEditingQuotation(null);
+    setQuotationConfigSummary(null);
+    setQuotationConfigDraft(null);
+    quotationForm.resetFields();
+    setQuotationConfigVisible(true);
+  };
+
+  const openQuotationEditor = (quotation: LeadQuotationItem) => {
+    setEditingQuotation(quotation);
+    setQuotationConfigSummary(null);
+    setQuotationConfigDraft(quotation.quotationConfig ?? null);
+    quotationForm.resetFields();
+    setQuotationConfigVisible(true);
+  };
+
+  const continueQuotationConfig = (config: ProjectQuotationConfig, summary: ProjectQuotationSummary) => {
+    const upliftRate = editingQuotation?.upliftRate ?? 0;
+    const upliftType = editingQuotation?.upliftType ?? 'rate';
+    const upliftValue = upliftType === 'fixed' ? editingQuotation?.upliftAmount ?? 0 : upliftRate;
+    setQuotationConfigDraft(config);
+    setQuotationConfigSummary(summary);
+    quotationForm.resetFields();
+    quotationForm.setFieldsValue({
+      upliftType,
+      upliftValue,
+      upliftRate,
+      amount: calculateQuotationAmount(summary.totalAmount, upliftRate),
+      period: String(summary.estimatedDays || ''),
+      operator: editingQuotation?.operator || CURRENT_LOGIN_USER.name,
+      technicalEvaluator: editingQuotation?.technicalEvaluator?.split('、') ?? [],
+      description: editingQuotation?.description,
+    });
+    setQuotationConfigVisible(false);
+    setQuotationModalVisible(true);
+  };
+
+  const submitQuotation = () => {
+    quotationForm.validate().then(values => {
+      if (!quotationConfigDraft || !quotationConfigSummary) return;
+      setQuotationDocumentData({
+        projectName: leadInfo.name,
+        customerName: leadInfo.customer,
+        amount: Number(values.amount),
+        upliftRate: calculateUpliftRate(quotationConfigSummary.totalAmount, Number(values.amount)),
+        upliftType: values.upliftType,
+        upliftAmount: values.upliftType === 'fixed' ? Number(values.upliftValue) || 0 : undefined,
+        period: values.period?.trim() ? `${values.period.trim()}天` : '-',
+        operator: values.operator?.trim() || '-',
+        technicalEvaluator: values.technicalEvaluator.join('、'),
+        description: values.description?.trim() || '',
+        config: quotationConfigDraft,
+        summary: quotationConfigSummary,
+        featureList: leadFeatureList,
+      });
+      setQuotationModalVisible(false);
+      setQuotationDocumentVisible(true);
+    }).catch(() => {});
+  };
+
+  const submitQuotationDocument = async (document: GeneratedQuotationDocument) => {
+    const values = quotationDocumentData;
+    if (!values) return;
+      const configuredCost = quotationConfigSummary?.totalAmount;
+      const amount = values.amount;
+      const upliftRate = Number(values.upliftRate) || 0;
+      const quotationTimestamp = Date.now();
+      const quotationReportImageUrl = quotationConfigDraft && quotationConfigSummary
+        ? await createQuotationSummaryImageUrl(quotationConfigDraft, quotationConfigSummary)
+        : undefined;
+      const quotationReportImageName = quotationReportImageUrl
+        ? createQuotationSystemRecordFileName(leadInfo.name, quotationTimestamp)
+        : undefined;
+
+      setProjectQuotationHistory(current => [{
+        id: `lead-quotation-${quotationTimestamp}`,
+        name: `${leadInfo.name}报价单`,
+        status: '已报价',
+        period: values.period,
+        operator: values.operator,
+        entity: leadInfo.entity,
+        amount: amount.toLocaleString('zh-CN'),
+        upliftRate,
+        upliftType: values.upliftType,
+        upliftAmount: values.upliftType === 'fixed' ? Number(values.upliftValue) || 0 : undefined,
+        cost: configuredCost == null ? '-' : configuredCost.toLocaleString('zh-CN'),
+        profit: configuredCost == null ? '-' : (amount - configuredCost).toLocaleString('zh-CN'),
+        file: '-',
+        flowStatus: '未提交审批',
+        createTime: new Date().toLocaleString('zh-CN', { hour12: false }),
+        approvalFlow: [],
+        technicalEvaluator: values.technicalEvaluator,
+        quotationSystemFiles: [],
+        technicalEvaluationFiles: [],
+        quotationFiles: [document.name],
+        quotationFileUrls: { [document.name]: document.url },
+        quotationSummary: quotationConfigSummary ?? undefined,
+        quotationConfig: quotationConfigDraft ?? undefined,
+        quotationReportImageUrl,
+        quotationReportImageName,
+        description: values.description,
+      }, ...current]);
+      Message.success(editingQuotation ? '报价已更新为新版本' : '报价已新增');
+      setQuotationDocumentVisible(false);
+      setQuotationDocumentData(null);
+      closeQuotationModal();
+  };
+
+  const submitProjectQuotationApproval = (quotation: LeadQuotationItem) => {
+    const submitTime = new Date().toLocaleString('zh-CN', { hour12: false });
+    setProjectQuotationHistory(current => current.map(item => {
+      if (item.id !== quotation.id) return item;
+      const hasPendingApproval = item.approvalFlow.some(node => node.status === 'pending');
+      return {
+        ...item,
+        flowStatus: '审批中',
+        approvalFlow: hasPendingApproval ? item.approvalFlow : [
+          { step: '发起申请', approver: item.operator, status: 'approved', time: submitTime, comment: '' },
+          { step: '总经理审批', approver: '赵总 - 总经理', status: 'pending', time: '', comment: '' },
+        ],
+      };
+    }));
+    Message.success('报价已提交审批');
+  };
+
+  const handleProjectQuotationApprovalDecision = (
+    quotation: LeadQuotationItem,
+    decision: 'approve' | 'reject',
+    comment: string,
+  ) => {
+    const approvalTime = new Date().toLocaleString('zh-CN', { hour12: false });
+
+    setProjectQuotationHistory(current => current.map(item => {
+      if (item.id !== quotation.id) return item;
+      const pendingIndex = item.approvalFlow.findIndex(node => node.status === 'pending');
+      if (pendingIndex < 0) return item;
+      return {
+        ...item,
+        flowStatus: decision === 'reject' ? '已驳回' : '已审核',
+        approvalFlow: item.approvalFlow.map((node, index) => (
+          index === pendingIndex
+            ? { ...node, status: decision === 'approve' ? 'approved' : 'rejected', time: approvalTime, comment }
+            : node
+        )),
+      };
+    }));
+
+    Message.success(decision === 'reject'
+      ? '报价审批已拒绝'
+      : '总经理已审批通过，报价审批已完成');
+  };
+
+  const appendQuotationFiles = (
+    quotation: LeadQuotationItem,
+    field: 'quotationSystemFiles' | 'technicalEvaluationFiles' | 'quotationFiles',
+    files: UploadItem[],
+  ) => {
+    const names = files
+      .map(file => file.name || file.originFile?.name)
+      .filter((name): name is string => Boolean(name));
+    if (!names.length) return;
+
+    setProjectQuotationHistory(current => current.map(item => (
+      item.id === quotation.id
+        ? { ...item, [field]: Array.from(new Set([...(item[field] || []), ...names])) }
+        : item
+    )));
+    Message.success('附件已添加到报价记录');
+  };
+
+  const removeQuotationFile = (
+    quotation: LeadQuotationItem,
+    field: 'quotationSystemFiles' | 'technicalEvaluationFiles' | 'quotationFiles',
+    fileName: string,
+  ) => {
+    setProjectQuotationHistory(current => current.map(item => (
+      item.id === quotation.id
+        ? { ...item, [field]: (item[field] || []).filter(name => name !== fileName) }
+        : item
+    )));
+    Message.success(`已删除：${fileName}`);
+  };
+
+  const handleEditProjectStyleContractVersion = (version: ContractVersion) => {
+    const contract = relatedContracts[0];
+    if (!contract) return;
+    navigate('/contracts/new', {
+      state: {
+        contractEditorReturn: {
+          pathname: `/leads/${id}`,
+          state: { from, activeSideTab: 'contract-records' },
+        },
+        contractEditPrefill: {
+          contractId: contract.id,
+          contractNo: contract.contractNo,
+          leadId: contract.leadId,
+          quoteId: contract.quoteId,
+          createNewVersion: true,
+          formData: version.formData,
+        },
+      },
+    });
+  };
+
+  const displayLeadValue = (value: string | number | null | undefined) => {
+    if (value == null || String(value).trim() === '') return '-';
+    return value;
+  };
+  const leadPhoneOrWechat = Array.from(new Set(
+    [leadInfo.phone, leadInfo.wechat].filter(value => value?.trim()),
+  )).join(' / ') || '-';
+  const leadSummaryItems = [
+    { label: '线索来源', value: displayLeadValue(leadInfo.source) },
+    { label: '客资成本', value: displayLeadValue(leadInfo.customerCost) },
+    { label: '客户称呼', value: displayLeadValue(leadInfo.customerTitle) },
+    { label: '联系电话/微信', value: leadPhoneOrWechat },
+    { label: '创建人', value: displayLeadValue(leadInfo.creator) },
+    { label: '优化师', value: displayLeadValue(leadInfo.optimizer) },
+    { label: '归属人', value: displayLeadValue(leadInfo.owner) },
+    { label: '协助人', value: displayLeadValue(leadInfo.assistant) },
+    {
+      label: '初始信息及需求',
+      value: displayLeadValue(leadInfo.requirement || leadInfo.initialRequirement),
+      fullWidth: true,
+    },
+    { label: '创建时间', value: displayLeadValue(leadInfo.createTime) },
+    { label: '下次跟进时间', value: displayLeadValue(leadInfo.nextFollowTime) },
+  ];
+  const basicTabInfoItems = [
+    { label: '对接主体', value: displayLeadValue(leadInfo.entity) },
+    { label: '线索意向', value: displayLeadValue(leadInfo.intention) },
+    { label: '线索状态', value: displayLeadValue(leadInfo.status) },
+    { label: '客户类型', value: displayLeadValue(leadInfo.customerType) },
+    { label: '客户预算', value: displayLeadValue(leadInfo.customerBudget) },
+    { label: '客户主体', value: displayLeadValue(leadInfo.customer) },
+    { label: '售前群名称', value: displayLeadValue(presalesGroupName) },
+    {
+      label: '原型图链接',
+      value: leadInfo.prototypeLink ? (
+        <a href={leadInfo.prototypeLink} target="_blank" rel="noreferrer">{leadInfo.prototypeLink}</a>
+      ) : '-',
+    },
+    { label: '威客 ID', value: displayLeadValue(leadInfo.witkeyId) },
+    { label: '威客任务编号', value: displayLeadValue(leadInfo.witkeyTaskNo) },
+    { label: '推广关键词', value: displayLeadValue(leadInfo.keyword) },
+    {
+      label: '意向标签',
+      value: leadInfo.tags.length ? (
+        <Space>
+          {leadInfo.tags.map((tag, index) => (
+            <Tag key={index} color="arcoblue" size="small">
+              {tag}
+            </Tag>
+          ))}
+        </Space>
+      ) : '-',
+    },
+    { label: '客户信息备注', value: displayLeadValue(leadInfo.customerNote), span: 2 },
+  ];
+  const technicalEvaluators = employees.map(employee => employee.name);
+
   return (
-    <div>
-      <Row gutter={16}>
-        {/* Left side - Main content */}
-        <Col span={16}>
-          <Card style={{ marginBottom: 16 }}>
-            <Space style={{ marginBottom: 16 }}>
-              <Button key="back" type="text" size="small" icon={<IconLeft />} onClick={() => navigate(-1)}>
-                返回
-              </Button>
-              {from === 'public' && [
-                <Button key="public-claim" type="primary" size="small" icon={<IconUserAdd />} onClick={handleClaim}>
-                  认领
-                </Button>,
-                <Button key="public-edit" size="small" icon={<IconEdit />} onClick={handleEditLead}>
-                  编辑
-                </Button>,
-                <Button key="public-transfer" size="small" icon={<IconSwap />} onClick={handleTransfer}>
-                  转给他人
-                </Button>,
-                <Button key="public-trash" size="small" status="danger" icon={<IconDelete />} onClick={handleMarkAsTrash}>
-                  标记为垃圾
-                </Button>
-              ]}
-              {from === 'trash' && [
-                <Button key="trash-edit" size="small" icon={<IconEdit />} onClick={handleEditLead}>
-                  编辑
-                </Button>,
-                <Button key="trash-transfer" size="small" icon={<IconSwap />} onClick={handleTransfer}>
-                  转给他人
-                </Button>,
-                <Button key="trash-return" size="small" type="primary" icon={<IconReply />} onClick={handleReturnToPublic}>
-                  扔回公海
-                </Button>
-              ]}
-              {from !== 'public' && from !== 'trash' && [
-                <Button key="my-edit" size="small" icon={<IconEdit />} onClick={handleEditLead}>
-                  编辑
-                </Button>,
-                <Button key="my-transfer" size="small" icon={<IconSwap />} onClick={handleTransfer}>
-                  转移给他人
-                </Button>,
-                <Button key="my-return" size="small" icon={<IconReply />} onClick={handleReturnToPublic}>
-                  扔回公海
-                </Button>,
-                <Button key="my-trash" size="small" status="danger" icon={<IconDelete />} onClick={handleMarkAsTrash}>
-                  标记为垃圾
-                </Button>
-              ]}
-            </Space>
+    <div className="lead-detail-page">
+      <div className="lead-detail-layout">
+        <div className="lead-detail-left">
+      <Card className="lead-detail-actions">
+        <Space style={{ width: '100%', flexWrap: 'wrap' }}>
+          <Button key="back" type="text" size="small" icon={<IconLeft />} onClick={() => navigate(-1)}>
+            返回
+          </Button>
+          {from === 'public' && [
+            <Button key="public-claim" type="primary" size="small" icon={<IconUserAdd />} onClick={handleClaim}>
+              认领
+            </Button>,
+            <Button key="public-edit" size="small" icon={<IconEdit />} onClick={handleEditLead}>
+              编辑
+            </Button>,
+            <Button key="public-transfer" size="small" icon={<IconSwap />} onClick={handleTransfer}>
+              转给他人
+            </Button>,
+            <Button key="public-trash" size="small" status="danger" icon={<IconDelete />} onClick={handleMarkAsTrash}>
+              标记为垃圾
+            </Button>
+          ]}
+          {from === 'trash' && [
+            <Button key="trash-edit" size="small" icon={<IconEdit />} onClick={handleEditLead}>
+              编辑
+            </Button>,
+            <Button key="trash-transfer" size="small" icon={<IconSwap />} onClick={handleTransfer}>
+              转给他人
+            </Button>,
+            <Button key="trash-return" size="small" type="primary" icon={<IconReply />} onClick={handleReturnToPublic}>
+              扔回公海
+            </Button>
+          ]}
+          {from === 'closed' && [
+            <Button key="closed-edit" size="small" icon={<IconEdit />} onClick={handleEditLead}>
+              编辑
+            </Button>
+          ]}
+          {from !== 'public' && from !== 'trash' && from !== 'closed' && [
+            <Button key="my-edit" size="small" icon={<IconEdit />} onClick={handleEditLead}>
+              编辑
+            </Button>,
+            <Button key="my-transfer" size="small" icon={<IconSwap />} onClick={handleTransfer}>
+              转移给他人
+            </Button>,
+            <Button key="my-return" size="small" icon={<IconReply />} onClick={handleReturnToPublic}>
+              扔回公海
+            </Button>,
+            <Button key="my-trash" size="small" status="danger" icon={<IconDelete />} onClick={handleMarkAsTrash}>
+              标记为垃圾
+            </Button>
+          ]}
+        </Space>
 
-            {hasLeadReminder ? (
-              <Alert
-                type="warning"
-                closable={false}
-                showIcon
-                content="该线索已超过跟进时间且尚未填写新的跟进记录，请优先处理。"
-              />
-            ) : null}
-
-            <div>
-              <Title heading={5} style={{ marginBottom: 8 }}>基本信息</Title>
-              <Descriptions
-                column={2}
-                labelStyle={{ width: 100 }}
-                data={[
-                  { label: '线索名称', value: leadInfo.name },
-                  { label: '联系方式', value: leadInfo.phone },
-                  { label: '联系人', value: leadInfo.contact },
-                  { label: '微信', value: leadInfo.wechat },
-                  { label: '创建时间', value: leadInfo.createTime },
-                ]}
-              />
+        <Divider style={{ margin: '16px 0' }} />
+        <div className="lead-detail-summary-title">
+          【{displayLeadValue(leadInfo.name)}】
+        </div>
+        <div className="lead-detail-summary-grid">
+          {leadSummaryItems.map((item) => (
+            <div
+              key={item.label}
+              className={`lead-detail-summary-item${item.fullWidth ? ' lead-detail-summary-item-full' : ''}`}
+            >
+              <span className="lead-detail-summary-label">{item.label}：</span>
+              <span className="lead-detail-summary-value">{item.value}</span>
             </div>
-          </Card>
+          ))}
+        </div>
 
-          <Card>
-            <Tabs defaultActiveTab="basic">
-              <TabPane key="basic" title="基础信息">
+        {hasLeadReminder ? (
+          <Alert
+            type="warning"
+            closable={false}
+            showIcon
+            style={{ marginTop: 16 }}
+            content="该线索已超过跟进时间且尚未填写新的跟进记录，请优先处理。"
+          />
+        ) : null}
+      </Card>
+
+        <div className="lead-detail-tab-panel">
+        <div className="lead-detail-tab-bar lead-detail-main-tabs">
+          <Tabs activeTab={activeMainTab} onChange={setActiveMainTab} headerPadding={false}>
+            <TabPane key="basic" title="基础信息" />
+            <TabPane key="customer-communication" title="客户沟通" />
+            {hasApprovedContract ? <TabPane key="contracts-history" title="合同信息" /> : null}
+            {hasApprovedContract ? <TabPane key="payments-invoice" title="回款与发票" /> : null}
+          </Tabs>
+        </div>
+
+        <div className="lead-detail-left-body">
+        {activeMainTab === 'basic' && (
+          <Card className="lead-detail-main-content">
                 <div style={{ padding: '16px 0' }}>
                   <Descriptions
                     column={2}
                     labelStyle={{ width: 120 }}
-                    data={[
-                      { label: '推广关键词', value: leadInfo.keyword },
-                      { label: '客户来源', value: leadInfo.source },
-                      { label: '所属人', value: from === 'public' ? '未认领' : leadInfo.owner },
-                      { label: '客户意向', value: leadInfo.intention },
-                      { label: '跟进状态', value: leadInfo.status },
-                      { label: '最近一次跟进时间', value: leadInfo.lastFollowTime },
-                      { label: '当前主体', value: leadInfo.entity },
-                      {
-                        label: '线索标签',
-                        value: (
-                          <Space>
-                            {leadInfo.tags.map((tag, index) => (
-                              <Tag key={index} color="arcoblue" size="small">
-                                {tag}
-                              </Tag>
-                            ))}
-                          </Space>
-                        )
-                      },
-                      { label: '客户需求', value: leadInfo.requirement },
-                    ]}
+                    data={basicTabInfoItems}
                   />
 
-                  <Divider orientation="left" style={{ marginTop: 24 }}>附件列表</Divider>
-                  <div style={{ padding: '8px 0' }}>
-                    {(() => {
-                      const attachments = [
-                        { id: 'basic-att-1', name: '需求文档.pdf', size: '2.3MB', uploadTime: '2026-04-08 10:30' },
-                        { id: 'basic-att-2', name: '参考案例.jpg', size: '856KB', uploadTime: '2026-04-08 10:32' },
-                      ];
-
-                      return attachments.length > 0 ? (
-                        <Space direction="vertical" style={{ width: '100%' }}>
-                          {attachments.map((file) => (
-                            <div
-                              key={file.id}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '8px 12px',
-                                background: 'var(--color-fill-2)',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'var(--color-fill-3)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'var(--color-fill-2)';
-                              }}
-                            >
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 500, marginBottom: 4 }}>{file.name}</div>
-                                <div style={{ fontSize: '12px', color: 'var(--color-text-3)' }}>
-                                  {file.size} · {file.uploadTime}
-                                </div>
-                              </div>
-                              <Button
-                                type="primary"
-                                size="small"
-                                onClick={() => Message.info(`下载文件: ${file.name}`)}
-                              >
-                                下载
-                              </Button>
-                            </div>
-                          ))}
-                        </Space>
-                      ) : (
-                        <div style={{ color: 'var(--color-text-3)' }}>暂无附件</div>
-                      );
-                    })()}
-                  </div>
-
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 24 }}>
-                    <Divider orientation="left" style={{ margin: 0, flex: 1 }}>客户主体信息</Divider>
+                    <Divider orientation="left" style={{ margin: 0, flex: 1, minWidth: 0, width: 'auto' }}>客户主体信息</Divider>
                     <Button size="small" type="primary" onClick={() => setBindCustomerVisible(true)} style={{ marginLeft: 16 }}>
                       绑定客户主体
                     </Button>
@@ -725,218 +942,78 @@ export function LeadDetail() {
                     ]}
                   />
                 </div>
-              </TabPane>
-
-              <TabPane key="contracts" title={`合同记录 (${contracts.length})`}>
-                <div style={{ padding: '16px 0' }}>
-                  {/* 合同金额汇总 */}
-                  <Card style={{ marginBottom: 16 }}>
-                    <div style={{ marginBottom: 12, fontWeight: 600, fontSize: 15 }}>合同金额汇总</div>
-                    <div style={{
-                      background: 'linear-gradient(135deg, rgba(var(--primary-1), 0.3) 0%, rgba(var(--primary-2), 0.5) 100%)',
-                      borderRadius: 8,
-                      padding: '20px',
-                      border: '1px solid var(--color-border-1)'
-                    }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 8 }}>合同总额</div>
-                          <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(var(--primary-6))' }}>¥{contractSummary.totalAmount}</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 8 }}>到账金额</div>
-                          <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(var(--success-6))' }}>¥{contractSummary.receivedAmount}</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 8 }}>待收款金额</div>
-                          <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(var(--orange-6))' }}>¥{contractSummary.pendingAmount}</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 8 }}>已开票金额</div>
-                          <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(var(--arcoblue-6))' }}>¥{contractSummary.invoicedAmount}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-
-                  {/* 成本费用汇总 */}
-                  <Card style={{ marginBottom: 16 }}>
-                    <div style={{ marginBottom: 12, fontWeight: 600, fontSize: 15 }}>成本费用汇总</div>
-                    <div style={{
-                      background: 'linear-gradient(135deg, rgba(var(--orange-1), 0.3) 0%, rgba(var(--orange-2), 0.5) 100%)',
-                      borderRadius: 8,
-                      padding: '20px',
-                      border: '1px solid var(--color-border-1)'
-                    }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 8 }}>研发成本</div>
-                          <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(var(--orange-6))' }}>¥{contractSummary.rdCost}</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 8 }}>商务成本</div>
-                          <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(var(--orange-6))' }}>¥{contractSummary.businessCost}</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 8 }}>其他成本</div>
-                          <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(var(--orange-6))' }}>¥{contractSummary.otherCost}</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 8 }}>外包成本</div>
-                          <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(var(--orange-6))' }}>¥{contractSummary.outsourcingCost}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-
-                  {/* 合同详细信息 */}
-                </div>
-              </TabPane>
-
-              <TabPane key="payments" title={`回款与发票 (${paymentRecords.length})`}>
-                <div style={{ padding: '16px 0' }}>
-                  {paymentPeriods === 0 ? (
-                    <Card>
-                      <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                        <div style={{ marginBottom: 16, fontSize: 15, color: 'var(--color-text-2)' }}>
-                          请先初始化回款期数
-                        </div>
-                        <Button type="primary" onClick={handleResetPaymentPeriods}>
-                          初始化回款期数
-                        </Button>
-                      </div>
-                    </Card>
-                  ) : (
-                    <Space direction="vertical" style={{ width: '100%' }} size="medium">
-                      {/* 财务汇总 */}
-                      <Card>
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(4, 1fr)',
-                          gap: '20px',
-                          padding: '10px 0'
-                        }}>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 8 }}>合同总额</div>
-                            <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(var(--arcoblue-6))' }}>¥510,000</div>
-                          </div>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 8 }}>到账金额</div>
-                            <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(var(--success-6))' }}>¥204,000</div>
-                          </div>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 8 }}>待收款金额</div>
-                            <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(var(--warning-6))' }}>¥306,000</div>
-                          </div>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 8 }}>已开票金额</div>
-                            <div style={{ fontSize: 24, fontWeight: 700, color: 'rgb(var(--purple-6))' }}>¥216,240</div>
-                          </div>
-                        </div>
-                      </Card>
-
-                      {/* 回款时间轴 */}
-                      <Card 
-                        title="回款计划与实际"
-                        extra={
-                          <Space size="small">
-                            <Button size="small" onClick={handleAddPaymentPeriod}>
-                              添加期数
-                            </Button>
-                            <Button size="small" onClick={handleResetPaymentPeriods}>
-                              重设期数
-                            </Button>
-                          </Space>
-                        }
-                      >
-                        <Timeline>
-                          {paymentRecords.map((payment) => (
-                            <Timeline.Item
-                              key={payment.id}
-                              dot={
-                                <div style={{
-                                  width: 12,
-                                  height: 12,
-                                  borderRadius: '50%',
-                                  background: payment.status === '已到账' ? 'rgb(var(--success-6))' : 'rgb(var(--warning-6))',
-                                  border: '2px solid white',
-                                  boxShadow: '0 0 0 2px currentColor'
-                                }} />
-                              }
-                            >
-                              <div style={{ paddingBottom: 20 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                                  <span style={{ fontWeight: 600, fontSize: 15 }}>{payment.period} - {payment.name}</span>
-                                  <Tag color={payment.status === '已到账' ? 'green' : 'orange'} size="small">
-                                    {payment.status}
-                                  </Tag>
-                                  {payment.invoiceStatus && (
-                                    <Tag color={payment.invoiceStatus === '已开票' ? 'arcoblue' : 'gray'} size="small">
-                                      {payment.invoiceStatus}
-                                    </Tag>
-                                  )}
-                                </div>
-
-                                <div style={{
-                                  background: 'var(--color-fill-2)',
-                                  borderRadius: 6,
-                                  padding: '12px 16px',
-                                  display: 'grid',
-                                  gridTemplateColumns: 'repeat(2, 1fr)',
-                                  gap: '12px',
-                                  fontSize: 13
-                                }}>
-                                  <div>
-                                    <span style={{ color: 'var(--color-text-3)' }}>计划回款：</span>
-                                    <span style={{ fontWeight: 600, color: 'rgb(var(--arcoblue-6))' }}>¥{payment.expectedAmount}</span>
-                                    <span style={{ color: 'var(--color-text-3)', marginLeft: 8 }}>({payment.expectedDate})</span>
-                                  </div>
-                                  <div>
-                                    <span style={{ color: 'var(--color-text-3)' }}>实际回款：</span>
-                                    <span style={{ fontWeight: 600, color: 'rgb(var(--success-6))' }}>
-                                      {payment.actualDate ? `¥${payment.expectedAmount}` : '-'}
-                                    </span>
-                                    {payment.actualDate && (
-                                      <span style={{ color: 'var(--color-text-3)', marginLeft: 8 }}>({payment.actualDate})</span>
-                                    )}
-                                    {payment.overdueDays > 0 && (
-                                      <Tag color="red" size="small" style={{ marginLeft: 8 }}>逾期{payment.overdueDays}天</Tag>
-                                    )}
-                                  </div>
-                                  <div>
-                                    <span style={{ color: 'var(--color-text-3)' }}>收款方式：</span>
-                                    <span style={{ fontWeight: 500 }}>{payment.paymentMethod}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </Timeline.Item>
-                          ))}
-                        </Timeline>
-                      </Card>
-                    </Space>
-                  )}
-                </div>
-              </TabPane>
-
-              <TabPane key="deprecated" title={`已废弃记录 (3)`}>
-                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-3)' }}>
-                  暂无废弃记录
-                </div>
-              </TabPane>
-
-              <TabPane key="documents" title={`项目文档 (4)`}>
-                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-3)' }}>
-                  暂无项目文档
-                </div>
-              </TabPane>
-            </Tabs>
           </Card>
-        </Col>
+        )}
 
-        {/* Right side - Follow-up records and related tabs */}
-        <Col span={8}>
-          <Tabs activeTab={rightTabKey} onChange={setRightTabKey} type="card-gutter">
-            <TabPane key="follow" title={`跟进记录 (${followHistory.length})`}>
+        {activeMainTab === 'customer-communication' && (
+          <LeadCustomerCommunicationPanel
+            groupName={presalesGroupName}
+            leadId={id || ''}
+            leadName={leadInfo.name}
+            assignees={employees.filter((employee) => employee.employmentStatus !== '离职').map((employee) => ({ id: employee.id, name: employee.name }))}
+            defaultAssigneeId={employees.find((employee) => employee.name === leadInfo.owner)?.id}
+          />
+        )}
+
+        {hasApprovedContract && activeMainTab === 'contracts-history' && (
+          <div className="lead-detail-main-content">
+              <Card bordered={false}>
+                <Space direction="vertical" style={{ width: '100%' }} size="small">
+                  <LeadFinalContractPanel contract={approvedContract} projectLayout projectFullInfo />
+                </Space>
+              </Card>
+          </div>
+        )}
+
+        {hasApprovedContract && activeMainTab === 'payments-invoice' && (
+          <div className="lead-detail-main-content">
+              <Card bordered={false}>
+                <LeadPaymentInvoicePanel
+                  contractAmount={approvedContract.current.totalAmount}
+                  projectMode
+                  customerInvoiceInfo={{
+                    customerName: approvedContract.current.customerName,
+                    taxpayerId: approvedContract.current.customerTaxNo,
+                    address: approvedContract.current.customerAddress,
+                    phone: approvedContract.current.customerPhone,
+                    bankName: approvedContract.current.bankName,
+                    bankAccount: approvedContract.current.bankAccount,
+                    recipientName: approvedContract.current.customerContact,
+                    recipientPhone: approvedContract.current.customerPhone,
+                    recipientEmail: approvedContract.current.customerEmail,
+                  }}
+                />
+              </Card>
+          </div>
+        )}
+
+        </div>
+        </div>
+      </div>
+
+      <div className="lead-detail-right">
+        <div className="lead-detail-tab-panel">
+        <div className="lead-detail-tab-bar lead-detail-side-tabs">
+          <Tabs
+            activeTab={activeSideTab}
+            onChange={setActiveSideTab}
+            headerPadding={false}
+            size="small"
+          >
+            <TabPane key="follow" title="跟进" />
+            <TabPane key="quotation" title="报价" />
+            <TabPane key="feature-list" title="功能清单" />
+            <TabPane key="contract-records" title="合同记录" />
+            <TabPane key="demo" title="演示" />
+            <TabPane key="documents" title="资料" />
+            <TabPane key="travel" title="出差" />
+            <TabPane key="reimbursement" title="报销" />
+          </Tabs>
+        </div>
+
+        <div className="lead-detail-right-body">
+        {activeSideTab === 'follow' && (
+          <div className="lead-detail-side-content">
               <Card
                 bordered={false}
                 extra={
@@ -1007,225 +1084,129 @@ export function LeadDetail() {
                   ))}
                 </Timeline>
               </Card>
-            </TabPane>
+          </div>
+        )}
 
-            <TabPane key="quotation" title={`报价 (${quotationHistory.length})`}>
-              <Card
-                bordered={false}
-                extra={
-                  <Button type="primary" size="small" icon={<IconPlus />} onClick={() => setQuotationEditVisible(true)}>
-                    报价
-                  </Button>
-                }
-              >
-                <Space direction="vertical" style={{ width: '100%' }} size="medium">
-                  {quotationHistory.map((item) => (
-                    <div key={item.id} style={{
-                      padding: '20px',
-                      background: 'linear-gradient(135deg, var(--color-fill-1) 0%, var(--color-fill-2) 100%)',
-                      borderRadius: 8,
-                      border: '1px solid var(--color-border-2)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4, color: 'var(--color-text-1)' }}>{item.name}</div>
-                          <ArcoText type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>生成时间：{item.createTime}</ArcoText>
-                          <Space size="small">
-                            <Tag color={item.status === '已报价' ? 'green' : 'orange'}>{item.status}</Tag>
-                            <Tag color={item.flowStatus === '已审核' ? 'green' : item.flowStatus === '已驳回' ? 'red' : 'orange'}>{item.flowStatus}</Tag>
-                          </Space>
-                        </div>
-                        <Space size="small">
-                          <Button type="text" size="small" icon={<IconEdit />} onClick={() => setQuotationEditVisible(true)} />
-                          <Button type="text" size="small" icon={<IconDelete />} status="danger" onClick={() => Message.info('删除报价单')} />
-                        </Space>
-                      </div>
+        {activeSideTab === 'contract-records' && (
+          <div className="lead-detail-side-content">
+            <LeadContractHistoryPanel
+              contract={relatedContracts[0]}
+              onCreateContract={handleCreateContract}
+              onContractClick={handleViewContractDetail}
+              hideHistorySummary
+              hideAddVersion
+              hideVersionChangeTypes
+              hideEmptyApprovalRecords
+              hideContractDetailAction
+              projectCompactVersionLayout
+              hideFinalArchiveUntilApproved
+              approvalOverviewAtTop
+              approvalMode="general-manager"
+              onEditVersion={handleEditProjectStyleContractVersion}
+            />
+          </div>
+        )}
 
-                      <div style={{
-                        background: 'var(--color-bg-2)',
-                        borderRadius: 6,
-                        padding: '16px',
-                        marginBottom: 16,
-                        border: '1px solid var(--color-border-1)'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-                          <div style={{ textAlign: 'center', flex: 1 }}>
-                            <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>报价金额</div>
-                            <div style={{ fontSize: 22, fontWeight: 700, color: 'rgb(var(--primary-6))' }}>¥{item.amount}</div>
-                          </div>
-                          <div style={{ width: 1, height: 40, background: 'var(--color-border-2)' }}></div>
-                          <div style={{ textAlign: 'center', flex: 1 }}>
-                            <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>预计成本</div>
-                            <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-text-2)' }}>¥{item.cost}</div>
-                          </div>
-                          <div style={{ width: 1, height: 40, background: 'var(--color-border-2)' }}></div>
-                          <div style={{ textAlign: 'center', flex: 1 }}>
-                            <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>预计利润</div>
-                            <div style={{ fontSize: 18, fontWeight: 600, color: 'rgb(var(--success-6))' }}>¥{item.profit}</div>
-                          </div>
-                        </div>
-                      </div>
+        {activeSideTab === 'quotation' && (
+          <div className="lead-detail-side-content">
+            <LeadQuotationHistoryPanel
+              quotations={projectQuotationHistory}
+              projectLayout
+              showProjectEditAction
+              alwaysExpanded
+              hideQuotationUpload
+              approvalOverviewAtTop
+              onCreate={openQuotationConfig}
+              onEdit={openQuotationEditor}
+              onDelete={() => Message.info('删除报价单')}
+              onSubmitApproval={submitProjectQuotationApproval}
+              onApprovalDecision={handleProjectQuotationApprovalDecision}
+              onUploadFiles={appendQuotationFiles}
+              onRemoveFile={removeQuotationFile}
+            />
+          </div>
+        )}
 
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '12px 24px',
-                        marginBottom: 12,
-                        fontSize: 13
-                      }}>
-                        <div style={{ color: 'var(--color-text-2)' }}>
-                          <span style={{ color: 'var(--color-text-3)' }}>报价主体：</span>
-                          <span style={{ fontWeight: 500 }}>{item.entity}</span>
-                        </div>
-                        <div style={{ color: 'var(--color-text-2)' }}>
-                          <span style={{ color: 'var(--color-text-3)' }}>报价人：</span>
-                          <span style={{ fontWeight: 500 }}>{item.operator}</span>
-                        </div>
-                        <div style={{ color: 'var(--color-text-2)' }}>
-                          <span style={{ color: 'var(--color-text-3)' }}>预计周期：</span>
-                          <span style={{ fontWeight: 500 }}>{item.period}</span>
-                        </div>
-                      </div>
+        {activeSideTab === 'feature-list' && (
+          <div className="lead-detail-side-content">
+            <LeadFeatureListPanel value={leadFeatureList} onChange={setLeadFeatureList} />
+          </div>
+        )}
 
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        paddingTop: 12,
-                        borderTop: '1px solid var(--color-border-2)'
-                      }}>
-                        <div style={{ color: 'var(--color-text-2)', fontSize: 13 }}>
-                          <span style={{ color: 'var(--color-text-3)' }}>报价文件：</span>
-                          <span
-                            style={{
-                              fontWeight: 500,
-                              color: 'var(--primary)',
-                              cursor: 'pointer',
-                              padding: '2px 4px',
-                              borderRadius: 4,
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                            onClick={() => Message.info(`下载文件: ${item.file}`)}
-                          >
-                            {item.file}
+        {activeSideTab === 'demo' && (
+          <div className="lead-detail-side-content">
+            {useProjectStyleSideTabs ? <ProjectDemoPanel /> : <Card
+              bordered={false}
+              extra={
+                <Button type="primary" size="small" icon={<IconPlus />} onClick={handleAddDemo}>
+                  新增记录
+                </Button>
+              }
+            >
+              {demoRecords.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '32px 16px 48px', color: 'var(--color-text-3)' }}>
+                  暂无演示记录
+                </div>
+              ) : (
+                <Timeline>
+                  {demoRecords.map((record, index) => (
+                    <Timeline.Item
+                      key={record.id}
+                      dotColor={index === 0 ? 'rgb(var(--primary-6))' : 'var(--color-border-2)'}
+                    >
+                      <div style={{ marginBottom: 12, minWidth: 0 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 12,
+                            marginBottom: 8,
+                          }}
+                        >
+                          <span style={{ fontWeight: 600, color: 'var(--color-text-1)' }}>
+                            {record.name}
                           </span>
+                          <Tag color="arcoblue" size="small" style={{ flexShrink: 0 }}>
+                            {record.type}
+                          </Tag>
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--color-text-2)', marginBottom: 6, wordBreak: 'break-all' }}>
+                          <span style={{ color: 'var(--color-text-3)' }}>网址：</span>
+                          <a href={record.url} target="_blank" rel="noreferrer">
+                            {record.url}
+                          </a>
+                        </div>
+                        {record.description && (
+                          <div style={{ color: 'var(--color-text-1)', lineHeight: '20px', marginBottom: 8 }}>
+                            {record.description}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 12, color: 'var(--color-text-3)', lineHeight: '20px' }}>
+                          <div>上传人：{record.uploader}</div>
+                          <div>上传时间：{record.uploadTime}</div>
                         </div>
                       </div>
-
-                      {/* 审批流程展示 */}
-                      <div style={{ marginTop: 16 }}>
-                        <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>审批追踪</div>
-                        <div style={{
-                          background: 'var(--color-bg-2)',
-                          borderRadius: 4,
-                          padding: '12px',
-                          border: '1px solid var(--color-border-1)'
-                        }}>
-                          {item.approvalFlow.map((node: any, index: number) => (
-                            <div key={`quotation-${item.id}-${index}`} style={{ position: 'relative', paddingLeft: 24 }}>
-                              {/* 连接线 */}
-                              {index < item.approvalFlow.length - 1 && (
-                                <div style={{
-                                  position: 'absolute',
-                                  left: 7,
-                                  top: 20,
-                                  bottom: -8,
-                                  width: 2,
-                                  background: node.status === 'approved' ? 'rgb(var(--green-6))' : 'var(--color-border-2)',
-                                }}></div>
-                              )}
-
-                              <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: index < item.approvalFlow.length - 1 ? 12 : 0 }}>
-                                {/* 状态灯 */}
-                                <div style={{
-                                  position: 'absolute',
-                                  left: 0,
-                                  width: 16,
-                                  height: 16,
-                                  borderRadius: '50%',
-                                  border: '2px solid',
-                                  borderColor: node.status === 'approved' ? 'rgb(var(--green-6))' :
-                                              node.status === 'pending' ? 'rgb(var(--orange-6))' :
-                                              node.status === 'rejected' ? 'rgb(var(--red-6))' :
-                                              'var(--color-border-3)',
-                                  background: node.status === 'approved' ? 'rgb(var(--green-6))' :
-                                             node.status === 'pending' ? 'rgb(var(--orange-6))' :
-                                             node.status === 'rejected' ? 'rgb(var(--red-6))' :
-                                             'var(--color-bg-2)',
-                                  animation: node.status === 'pending' ? 'pulse 2s infinite' : 'none',
-                                }}></div>
-
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-1)' }}>
-                                      {node.step}
-                                    </span>
-                                    <Tag
-                                      color={node.status === 'approved' ? 'green' :
-                                            node.status === 'pending' ? 'orange' :
-                                            node.status === 'rejected' ? 'red' : 'default'}
-                                      size="small"
-                                    >
-                                      {node.step === '发起申请' && node.status === 'approved' ? '已申请' :
-                                       node.status === 'approved' ? '已通过' :
-                                       node.status === 'pending' ? '待处理' :
-                                       node.status === 'rejected' ? '已驳回' : '未到达'}
-                                    </Tag>
-                                  </div>
-
-                                  <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 2 }}>
-                                    {node.step === '发起申请' ? '申请人' : '审批人'}：{node.approver}
-                                  </div>
-
-                                  {node.time && (
-                                    <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 4 }}>
-                                      操作时间：{node.time}
-                                    </div>
-                                  )}
-
-                                  {/* 驳回理由高亮卡片 */}
-                                  {node.status === 'rejected' && node.comment && (
-                                    <div style={{
-                                      marginTop: 6,
-                                      padding: '8px 10px',
-                                      background: 'rgb(var(--red-1))',
-                                      border: '1px solid rgb(var(--red-3))',
-                                      borderRadius: 4,
-                                    }}>
-                                      <div style={{ fontSize: 12, color: 'rgb(var(--red-7))', fontWeight: 600, marginBottom: 4 }}>
-                                        ⚠️ 驳回理由
-                                      </div>
-                                      <div style={{ fontSize: 12, color: 'rgb(var(--red-6))' }}>
-                                        {node.comment}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* 普通审批意见 */}
-                                  {node.status === 'approved' && node.comment && (
-                                    <div style={{ fontSize: 12, color: 'var(--color-text-3)', fontStyle: 'italic' }}>
-                                      意见：{node.comment}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                    </Timeline.Item>
                   ))}
-                </Space>
-              </Card>
-            </TabPane>
+                </Timeline>
+              )}
+            </Card>}
+          </div>
+        )}
 
-            <TabPane key="travel" title={`出差申请 (${travelApplications.length})`}>
+        {activeSideTab === 'documents' && (
+          <div className="lead-detail-side-content">
+            <DocumentUploadPanel />
+          </div>
+        )}
+
+        {activeSideTab === 'travel' && (
+          <div className="lead-detail-side-content">
               <Card
                 bordered={false}
                 extra={
-                  <Button type="primary" size="small" icon={<IconPlus />} onClick={() => setTravelModalVisible(true)}>
+                  <Button type="primary" size="small" icon={<IconPlus />} onClick={() => setApprovalLinkType('travel')}>
                     出差
                   </Button>
                 }
@@ -1403,13 +1384,15 @@ export function LeadDetail() {
                   ))}
                 </Space>
               </Card>
-            </TabPane>
+          </div>
+        )}
 
-            <TabPane key="reimbursement" title={`报销申请 (${reimbursementApplications.length})`}>
+        {activeSideTab === 'reimbursement' && (
+          <div className="lead-detail-side-content">
               <Card
                 bordered={false}
                 extra={
-                  <Button type="primary" size="small" icon={<IconPlus />} onClick={() => setReimbursementModalVisible(true)}>
+                  <Button type="primary" size="small" icon={<IconPlus />} onClick={() => setApprovalLinkType('reimbursement')}>
                     报销
                   </Button>
                 }
@@ -1614,296 +1597,13 @@ export function LeadDetail() {
                   ))}
                 </Space>
               </Card>
-            </TabPane>
+          </div>
+        )}
 
-            <TabPane key="payments-invoice" title={`回款与发票 (${paymentRecords.length})`}>
-              <Card
-                bordered={false}
-                extra={
-                  paymentPeriods > 0 && (
-                    <Button
-                      type="primary"
-                      size="small"
-                      onClick={handleResetPaymentPeriods}
-                    >
-                      设置期数
-                    </Button>
-                  )
-                }
-              >
-                {paymentPeriods === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '30px 0' }}>
-                    <div style={{ marginBottom: 12, fontSize: 14, color: 'var(--color-text-2)' }}>
-                      请先初始化回款期数
-                    </div>
-                    <Button type="primary" onClick={handleResetPaymentPeriods}>
-                      初始化回款期数
-                    </Button>
-                  </div>
-                ) : (
-                  <Space direction="vertical" style={{ width: '100%' }} size="small">
-                    {paymentRecords.map((payment) => (
-                      <div key={payment.id} style={{
-                        background: 'var(--color-fill-2)',
-                        borderRadius: 6,
-                        padding: '12px',
-                        border: '1px solid var(--color-border-2)'
-                      }}>
-                        <div style={{ marginBottom: 10 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                            <div style={{ fontWeight: 600, fontSize: 14 }}>
-                              {payment.period} - {payment.name}
-                            </div>
-                            <Tag color={payment.status === '已到账' ? 'green' : 'orange'} size="small">
-                              {payment.status}
-                            </Tag>
-                          </div>
-
-                          {/* 回款信息 */}
-                          <div style={{
-                            background: 'linear-gradient(135deg, rgba(var(--success-1), 0.3) 0%, rgba(var(--success-2), 0.5) 100%)',
-                            borderRadius: 6,
-                            padding: '12px',
-                            marginBottom: 10,
-                            border: '1px solid var(--color-border-1)'
-                          }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                              <div style={{ fontWeight: 600, fontSize: 13 }}>回款信息</div>
-                              <Button size="mini" icon={<IconEdit />} onClick={() => setPaymentEditVisible(true)}>
-                                编辑
-                              </Button>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: 10 }}>
-                              <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 3 }}>应回款金额</div>
-                                <div style={{ fontSize: 16, fontWeight: 700, color: 'rgb(var(--success-6))' }}>¥{payment.expectedAmount}</div>
-                              </div>
-                              <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 3 }}>预计回款日期</div>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-1)' }}>
-                                  {payment.expectedDate}
-                                  {payment.overdueDays > 0 && (
-                                    <Tag color="red" size="small" style={{ marginLeft: 6 }}>逾期{payment.overdueDays}天</Tag>
-                                  )}
-                                </div>
-                              </div>
-                              <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 3 }}>实际回款金额</div>
-                                <div style={{ fontSize: 16, fontWeight: 700, color: 'rgb(var(--success-6))' }}>
-                                  {payment.actualDate ? `¥${payment.expectedAmount}` : '-'}
-                                </div>
-                              </div>
-                            </div>
-                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--color-border-2)', display: 'flex', gap: '20px', alignItems: 'center', fontSize: 12 }}>
-                              <div style={{ color: 'var(--color-text-2)' }}>
-                                <span style={{ color: 'var(--color-text-3)' }}>收款方式：</span>
-                                <span style={{ fontWeight: 500 }}>{payment.paymentMethod || '-'}</span>
-                              </div>
-                              {payment.voucher && (
-                                <div style={{ color: 'var(--color-text-2)' }}>
-                                  <span style={{ color: 'var(--color-text-3)' }}>回款凭证：</span>
-                                  <span
-                                    style={{
-                                      color: 'var(--primary)',
-                                      cursor: 'pointer',
-                                      padding: '2px 4px',
-                                      borderRadius: 4,
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                    onClick={() => Message.info(`查看凭证: ${payment.voucher}`)}
-                                  >
-                                    {payment.voucher}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* 发票信息 */}
-                          <div style={{
-                            background: 'linear-gradient(135deg, rgba(var(--arcoblue-1), 0.3) 0%, rgba(var(--arcoblue-2), 0.5) 100%)',
-                            borderRadius: 6,
-                            padding: '12px',
-                            border: '1px solid var(--color-border-1)'
-                          }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                              <div style={{ fontWeight: 600, fontSize: 13 }}>发票信息</div>
-                              <Button size="mini" icon={<IconEdit />} onClick={() => setInvoiceEditVisible(true)}>
-                                编辑
-                              </Button>
-                            </div>
-                            <div style={{
-                              display: 'grid',
-                              gridTemplateColumns: 'repeat(3, 1fr)',
-                              gap: '10px',
-                              fontSize: 12,
-                              color: 'var(--color-text-2)',
-                              textAlign: 'center'
-                            }}>
-                              <div>
-                                <div style={{ color: 'var(--color-text-3)', marginBottom: 3 }}>开票状态</div>
-                                <Tag color={payment.invoiceStatus === '已开票' ? 'arcoblue' : 'orange'} size="small">
-                                  {payment.invoiceStatus}
-                                </Tag>
-                              </div>
-                              <div>
-                                <div style={{ color: 'var(--color-text-3)', marginBottom: 3 }}>开票税率</div>
-                                <div style={{ fontWeight: 600, color: 'rgb(var(--arcoblue-6))', fontSize: 13 }}>{payment.taxRate}</div>
-                              </div>
-                              <div>
-                                <div style={{ color: 'var(--color-text-3)', marginBottom: 3 }}>开票税额</div>
-                                <div style={{ fontWeight: 700, color: 'rgb(var(--arcoblue-6))', fontSize: 13 }}>¥{payment.taxAmount}</div>
-                              </div>
-                            </div>
-                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--color-border-2)', display: 'flex', gap: '20px', alignItems: 'center', fontSize: 12 }}>
-                              <div style={{ color: 'var(--color-text-2)' }}>
-                                <span style={{ color: 'var(--color-text-3)' }}>开票日期：</span>
-                                <span style={{ fontWeight: 500 }}>{payment.invoiceDate || '-'}</span>
-                              </div>
-                              {payment.invoiceVoucher && (
-                                <div style={{ color: 'var(--color-text-2)' }}>
-                                  <span style={{ color: 'var(--color-text-3)' }}>发票凭证：</span>
-                                  <span
-                                    style={{
-                                      color: 'var(--primary)',
-                                      cursor: 'pointer',
-                                      padding: '2px 4px',
-                                      borderRadius: 4,
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-fill-1)'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                    onClick={() => Message.info(`查看发票: ${payment.invoiceVoucher}`)}
-                                  >
-                                    {payment.invoiceVoucher}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </Space>
-                )}
-              </Card>
-            </TabPane>
-
-            <TabPane key="contracts-history" title={`合同记录 (${contracts.length})`}>
-              <Card
-                bordered={false}
-                title="合同信息"
-                extra={
-                  <Button
-                    type="primary"
-                    icon={<IconPlus />}
-                    size="small"
-                    onClick={() => {
-                      // 报价审批软提醒：找最近一份"已审批通过"的报价；没有就提示
-                      const latestApproved = quotationHistory.find(
-                        (q) => q.flowStatus === '已审核' && q.status === '已报价',
-                      );
-                      const baseUrl = `/contracts/new?leadId=${id ?? ''}`;
-                      if (!latestApproved) {
-                        Modal.confirm({
-                          title: '尚无已审批通过的报价单',
-                          content: '建议先完成报价审批后再建立合同，是否继续？',
-                          onOk: () => navigate(baseUrl),
-                        });
-                      } else {
-                        navigate(`${baseUrl}&quoteId=${latestApproved.id}`);
-                      }
-                    }}
-                  >
-                    新建合同
-                  </Button>
-                }
-              >
-                <Space direction="vertical" style={{ width: '100%' }} size="small">
-                  {contracts.map((contract) => (
-                    <div key={contract.id} style={{
-                      padding: '12px',
-                      background: 'var(--color-fill-2)',
-                      borderRadius: 6,
-                      border: '1px solid var(--color-border-2)'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>{contract.name}</div>
-                          <div style={{ fontSize: 12, color: 'var(--color-text-3)' }}>合同编号：{contract.contractNo}</div>
-                        </div>
-                        <Tag color={contract.status === '执行中' ? 'arcoblue' : 'orange'} size="small">{contract.status}</Tag>
-                      </div>
-
-                      <div style={{
-                        background: 'var(--color-bg-2)',
-                        borderRadius: 4,
-                        padding: '10px',
-                        marginBottom: 10,
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '8px',
-                        textAlign: 'center'
-                      }}>
-                        <div>
-                          <div style={{ fontSize: 11, color: 'var(--color-text-3)', marginBottom: 3 }}>合同金额</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: 'rgb(var(--primary-6))' }}>¥{contract.amount}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, color: 'var(--color-text-3)', marginBottom: 3 }}>回款金额</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: 'rgb(var(--success-6))' }}>¥{contract.receivedAmount}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, color: 'var(--color-text-3)', marginBottom: 3 }}>成本合计</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: 'rgb(var(--orange-6))' }}>¥{contract.totalCost}</div>
-                        </div>
-                      </div>
-
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr',
-                        gap: '6px',
-                        fontSize: 12,
-                        color: 'var(--color-text-2)'
-                      }}>
-                        <div>
-                          <span style={{ color: 'var(--color-text-3)' }}>起始日：</span>
-                          <span style={{ fontWeight: 500 }}>{contract.startDate}</span>
-                        </div>
-                        <div>
-                          <span style={{ color: 'var(--color-text-3)' }}>合同主体：</span>
-                          <span style={{ fontWeight: 500 }}>{contract.contractEntity}</span>
-                        </div>
-                        <div>
-                          <span style={{ color: 'var(--color-text-3)' }}>签约主体：</span>
-                          <span style={{ fontWeight: 500 }}>{contract.signingEntity}</span>
-                        </div>
-                        <div>
-                          <span style={{ color: 'var(--color-text-3)' }}>付款方式：</span>
-                          <span style={{ fontWeight: 500 }}>{contract.paymentMethod}</span>
-                        </div>
-                        <div>
-                          <span style={{ color: 'var(--color-text-3)' }}>签约人：</span>
-                          <span style={{ fontWeight: 500 }}>{contract.signer}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ paddingTop: 8, marginTop: 8, borderTop: '1px solid var(--color-border-2)' }}>
-                        <Space size="small">
-                          <Button size="mini" type="primary">详情</Button>
-                          <Button size="mini">编辑</Button>
-                          <Button size="mini">审批</Button>
-                          <Button size="mini" status="danger">终止</Button>
-                        </Space>
-                      </div>
-                    </div>
-                  ))}
-                </Space>
-              </Card>
-            </TabPane>
-          </Tabs>
-        </Col>
-      </Row>
+        </div>
+        </div>
+      </div>
+      </div>
 
       <Modal
         title="添加跟进记录"
@@ -2063,6 +1763,14 @@ export function LeadDetail() {
             <Grid.Col span={24}>
               <FormItem label="线索名称" field="name" rules={[{ required: true, message: '请输入线索名称' }]}>
                 <Input placeholder="请输入线索名称" />
+              </FormItem>
+            </Grid.Col>
+          </Grid.Row>
+
+          <Grid.Row gutter={16}>
+            <Grid.Col span={24}>
+              <FormItem label="售前群名称" field="presalesGroupName">
+                <Input placeholder="请输入微信售前群名称，用于读取客户沟通记录" maxLength={100} />
               </FormItem>
             </Grid.Col>
           </Grid.Row>
@@ -2263,763 +1971,212 @@ export function LeadDetail() {
         </Form>
       </Modal>
 
-      <Modal
-        title="编辑报价单"
-        visible={quotationEditVisible}
-        onOk={() => {
-          quotationForm.validate().then(() => {
-            Message.success('报价单更新成功');
-            setQuotationEditVisible(false);
-            quotationForm.resetFields();
-          }).catch(() => {
-            // 验证失败，不做处理，表单会自动显示错误信息
-          });
-        }}
-        onCancel={() => {
-          setQuotationEditVisible(false);
-          quotationForm.resetFields();
-        }}
-        style={{ width: 680 }}
-      >
-        <Form form={quotationForm} layout="vertical">
-          
+      <>
+        <ProjectQuotationConfigurator
+          visible={quotationConfigVisible}
+          initialConfig={quotationConfigDraft}
+          onCancel={closeQuotationConfig}
+          onNext={continueQuotationConfig}
+        />
 
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem
-                label="报价状态"
-                field="status"
-                rules={[{ required: true, message: '请选择报价状态' }]}
-              >
-                <Select placeholder="请选择">
-                  <Select.Option value="已报价">已报价</Select.Option>
-                  <Select.Option value="未报价">未报价</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="预计周期" field="period">
-                <Input placeholder="例如：3个月" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="报价人" field="operator">
-                <Select placeholder="请选择报价人">
-                  <Select.Option value="张三">张三</Select.Option>
-                  <Select.Option value="李四">李四</Select.Option>
-                  <Select.Option value="王五">王五</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="报价主体" field="entity">
-                <Select placeholder="请选择报价主体">
-                  <Select.Option value="中科软艺">中科软艺</Select.Option>
-                  <Select.Option value="软艺信息">软艺信息</Select.Option>
-                  <Select.Option value="中科集团">中科集团</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <Grid.Row gutter={16}>
-            <Grid.Col span={8}>
-              <FormItem label="报价金额" field="amount">
-                <Input placeholder="单位：元" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <FormItem label="预计成本" field="cost">
-                <Input placeholder="单位：元" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <FormItem label="预计利润" field="profit">
-                <Input placeholder="单位：元" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>审批流程</div>
-            <div style={{
-              background: 'var(--color-fill-2)',
-              borderRadius: 6,
-              padding: '12px 16px',
-              border: '1px solid var(--color-border-2)'
-            }}>
-              <Space split={<span style={{ color: 'var(--color-text-4)' }}>→</span>}>
-                <span key="quotation-step-1" style={{ fontSize: 13, color: 'var(--color-text-2)' }}>发起申请</span>
-                <span key="quotation-step-2" style={{ fontSize: 13, color: 'var(--color-text-2)' }}>初审（张三 - 部门经理）</span>
-                <span key="quotation-step-3" style={{ fontSize: 13, color: 'var(--color-text-2)' }}>终审（王五 - 财务审核）</span>
-              </Space>
-            </div>
-          </div>
-
-          <FormItem label="报价单文件" field="file">
-            <Upload
-              accept=".xlsx,.xls,.csv"
-              drag
-            >
-              <div style={{ padding: '20px', textAlign: 'center' }}>
-                <div>
-                  <IconUpload style={{ fontSize: 32, color: 'var(--color-text-3)' }} />
-                </div>
-                <div style={{ marginTop: 8, color: 'var(--color-text-2)' }}>
-                  点击或拖拽文件到此处上传
-                </div>
-                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-3)' }}>
-                  支持 Excel 文件（.xlsx, .xls, .csv）
-                </div>
-              </div>
-            </Upload>
-          </FormItem>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="新增出差申请"
-        visible={travelModalVisible}
-        onOk={() => {
-          travelForm.validate().then(() => {
-            Message.success('出差申请提交成功');
-            setTravelModalVisible(false);
-            travelForm.resetFields();
-          }).catch(() => {
-            // 验证失败，不做处理，表单会自动显示错误信息
-          });
-        }}
-        onCancel={() => {
-          setTravelModalVisible(false);
-          travelForm.resetFields();
-        }}
-        style={{ width: 680 }}
-      >
-        <Form form={travelForm} layout="vertical">
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem
-                label="申请人"
-                field="applicant"
-                rules={[{ required: true, message: '请选择申请人' }]}
-              >
-                <Select placeholder="请选择申请人">
-                  <Select.Option value="张三">张三</Select.Option>
-                  <Select.Option value="李四">李四</Select.Option>
-                  <Select.Option value="王五">王五</Select.Option>
-                  <Select.Option value="赵六">赵六</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem
-                label="申请部门"
-                field="department"
-                rules={[{ required: true, message: '请输入申请部门' }]}
-              >
-                <Input placeholder="请输入申请部门" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <FormItem
-            label="目的地"
-            field="destination"
-            rules={[{ required: true, message: '请输入目的地' }]}
-          >
-            <Input placeholder="请输入目的地城市" />
-          </FormItem>
-
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem
-                label="开始时间"
-                field="startDate"
-                rules={[{ required: true, message: '请选择开始时间' }]}
-              >
-                <Input type="date" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem
-                label="结束时间"
-                field="endDate"
-                rules={[{ required: true, message: '请选择结束时间' }]}
-              >
-                <Input type="date" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem
-                label="出差周期"
-                field="duration"
-                rules={[{ required: true, message: '请输入出差周期' }]}
-              >
-                <Input placeholder="例如：3天 或 2天8小时" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem
-                label="预估费用"
-                field="estimatedCost"
-                rules={[{ required: true, message: '请输入预估费用' }]}
-              >
-                <Input placeholder="请输入预估费用（单位：元）" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <FormItem
-            label="出差事由"
-            field="purpose"
-            rules={[{ required: true, message: '请输入出差事由' }]}
-          >
-            <Input.TextArea placeholder="请详细说明出差事由" rows={4} />
-          </FormItem>
-
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>审批流程</div>
-            <div style={{
-              background: 'var(--color-fill-2)',
-              borderRadius: 6,
-              padding: '12px 16px',
-              border: '1px solid var(--color-border-2)'
-            }}>
-              <Space split={<span style={{ color: 'var(--color-text-4)' }}>→</span>}>
-                <span key="travel-step-1" style={{ fontSize: 13, color: 'var(--color-text-2)' }}>发起申请</span>
-                <span key="travel-step-2" style={{ fontSize: 13, color: 'var(--color-text-2)' }}>初审（张三 - 部门经理）</span>
-                <span key="travel-step-3" style={{ fontSize: 13, color: 'var(--color-text-2)' }}>终审（王五 - 财务审核）</span>
-              </Space>
-            </div>
-          </div>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="新增报销申请"
-        visible={reimbursementModalVisible}
-        onOk={() => {
-          reimbursementForm.validate().then(() => {
-            Message.success('报销申请提交成功');
-            setReimbursementModalVisible(false);
-            reimbursementForm.resetFields();
-          }).catch(() => {
-            // 验证失败，不做处理，表单会自动显示错误信息
-          });
-        }}
-        onCancel={() => {
-          setReimbursementModalVisible(false);
-          reimbursementForm.resetFields();
-        }}
-        style={{ width: 720 }}
-      >
-        <Form form={reimbursementForm} layout="vertical">
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem
-                label="申请人"
-                field="applicant"
-                rules={[{ required: true, message: '请选择申请人' }]}
-              >
-                <Select placeholder="请选择申请人">
-                  <Select.Option value="张三">张三</Select.Option>
-                  <Select.Option value="李四">李四</Select.Option>
-                  <Select.Option value="王五">王五</Select.Option>
-                  <Select.Option value="赵六">赵六</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem
-                label="申请部门"
-                field="department"
-                rules={[{ required: true, message: '请输入申请部门' }]}
-              >
-                <Input placeholder="请输入申请部门" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem
-                label="费用类型"
-                field="expenseType"
-                rules={[{ required: true, message: '请选择费用类型' }]}
-              >
-                <Select placeholder="请选择费用类型">
-                  <Select.Option value="差旅费">差旅费</Select.Option>
-                  <Select.Option value="招待费">招待费</Select.Option>
-                  <Select.Option value="办公费">办公费</Select.Option>
-                  <Select.Option value="通讯费">通讯费</Select.Option>
-                  <Select.Option value="其他">其他</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem
-                label="发票类型"
-                field="invoiceType"
-                rules={[{ required: true, message: '请选择发票类型' }]}
-              >
-                <Select placeholder="请选择发票类型">
-                  <Select.Option value="增值税专用发票">增值税专用发票</Select.Option>
-                  <Select.Option value="增值税普通发票">增值税普通发票</Select.Option>
-                  <Select.Option value="电子发票">电子发票</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem
-                label="开票金额"
-                field="invoiceAmount"
-                rules={[{ required: true, message: '请输入开票金额' }]}
-              >
-                <Input placeholder="请输入开票金额（单位：元）" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem
-                label="报销金额"
-                field="reimbursementAmount"
-                rules={[{ required: true, message: '请输入报销金额' }]}
-              >
-                <Input placeholder="请输入报销金额（单位：元）" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem
-                label="发票抬头"
-                field="invoiceTitle"
-                rules={[{ required: true, message: '请输入发票抬头' }]}
-              >
-                <Input placeholder="请输入发票抬头" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem
-                label="税号"
-                field="taxNumber"
-                rules={[{ required: true, message: '请输入税号' }]}
-              >
-                <Input placeholder="请输入纳税人识别号" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          {/* 费用明细区域 */}
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>费用明细</div>
-              <Button
-                type="primary"
-                size="small"
-                icon={<IconPlus />}
-                onClick={() => {
-                  const newId = Math.max(...expenseItems.map(item => item.id)) + 1;
-                  setExpenseItems([...expenseItems, { id: newId, category: '', description: '', amount: '' }]);
-                }}
-              >
-                新增一条费用明细
-              </Button>
-            </div>
-
-            <div style={{
-              background: 'var(--color-fill-2)',
-              borderRadius: 6,
-              padding: '16px',
-              border: '1px solid var(--color-border-2)'
-            }}>
-              {expenseItems.map((item, index) => (
-                <div
-                  key={item.id}
-                  style={{
-                    background: 'var(--color-bg-2)',
-                    borderRadius: 4,
-                    padding: '12px',
-                    marginBottom: index < expenseItems.length - 1 ? 12 : 0,
-                    border: '1px solid var(--color-border-1)'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-3)', minWidth: 60 }}>
-                      序号 {index + 1}
-                    </div>
-                    {expenseItems.length > 1 && (
-                      <Button
-                        type="text"
-                        size="mini"
-                        status="danger"
-                        icon={<IconDelete />}
-                        onClick={() => {
-                          setExpenseItems(expenseItems.filter(expItem => expItem.id !== item.id));
-                        }}
-                      >
-                        删除
-                      </Button>
-                    )}
-                  </div>
-
-                  <Grid.Row gutter={12}>
-                    <Grid.Col span={8}>
-                      <div style={{ marginBottom: 4, fontSize: 12, color: 'var(--color-text-3)' }}>费用类型 *</div>
-                      <Select
-                        placeholder="请选择费用类型"
-                        value={item.category}
-                        onChange={(value) => {
-                          const newItems = [...expenseItems];
-                          newItems[index].category = value;
-                          setExpenseItems(newItems);
-                        }}
-                        style={{ width: '100%' }}
-                      >
-                        <Select.Option value="差旅费-交通">差旅费-交通</Select.Option>
-                        <Select.Option value="差旅费-住宿">差旅费-住宿</Select.Option>
-                        <Select.Option value="差旅费-餐饮">差旅费-餐饮</Select.Option>
-                        <Select.Option value="商务成本-招待">商务成本-招待</Select.Option>
-                        <Select.Option value="商务成本-礼品">商务成本-礼品</Select.Option>
-                        <Select.Option value="办公费用-设备">办公费用-设备</Select.Option>
-                        <Select.Option value="办公费用-耗材">办公费用-耗材</Select.Option>
-                        <Select.Option value="通讯费">通讯费</Select.Option>
-                        <Select.Option value="其他">其他</Select.Option>
-                      </Select>
-                    </Grid.Col>
-                    <Grid.Col span={8}>
-                      <div style={{ marginBottom: 4, fontSize: 12, color: 'var(--color-text-3)' }}>金额（元）*</div>
-                      <Input
-                        placeholder="0.00"
-                        value={item.amount}
-                        onChange={(value) => {
-                          const newItems = [...expenseItems];
-                          newItems[index].amount = value;
-                          setExpenseItems(newItems);
-                        }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={8}>
-                      <div style={{ marginBottom: 4, fontSize: 12, color: 'var(--color-text-3)' }}>费用说明 *</div>
-                      <Input
-                        placeholder="请输入费用用途"
-                        value={item.description}
-                        onChange={(value) => {
-                          const newItems = [...expenseItems];
-                          newItems[index].description = value;
-                          setExpenseItems(newItems);
-                        }}
-                      />
-                    </Grid.Col>
-                  </Grid.Row>
-                </div>
-              ))}
-
-              <div style={{
-                marginTop: 16,
-                paddingTop: 12,
-                borderTop: '1px solid var(--color-border-2)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ fontSize: 13, color: 'var(--color-text-3)' }}>
-                  共 {expenseItems.length} 笔费用
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'rgb(var(--red-6))' }}>
-                  费用合计：¥{expenseItems.reduce((sum, item) => {
-                    const amount = parseFloat(item.amount) || 0;
-                    return sum + amount;
-                  }, 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>审批流程</div>
-            <div style={{
-              background: 'var(--color-fill-2)',
-              borderRadius: 6,
-              padding: '12px 16px',
-              border: '1px solid var(--color-border-2)'
-            }}>
-              <Space split={<span style={{ color: 'var(--color-text-4)' }}>→</span>}>
-                <span key="reimbursement-step-1" style={{ fontSize: 13, color: 'var(--color-text-2)' }}>发起申请</span>
-                <span key="reimbursement-step-2" style={{ fontSize: 13, color: 'var(--color-text-2)' }}>初审（张三 - 部门经理）</span>
-                <span key="reimbursement-step-3" style={{ fontSize: 13, color: 'var(--color-text-2)' }}>终审（王五 - 财务审核）</span>
-              </Space>
-            </div>
-          </div>
-
-          <FormItem label="附件上传" field="attachments">
-            <Upload
-              accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
-              multiple
-              drag
-            >
-              <div style={{ padding: '20px', textAlign: 'center' }}>
-                <div>
-                  <IconUpload style={{ fontSize: 32, color: 'var(--color-text-3)' }} />
-                </div>
-                <div style={{ marginTop: 8, color: 'var(--color-text-2)' }}>
-                  点击或拖拽文件到此处上传
-                </div>
-                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-3)' }}>
-                  支持发票、收据等文件（.pdf, .jpg, .png, .doc, .docx）
-                </div>
-              </div>
-            </Upload>
-          </FormItem>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={paymentPeriods > 0 ? "重设回款期数" : "初始化回款期数"}
-        visible={paymentPeriodVisible}
-        onOk={handleInitializePaymentPeriods}
-        onCancel={() => {
-          setPaymentPeriodVisible(false);
-          paymentPeriodForm.resetFields();
-        }}
-        style={{ width: 480 }}
-      >
-        <Form form={paymentPeriodForm} layout="vertical">
-          {paymentPeriods > 0 && (
-            <div style={{
-              padding: '12px',
-              background: 'rgba(var(--warning-2), 0.5)',
-              border: '1px solid rgb(var(--warning-3))',
-              borderRadius: '6px',
-              marginBottom: '16px',
-              fontSize: '14px',
-              color: 'var(--color-text-1)'
-            }}>
-              <div style={{ fontWeight: 600, marginBottom: '4px' }}>⚠️ 重设提醒</div>
-              <div style={{ fontSize: '13px', color: 'var(--color-text-2)' }}>
-                重设期数将清空所有现有的回款与发票记录，包括已录入的金额、日期、凭证等信息。请谨慎操作。
-              </div>
-            </div>
-          )}
-          <FormItem
-            label="回款期数"
-            field="periods"
-            rules={[{ required: true, message: '请选择回款期数' }]}
-          >
-            <Select placeholder="请选择回款期数">
-              <Select.Option value="1">一期</Select.Option>
-              <Select.Option value="2">二期</Select.Option>
-              <Select.Option value="3">三期</Select.Option>
-              <Select.Option value="4">四期</Select.Option>
-              <Select.Option value="custom">自定义</Select.Option>
-            </Select>
-          </FormItem>
-          <FormItem
-            noStyle
-            shouldUpdate={(prev, current) => prev.periods !== current.periods}
-          >
-            {(values) => {
-              return values.periods === 'custom' ? (
-                <FormItem
-                  label="自定义期数"
-                  field="customPeriods"
-                  rules={[{ required: true, message: '请输入自定义期数' }]}
-                >
-                  <Input placeholder="请输入期数" type="number" />
+        <Modal
+          title="完善报价资料"
+          visible={quotationModalVisible}
+          onOk={submitQuotation}
+          onCancel={closeQuotationModal}
+          okText="下一步，生成报价单"
+          maskClosable={false}
+          style={{ width: 980, maxWidth: 'calc(100vw - 32px)' }}
+        >
+          <Form form={quotationForm} layout="vertical">
+            <Grid.Row gutter={16}>
+              <Grid.Col span={12}>
+                <FormItem label="报价上浮" field="upliftType">
+                  <Radio.Group type="button" onChange={upliftType => {
+                    const originalAmount = quotationConfigSummary?.totalAmount ?? 0;
+                    const amount = Number(quotationForm.getFieldValue('amount')) || originalAmount;
+                    quotationForm.setFieldValue('upliftValue', upliftType === 'fixed' ? Math.round((amount - originalAmount) * 100) / 100 : calculateUpliftRate(originalAmount, amount));
+                  }}>
+                    <Radio value="rate">按比例上浮</Radio>
+                    <Radio value="fixed">按固定金额上浮</Radio>
+                  </Radio.Group>
                 </FormItem>
-              ) : null;
-            }}
-          </FormItem>
-        </Form>
-      </Modal>
+              </Grid.Col>
+              <Grid.Col span={12}>
+                <FormItem noStyle shouldUpdate={(previous, current) => previous.upliftType !== current.upliftType}>
+                  {values => (
+                    <FormItem label={values.upliftType === 'fixed' ? '上浮金额' : '上浮比例'} field="upliftValue" rules={[{ required: true, message: '请输入上浮值' }]}>
+                      <InputNumber min={0} precision={2} prefix={values.upliftType === 'fixed' ? '¥' : undefined} suffix={values.upliftType === 'fixed' ? undefined : '%'} placeholder={values.upliftType === 'fixed' ? '请输入上浮金额' : '请输入上浮比例'} style={{ width: '100%' }} onChange={value => {
+                        const originalAmount = quotationConfigSummary?.totalAmount ?? 0;
+                        const upliftValue = Number(value) || 0;
+                        const amount = values.upliftType === 'fixed' ? calculateQuotationAmountByFixed(originalAmount, upliftValue) : calculateQuotationAmount(originalAmount, upliftValue);
+                        quotationForm.setFieldValue('amount', amount);
+                        quotationForm.setFieldValue('upliftRate', calculateUpliftRate(originalAmount, amount));
+                      }} />
+                    </FormItem>
+                  )}
+                </FormItem>
+              </Grid.Col>
+            </Grid.Row>
+            <Grid.Row gutter={16}>
+              <Grid.Col span={12}>
+                <FormItem label="原始报价金额">
+                  <InputNumber value={quotationConfigSummary?.totalAmount ?? 0} precision={2} prefix="¥" disabled style={{ width: '100%' }} />
+                </FormItem>
+              </Grid.Col>
+              <Grid.Col span={12}>
+                <FormItem label="上浮后金额" field="amount" rules={[{ required: true, message: '请输入上浮后金额' }]}>
+                  <InputNumber
+                    min={0}
+                    precision={2}
+                    prefix="¥"
+                    placeholder="根据上浮自动计算"
+                    style={{ width: '100%' }}
+                    onChange={value => {
+                      const originalAmount = quotationConfigSummary?.totalAmount ?? 0;
+                      const amount = Number(value) || 0;
+                      const upliftRate = calculateUpliftRate(originalAmount, amount);
+                      quotationForm.setFieldValue('upliftRate', upliftRate);
+                      quotationForm.setFieldValue('upliftValue', quotationForm.getFieldValue('upliftType') === 'fixed' ? Math.round((amount - originalAmount) * 100) / 100 : upliftRate);
+                    }}
+                  />
+                </FormItem>
+              </Grid.Col>
+            </Grid.Row>
+            <Grid.Row gutter={16}>
+              <Grid.Col span={12}>
+                <FormItem label="报价人" field="operator" rules={[{ required: true, message: '请选择报价人' }]}>
+                  <Select placeholder="请选择报价人" showSearch allowClear>
+                    {employees.map(employee => <Select.Option key={employee.id} value={employee.name}>{employee.name}</Select.Option>)}
+                  </Select>
+                </FormItem>
+              </Grid.Col>
+              <Grid.Col span={12}>
+                <FormItem label="技术评估人" field="technicalEvaluator" rules={[{ required: true, message: '请选择技术评估人' }]}>
+                  <Select placeholder="请选择技术评估人" mode="multiple" allowClear>
+                    {technicalEvaluators.map(person => <Select.Option key={person} value={person}>{person}</Select.Option>)}
+                  </Select>
+                </FormItem>
+              </Grid.Col>
+            </Grid.Row>
+            <Grid.Row gutter={16}>
+              <Grid.Col span={12}>
+                <FormItem
+                  label="预计周期"
+                  field="period"
+                  rules={[
+                    { required: true, message: '请输入预计周期' },
+                    { match: /^[1-9]\d*$/, message: '预计周期只能输入正整数' },
+                  ]}
+                >
+                  <Input
+                    inputMode="numeric"
+                    placeholder="请输入预计周期"
+                    maxLength={5}
+                    suffix={<span style={{ marginRight: 10 }}>天</span>}
+                    onChange={value => quotationForm.setFieldValue('period', value.replace(/\D/g, '').replace(/^0+/, ''))}
+                  />
+                </FormItem>
+              </Grid.Col>
+            </Grid.Row>
+            {quotationConfigSummary && quotationConfigDraft ? (
+              <FormItem noStyle shouldUpdate={(previous, current) => previous.amount !== current.amount || previous.upliftRate !== current.upliftRate}>
+                {values => (
+                  <QuotationSummaryReport
+                    config={quotationConfigDraft}
+                    summary={quotationConfigSummary}
+                    quotedAmount={Number(values.amount)}
+                    upliftRate={Number(values.upliftRate) || 0}
+                  />
+                )}
+              </FormItem>
+            ) : null}
+            <FormItem label="报价说明" field="description">
+              <Input.TextArea placeholder="请输入报价说明" maxLength={500} showWordLimit autoSize={{ minRows: 3, maxRows: 6 }} />
+            </FormItem>
+          </Form>
+        </Modal>
+      </>
+
+      <QuotationDocumentPreviewModal
+        visible={quotationDocumentVisible}
+        data={quotationDocumentData}
+        onCancel={closeQuotationDocument}
+        onSubmit={submitQuotationDocument}
+      />
 
       <Modal
-        title="编辑回款信息"
-        visible={paymentEditVisible}
-        onOk={() => {
-          paymentForm.validate().then(() => {
-            Message.success('回款信息更新成功');
-            setPaymentEditVisible(false);
-            paymentForm.resetFields();
-          }).catch(() => {
-            // 验证失败，不做处理，表单会自动显示错误信息
-          });
-        }}
+        title={`新增${approvalLinkType === 'travel' ? '出差' : '报销'}审批关联`}
+        visible={approvalLinkType !== null}
+        onOk={handleCreateApprovalLink}
         onCancel={() => {
-          setPaymentEditVisible(false);
-          paymentForm.resetFields();
+          setApprovalLinkType(null);
+          setApprovalNoInput('');
+        }}
+      >
+        <FormItem label="审批编号" required>
+          <Input
+            placeholder="请输入企业微信审批编号"
+            value={approvalNoInput}
+            onChange={setApprovalNoInput}
+          />
+        </FormItem>
+        <div style={{ color: 'var(--color-text-3)', fontSize: 13, lineHeight: '22px' }}>
+          审批编号请在企业微信审批记录中获取。提交后系统会根据审批编号自动关联对应审批记录。
+        </div>
+      </Modal>
+      <Modal
+        title="新增演示记录"
+        visible={demoModalVisible}
+        onOk={handleSubmitDemo}
+        onCancel={() => {
+          setDemoModalVisible(false);
+          demoForm.resetFields();
         }}
         style={{ width: 680 }}
+        maskClosable={false}
       >
-        <Form form={paymentForm} layout="vertical">
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem
-                label="回款名称"
-                field="name"
-                rules={[{ required: true, message: '请选择回款名称' }]}
-              >
-                <Select placeholder="请选择">
-                  <Select.Option value="首期款">首期款</Select.Option>
-                  <Select.Option value="周期款">周期款</Select.Option>
-                  <Select.Option value="尾款">尾款</Select.Option>
-                  <Select.Option value="附加款">附加款</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem
-                label="应回款金额"
-                field="expectedAmount"
-                rules={[{ required: true, message: '请输入应回款金额' }]}
-              >
-                <Input placeholder="请输入金额（单位：元）" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem
-                label="预计回款日期"
-                field="expectedDate"
-                rules={[{ required: true, message: '请选择预计回款日期' }]}
-              >
-                <Input type="date" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem label="实际回款日期" field="actualDate">
-                <Input type="date" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
+        <Form form={demoForm} layout="vertical">
+          <FormItem
+            label="演示记录名称"
+            field="name"
+            rules={[{ required: true, message: '请输入演示记录名称' }]}
+          >
+            <Input placeholder="请输入演示记录名称" />
+          </FormItem>
 
           <FormItem
-            label="到账状态"
-            field="status"
-            rules={[{ required: true, message: '请选择到账状态' }]}
+            label="类型"
+            field="type"
+            rules={[{ required: true, message: '请选择演示类型' }]}
           >
-            <Select placeholder="请选择">
-              <Select.Option value="已到账">已到账</Select.Option>
-              <Select.Option value="未到账">未到账</Select.Option>
+            <Select placeholder="请选择演示类型">
+              {DEMO_TYPE_OPTIONS.map((type) => (
+                <Select.Option key={type} value={type}>
+                  {type}
+                </Select.Option>
+              ))}
             </Select>
           </FormItem>
 
-          <FormItem label="回款凭证" field="voucher">
-            <Upload accept=".jpg,.jpeg,.png,.pdf" drag>
-              <div style={{ padding: '20px', textAlign: 'center' }}>
-                <div>
-                  <IconUpload style={{ fontSize: 32, color: 'var(--color-text-3)' }} />
-                </div>
-                <div style={{ marginTop: 8, color: 'var(--color-text-2)' }}>
-                  点击或拖拽文件到此处上传
-                </div>
-                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-3)' }}>
-                  支持图片和PDF文件
-                </div>
-              </div>
-            </Upload>
-          </FormItem>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="编辑发票信息"
-        visible={invoiceEditVisible}
-        onOk={() => {
-          invoiceForm.validate().then(() => {
-            Message.success('发票信息更新成功');
-            setInvoiceEditVisible(false);
-            invoiceForm.resetFields();
-          }).catch(() => {
-            // 验证失败，不做处理，表单会自动显示错误信息
-          });
-        }}
-        onCancel={() => {
-          setInvoiceEditVisible(false);
-          invoiceForm.resetFields();
-        }}
-        style={{ width: 680 }}
-      >
-        <Form form={invoiceForm} layout="vertical">
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem
-                label="开票状态"
-                field="invoiceStatus"
-                rules={[{ required: true, message: '请选择开票状态' }]}
-              >
-                <Select placeholder="请选择">
-                  <Select.Option value="已开票">已开票</Select.Option>
-                  <Select.Option value="未开票">未开票</Select.Option>
-                </Select>
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem
-                label="开票税率"
-                field="taxRate"
-                rules={[{ required: true, message: '请输入开票税率' }]}
-              >
-                <Input placeholder="例如：6%" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
-          <Grid.Row gutter={16}>
-            <Grid.Col span={12}>
-              <FormItem label="开票日期" field="invoiceDate">
-                <Input type="date" />
-              </FormItem>
-            </Grid.Col>
-            <Grid.Col span={12}>
-              <FormItem
-                label="开票税额"
-                field="taxAmount"
-                rules={[{ required: true, message: '请输入开票税额' }]}
-              >
-                <Input placeholder="请输入税额（单位：元）" />
-              </FormItem>
-            </Grid.Col>
-          </Grid.Row>
-
           <FormItem
-            label="收款方式"
-            field="paymentMethod"
-            rules={[{ required: true, message: '请选择收款方式' }]}
+            label="网址"
+            field="url"
+            rules={[
+              { required: true, message: '请输入演示网址' },
+              { type: 'url', message: '请输入有效的网址' },
+            ]}
           >
-            <Select placeholder="请选择">
-              <Select.Option value="公对公">公对公</Select.Option>
-              <Select.Option value="支付宝">支付宝</Select.Option>
-              <Select.Option value="微信">微信</Select.Option>
-              <Select.Option value="其他">其他</Select.Option>
-            </Select>
+            <Input placeholder="请输入演示网址，如 https://example.com/demo" />
           </FormItem>
 
-          <FormItem label="发票凭证" field="invoiceVoucher">
-            <Upload accept=".jpg,.jpeg,.png,.pdf" drag>
-              <div style={{ padding: '20px', textAlign: 'center' }}>
-                <div>
-                  <IconUpload style={{ fontSize: 32, color: 'var(--color-text-3)' }} />
-                </div>
-                <div style={{ marginTop: 8, color: 'var(--color-text-2)' }}>
-                  点击或拖拽文件到此处上传
-                </div>
-                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-3)' }}>
-                  支持发票截图和PDF文件
-                </div>
-              </div>
-            </Upload>
+          <FormItem label="说明" field="description">
+            <Input.TextArea
+              placeholder="请输入演示说明（可选）"
+              autoSize={{ minRows: 3, maxRows: 6 }}
+              maxLength={1000}
+              showWordLimit
+            />
           </FormItem>
         </Form>
       </Modal>

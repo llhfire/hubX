@@ -8,6 +8,7 @@ import {
   initialAttendance,
   initialPerformanceReviews,
   initialLevelRates,
+  ALL_POSITIONS,
   AbilityScores,
   calcWeightedScore,
   checkPromotionEligibility,
@@ -22,6 +23,7 @@ interface EmployeeContextValue {
   attendance: AttendanceRecord[];
   performanceReviews: PerformanceReview[];
   levelRates: LevelRateConfig[];
+  positions: string[];
   // employee CRUD
   addEmployee: (emp: Omit<Employee, 'id'>) => void;
   updateEmployee: (id: string, data: Partial<Employee>) => void;
@@ -39,6 +41,8 @@ interface EmployeeContextValue {
   // level rate
   updateLevelRate: (level: string, position: string, rate: number) => void;
   getLevelRate: (level: string, position: string) => LevelRateConfig | undefined;
+  addPosition: (position: string) => void;
+  addLevelRate: (levelRate: LevelRateConfig) => void;
   // capability (内嵌 Employee)
   skillTrees: typeof skillTreeDefinitions;
 }
@@ -55,6 +59,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>(initialAttendance);
   const [performanceReviews, setPerformanceReviews] = useState<PerformanceReview[]>(initialPerformanceReviews);
   const [levelRates, setLevelRates] = useState<LevelRateConfig[]>(initialLevelRates);
+  const [positions, setPositions] = useState<string[]>(ALL_POSITIONS);
 
   // ---- Employee ----
   const addEmployee = useCallback((emp: Omit<Employee, 'id'>) => {
@@ -136,6 +141,14 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
     [levelRates],
   );
 
+  const addPosition = useCallback((position: string) => {
+    setPositions(prev => [...prev, position]);
+  }, []);
+
+  const addLevelRate = useCallback((levelRate: LevelRateConfig) => {
+    setLevelRates(prev => [...prev, levelRate]);
+  }, []);
+
   return (
     <EmployeeContext.Provider
       value={{
@@ -143,6 +156,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
         attendance,
         performanceReviews,
         levelRates,
+        positions,
         addEmployee,
         updateEmployee,
         deleteEmployee,
@@ -156,6 +170,8 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
         getPerformanceByEmployee,
         updateLevelRate,
         getLevelRate,
+        addPosition,
+        addLevelRate,
         skillTrees: skillTreeDefinitions,
       }}
     >

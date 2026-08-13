@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildPaymentPlansForRatio,
   canTransitionTo,
   convertAmountToChinese,
   findLatestApprovedQuote,
@@ -7,6 +8,21 @@ import {
   getNextVersionNo,
 } from '../utils';
 import type { ContractStatus, QuotationRecord } from '../types';
+
+describe('buildPaymentPlansForRatio', () => {
+  it('生成 3:3:3:1 的四期回款计划', () => {
+    expect(buildPaymentPlansForRatio('3:3:3:1', 100000)).toEqual([
+      { period: 1, expectedDate: '', expectedDateType: 'fixed', condition: '', amount: 30000, percentage: 30, amountType: 'percentage' },
+      { period: 2, expectedDate: '', expectedDateType: 'fixed', condition: '', amount: 30000, percentage: 30, amountType: 'percentage' },
+      { period: 3, expectedDate: '', expectedDateType: 'fixed', condition: '', amount: 30000, percentage: 30, amountType: 'percentage' },
+      { period: 4, expectedDate: '', expectedDateType: 'fixed', condition: '', amount: 10000, percentage: 10, amountType: 'percentage' },
+    ]);
+  });
+
+  it('生成 4:5:1 的三期回款计划', () => {
+    expect(buildPaymentPlansForRatio('4:5:1', 100000).map((plan) => plan.percentage)).toEqual([40, 50, 10]);
+  });
+});
 
 describe('convertAmountToChinese', () => {
   it('零元', () => {
@@ -154,5 +170,10 @@ describe('generateContractNo', () => {
     const d = new Date(2026, 0, 5);
     expect(generateContractNo(d, 12)).toBe('CT20260105012');
     expect(generateContractNo(d, 100)).toBe('CT20260105100');
+  });
+
+  it('支持按签约主体生成编号', () => {
+    const d = new Date(2026, 6, 27);
+    expect(generateContractNo(d, 1, 'ZKRT')).toBe('ZKRTHT-20260727001');
   });
 });

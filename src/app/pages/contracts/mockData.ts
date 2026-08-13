@@ -1,5 +1,5 @@
 // 合同模块的 mock 初始数据。
-// 8 条合同覆盖：
+// 9 条合同覆盖：
 //   - 5 条已归档（沿用 Contracts.tsx 原有合同 1-5，扩字段补上版本/审批历史/扫描件占位）
 //   - 1 条 approving（合同 6：审批走到财务节点 pending）
 //   - 1 条 pending_mail（合同 7：审批通过待行政打印）
@@ -15,7 +15,7 @@ import type {
   PaymentStatus,
   ScanArchiveEntry,
 } from './types';
-import { renderTemplate } from './templates';
+import { renderContractDocument } from './templates';
 
 // --- helpers ---
 
@@ -55,7 +55,7 @@ function buildFormData(overrides: Partial<ContractFormData>): ContractFormData {
     signDate: '2026-03-15',
     effectiveDate: '2026-03-20',
     endDate: '2026-06-20',
-    paymentMethod: '公对公',
+    paymentMethod: '对公',
     totalAmount: 0,
     rebateAmount: 0,
     paymentPlans: [],
@@ -74,7 +74,7 @@ function buildVersionFromForm(
   return {
     versionNo,
     formData,
-    renderedHtml: renderTemplate(formData.templateId, formData),
+    renderedHtml: renderContractDocument(formData),
     label,
     createdAt,
     createdBy,
@@ -362,6 +362,71 @@ export function buildInitialContracts(): Contract[] {
     executionStatus: '已完成',
   };
 
+  // 合同 9: 华信科技内部OA流程优化合同 - 履行中
+  const contract9Form = buildFormData({
+    contractName: '华信科技内部OA流程优化合同',
+    signingEntity: '中科软艺',
+    customerName: '华信科技有限公司',
+    customerContact: '周经理',
+    customerPhone: '13800009999',
+    customerEmail: 'zhou@huaxin.example.com',
+    customerAddress: '北京市朝阳区科技园路88号',
+    customerTaxNo: '91110105HXOA202609',
+    bankName: '中国工商银行北京朝阳支行',
+    bankAccount: '1100 2000 3000 4000 500',
+    productCategory: '软件开发',
+    totalAmount: 960_000,
+    signDate: '2026-06-20',
+    effectiveDate: '2026-06-23',
+    endDate: '2026-10-30',
+    paymentPlans: buildPaymentPlans(960_000, [40, 40, 20]),
+    templateId: 'software_sales',
+  });
+  const contract9: Contract = {
+    id: '9',
+    contractNo: 'HT202606009',
+    status: 'archived',
+    leadId: 'lead-9',
+    quoteId: 'quote-9',
+    current: contract9Form,
+    versionHistory: [
+      buildVersionFromForm('V1', contract9Form, '首次保存草稿', '2026-06-16 10:00'),
+      buildVersionFromForm('V2', contract9Form, '根据客户确认原型更新流程范围', '2026-06-18 15:30'),
+    ],
+    approvalFlow: [
+      approved('发起申请', '张三', '2026-06-18 15:30', '提交合同审批'),
+      approved('商务审核', '王经理 - 商务主管', '2026-06-19 09:10'),
+      approved('财务审核', '陈财务 - 财务总监', '2026-06-19 13:40'),
+      approved('法务审核', '赵律师 - 法务部', '2026-06-19 16:20'),
+    ],
+    approvedVersionNo: 'V2',
+    approvedAt: '2026-06-19 16:20',
+    mailedAt: '2026-06-20 10:00',
+    archivedScans: [
+      buildScanEntry('scan-9', '华信科技OA流程优化合同盖章件.pdf', '2026-06-22 14:00', 'V2'),
+    ],
+    createdAt: '2026-06-16 10:00',
+    createdBy: '张三',
+    updatedAt: '2026-07-21 16:30',
+    receivedAmount: 384_000,
+    receivableAmount: 576_000,
+    executionStatus: '履行中',
+    collectionRecords: [
+      {
+        id: 'col-9-1',
+        contractId: '9',
+        period: 1,
+        amount: 384_000,
+        date: '2026-06-25',
+        method: '银行转账',
+        note: '首期款已到账',
+      },
+    ],
+    paymentBlockers: [],
+    dunningRecords: [],
+    paymentStatus: 'upcoming' as PaymentStatus,
+  };
+
   // ====== 3 条形成期演示数据 ======
 
   // 合同 6: F公司CRM定制 - 审批中（财务节点 pending）
@@ -409,7 +474,7 @@ export function buildInitialContracts(): Contract[] {
     effectiveDate: '2026-07-01',
     endDate: '2027-06-30',
     paymentPlans: buildPaymentPlans(360_000, [100]),
-    paymentMethod: '公对公',
+    paymentMethod: '对公',
     templateId: 'cloud_service',
   });
   const contract7: Contract = {
@@ -474,5 +539,5 @@ export function buildInitialContracts(): Contract[] {
     updatedAt: '2026-06-04 10:00',
   };
 
-  return [contract1, contract2, contract3, contract4, contract5, contract6, contract7, contract8];
+  return [contract1, contract2, contract3, contract4, contract5, contract9, contract6, contract7, contract8];
 }

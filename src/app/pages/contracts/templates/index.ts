@@ -33,3 +33,10 @@ export function renderTemplate(templateId: string, formData: Parameters<Contract
   }
   return tpl.render(formData);
 }
+
+// 手动编辑过模板时优先使用编辑后的正文，否则按当前表单数据实时渲染模板。
+export function renderContractDocument(formData: Parameters<ContractTemplate['render']>[0]): string {
+  return formData.customContractHtml?.trim()
+    ? formData.customContractHtml
+    : renderTemplate(formData.templateId, formData);
+}

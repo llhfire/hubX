@@ -7,7 +7,49 @@
 // - 合同编号生成
 // - 从线索的报价历史中找最近一份"已审批通过的报价"
 
-import type { ContractStatus, QuotationRecord } from './types';
+import type {
+  ContractStatus,
+  PaymentPlanItem,
+  PaymentRatio,
+  QuotationRecord,
+} from './types';
+
+export const PAYMENT_RATIO_OPTIONS: Array<{ value: PaymentRatio; label: string; percentages: number[] }> = [
+  { value: '3:3:3:1', label: '3:3:3:1', percentages: [30, 30, 30, 10] },
+  { value: '4:5:1', label: '4:5:1', percentages: [40, 50, 10] },
+];
+
+export function buildPaymentPlansForRatio(
+  ratio: PaymentRatio,
+  totalAmount: number,
+): PaymentPlanItem[] {
+  const option = PAYMENT_RATIO_OPTIONS.find((item) => item.value === ratio);
+  if (!option) return [];
+
+  return option.percentages.map((percentage, index) => ({
+    period: index + 1,
+    expectedDate: '',
+    expectedDateType: 'fixed',
+    condition: '',
+    amount: Math.round(((totalAmount * percentage) / 100) * 100) / 100,
+    percentage,
+    amountType: 'percentage',
+  }));
+}
+
+export function getPaymentPlanPeriodLabel(plan: PaymentPlanItem): string {
+  return plan.periodName ?? `第 ${plan.period} 期`;
+}
+
+export function getPaymentPlanExpectedDateLabel(plan: PaymentPlanItem): string {
+  if (plan.expectedDateType === 'workday') {
+    return plan.expectedDays ? `${plan.expectedDays} 个工作日` : '—';
+  }
+  if (plan.expectedDateType === 'natural') {
+    return plan.expectedDays ? `${plan.expectedDays} 个自然日` : '—';
+  }
+  return plan.expectedDate || '—';
+}
 
 // 人民币金额转中文大写。从 LeadDetail.tsx:558 的 convertToChinese 整体迁出。
 // 不处理小数（合同金额按"元整"展示）；负数视为绝对值后追加"负"前缀。
@@ -106,14 +148,18 @@ export function findLatestApprovedQuote(
     .sort((a, b) => (b.createTime ?? '').localeCompare(a.createTime ?? ''))[0];
 }
 
-// 合同编号生成。格式：CT{YYYYMMDD}{seq}
+// 合同编号生成。新建合同按主体生成：{主体简称首字母}HT-{YYYYMMDD}{seq}。
+// 未传主体前缀时保留旧格式，兼容历史数据和已有测试。
 // seq 是当天的递增序号，由调用方（ContractsContext）维护一个内存计数器后传入。
 // 这里不依赖时间或随机数，是纯函数；单测可控。
-export function generateContractNo(now: Date, seq: number): string {
+export function generateContractNo(now: Date, seq: number, signingEntityPrefix?: string): string {
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
   const seqStr = String(seq).padStart(3, '0');
+  if (signingEntityPrefix) {
+    return `${signingEntityPrefix}HT-${yyyy}${mm}${dd}${seqStr}`;
+  }
   return `CT${yyyy}${mm}${dd}${seqStr}`;
 }
 

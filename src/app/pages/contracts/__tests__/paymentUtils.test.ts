@@ -23,7 +23,7 @@ function makeContract(overrides: Partial<Contract> = {}): Contract {
       signDate: '2026-01-01',
       effectiveDate: '2026-01-01',
       endDate: '2026-12-31',
-      paymentMethod: '公对公',
+      paymentMethod: '对公',
       totalAmount: 100000,
       rebateAmount: 0,
       paymentPlans: [

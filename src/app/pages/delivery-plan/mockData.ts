@@ -118,10 +118,69 @@ for (const step of plan2.steps) {
 }
 
 // ──────────────────────────────────────
+// Project 3：华信科技内部OA流程优化
+// ──────────────────────────────────────
+
+const project3Config = {
+  selectedPhases: [1, 2, 3, 4, 5, 6, 7] as number[],
+  deliveryType: '网站' as const,
+};
+
+const project3Data: Record<string, any> = {
+  id: '3',
+  startDate: '2026-06-18',
+  owner: '李四',
+  productUsers: ['李四'],
+  salesUsers: ['张三'],
+  uiUsers: ['孙七'],
+  frontendUsers: ['王五'],
+  backendUsers: ['赵六'],
+  opsUsers: ['周八'],
+  testUsers: ['钱九'],
+  legalUsers: [],
+};
+
+const project3Milestones = [
+  { name: '项目启动', completed: true, date: '2026-06-20' },
+  { name: '原型确认', completed: true, date: '2026-07-10' },
+  { name: '一期版本交付', completed: false, date: '2026-08-20' },
+  { name: '验收上线', completed: false, date: '2026-10-30' },
+];
+
+const plan3 = generateDeliveryPlan(
+  project3Config,
+  project3Data,
+  '2026-06-10',
+  project3Milestones,
+);
+
+const project3CompletedSteps = [
+  '1.1', '1.2', '1.3', '1.4', '1.5',
+  '2.1', '2.2', '2.3', '2.4',
+  '3.1', '3.2', '3.3',
+  '4.1', '4.2', '4.3', '4.7',
+];
+const project3InProgressSteps = ['3.4'];
+
+for (const step of plan3.steps) {
+  if (project3CompletedSteps.includes(step.stepNo)) {
+    step.status = 'completed';
+  } else if (project3InProgressSteps.includes(step.stepNo)) {
+    step.status = 'in_progress';
+  }
+}
+
+const project3TechnicalDesignStep = plan3.steps.find(step => step.stepNo === '3.4');
+if (project3TechnicalDesignStep) {
+  project3TechnicalDesignStep.dueDate = '2026-07-25';
+}
+
+// ──────────────────────────────────────
 // 导出
 // ──────────────────────────────────────
 
 export const initialDeliveryPlans: Record<string, DeliveryPlan> = {
   '1': plan1,
   '2': plan2,
+  '3': plan3,
 };

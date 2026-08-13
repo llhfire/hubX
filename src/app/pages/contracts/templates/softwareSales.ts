@@ -26,7 +26,7 @@ export const softwareSalesTemplate: ContractTemplate = {
 
       <h2>第三条 合同金额与支付方式</h2>
       ${renderAmountClause(formData)}
-      <p>付款方式：<strong>${escape(formData.paymentMethod || '公对公')}</strong>，按以下回款计划分期支付：</p>
+      <p>付款方式：<strong>${escape(formData.paymentMethod || '对公')}</strong>，按以下回款计划分期支付：</p>
       ${renderPaymentPlanTable(formData.paymentPlans)}
       <p>${formData.rebateAmount ? `本合同包含返点金额：¥${formData.rebateAmount.toLocaleString()}。` : ''}</p>
 

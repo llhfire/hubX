@@ -1,5 +1,10 @@
 import { createElement } from 'react'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
+
+vi.mock('react-quill', () => ({
+  __esModule: true,
+  default: () => null,
+}))
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { ReminderItem, SnoozeOptionId } from '../types'
@@ -13,6 +18,7 @@ import { getReminderPriorityLabel } from '../components/ReminderTodoPanel'
 import { ReminderProvider } from '../ReminderContext'
 import { MyLeads, getLeadFollowupReminderBanner } from '@/app/pages/MyLeads'
 import { LeadDetail, normalizeLeadReminderId } from '@/app/pages/LeadDetail'
+import { ContractsProvider } from '@/app/pages/contracts/ContractsContext'
 
 function createReminder(overrides: Partial<ReminderItem> = {}): ReminderItem {
   return {
@@ -37,15 +43,19 @@ function renderInReminderRouter(path: string, element: ReturnType<typeof createE
       ReminderProvider,
       null,
       createElement(
-        MemoryRouter,
-        { initialEntries: [path] },
+        ContractsProvider,
+        null,
         createElement(
-          Routes,
-          null,
-          createElement(Route, {
-            path: path === '/leads/my' ? '/leads/my' : '/leads/:id',
-            element,
-          }),
+          MemoryRouter,
+          { initialEntries: [path] },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: path === '/leads/my' ? '/leads/my' : '/leads/:id',
+              element,
+            }),
+          ),
         ),
       ),
     ),

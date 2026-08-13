@@ -1,4 +1,4 @@
-import {
+import React, {
   createContext,
   useCallback,
   useContext,
@@ -16,6 +16,7 @@ import { resolveSnoozeUntil } from './utils'
 interface ReminderContextValue {
   reminders: ReminderItem[]
   pendingCount: number
+  dailyReports: DailyReport[]
   submitDailyReport: (report: DailyReport) => void
   snoozeReminder: (id: string, option: SnoozeOptionId) => void
   isLeadReminderActive: (leadId: string) => boolean
@@ -72,11 +73,12 @@ export function ReminderProvider({ children }: PropsWithChildren) {
     () => ({
       reminders,
       pendingCount: reminders.length,
+      dailyReports: data.dailyReports,
       submitDailyReport,
       snoozeReminder,
       isLeadReminderActive,
     }),
-    [isLeadReminderActive, reminders, snoozeReminder, submitDailyReport],
+    [data.dailyReports, isLeadReminderActive, reminders, snoozeReminder, submitDailyReport],
   )
 
   return <ReminderContext.Provider value={value}>{children}</ReminderContext.Provider>
